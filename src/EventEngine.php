@@ -19,10 +19,13 @@ use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\Commanding\CommandProcessorDescription;
 use EventEngine\Data\ImmutableRecord;
 use EventEngine\DocumentStore\DocumentStore;
+use EventEngine\DocumentStore\FieldIndex;
+use EventEngine\DocumentStore\MultiFieldIndex;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\BadMethodCallException;
 use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Exception\RuntimeException;
+use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\GenericSchemaMessageFactory;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageDispatcher;
@@ -32,15 +35,28 @@ use EventEngine\Messaging\MessageProducer;
 use EventEngine\Persistence\AggregateStateStore;
 use EventEngine\Persistence\Stream;
 use EventEngine\Projecting\AggregateProjector;
+use EventEngine\Projecting\CustomEventProjector;
+use EventEngine\Projecting\DocumentStoreIndexAware;
+use EventEngine\Projecting\Exception\ProjectorFailed;
+use EventEngine\Projecting\FlavourAware;
+use EventEngine\Projecting\OptionsAware;
 use EventEngine\Projecting\ProjectionDescription;
+use EventEngine\Projecting\ProjectionInfoList;
+use EventEngine\Projecting\Projector;
+use EventEngine\Projecting\Projection;
 use EventEngine\Querying\QueryDescription;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Schema\InputTypeSchema;
+use EventEngine\Schema\MessageBox\CommandMap;
+use EventEngine\Schema\MessageBox\EventMap;
+use EventEngine\Schema\MessageBox\QueryMap;
 use EventEngine\Schema\MessageSchema;
 use EventEngine\Schema\PayloadSchema;
 use EventEngine\Schema\ResponseTypeSchema;
 use EventEngine\Schema\Schema;
+use EventEngine\Schema\TypeSchema;
 use EventEngine\Schema\TypeSchemaMap;
+use EventEngine\Util\Await;
 use EventEngine\Util\VariableType;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
@@ -271,6 +287,41 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $self->initialized = true;
 
         return $self;
+    }
+
+    public function compileCacheableConfig(): array
+    {
+        $this->assertInitialized(__METHOD__);
+
+        $assertClosure = function ($val) {
+            if ($val instanceof \Closure) {
+                throw new RuntimeException('At least one EventEngineDescription contains a Closure and is therefor not cacheable!');
+            }
+        };
+
+        \array_walk_recursive($this->compiledCommandRouting, $assertClosure);
+        \array_walk_recursive($this->aggregateDescriptions, $assertClosure);
+        \array_walk_recursive($this->eventRouting, $assertClosure);
+        \array_walk_recursive($this->projectionMap, $assertClosure);
+        \array_walk_recursive($this->compiledQueryDescriptions, $assertClosure);
+
+        $schemaToArray = function (TypeSchema $typeSchema): array  {
+            return $typeSchema->toArray();
+        };
+
+        return [
+            'commandMap' => array_map($schemaToArray, $this->commandMap),
+            'eventMap' => array_map($schemaToArray, $this->eventMap),
+            'compiledCommandRouting' => $this->compiledCommandRouting,
+            'aggregateDescriptions' => $this->aggregateDescriptions,
+            'eventRouting' => $this->eventRouting,
+            'compiledProjectionDescriptions' => $this->compiledProjectionDescriptions,
+            'compiledQueryDescriptions' => $this->compiledQueryDescriptions,
+            'queryMap' => array_map($schemaToArray, $this->queryMap),
+            'responseTypes' => array_map($schemaToArray, $this->responseTypes),
+            'inputTypes' => array_map($schemaToArray, $this->inputTypes),
+            'writeModelStreamName' => $this->writeModelStreamName,
+        ];
     }
 
     public function load(string $description): void
@@ -515,6 +566,25 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $this->flavour;
     }
 
+    public function messageBoxSchema(): array
+    {
+        $this->assertInitialized(__METHOD__);
+
+        $queryDescriptions = [];
+
+        foreach ($this->compiledQueryDescriptions as $name => $desc) {
+            $desc['returnType'] = $this->schema->buildResponseTypeSchemaFromArray($name, $desc['returnType']);
+            $queryDescriptions[$name] = $desc;
+        }
+
+        return $this->schema->buildMessageBoxSchema(
+            CommandMap::fromEventEngineMap($this->commandMap),
+            EventMap::fromEventEngineMap($this->eventMap),
+            QueryMap::fromEventEngineMapAndQueryDescriptions($this->queryMap, $queryDescriptions),
+            $this->typeSchemaMap
+        );
+    }
+
     public function initialize(
         Flavour $flavour,
         EventStore $eventStore,
@@ -555,7 +625,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             $this->commandMap,
             $this->eventMap,
             $this->queryMap,
-            $this->typeSchemaMap
+            $this->typeSchemaMap,
+            $this->flavour
         );
 
         if($this->flavour instanceof MessageFactoryAware) {
@@ -579,6 +650,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         if (\is_string($messageOrName)) {
             $messageOrName = $this->messageFactory()->createMessageFromArray($messageOrName, ['payload' => $payload]);
+        } else {
+            $messageOrName = $this->flavour->convertMessageReceivedFromNetwork($messageOrName);
         }
 
         if (! $messageOrName instanceof Message) {
@@ -590,11 +663,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         switch ($messageOrName->messageType()) {
             case Message::TYPE_COMMAND:
-                $processorDesc = $this->compiledCommandRouting[$messageOrName->messageName()] ?? null;
-
-                if(!$processorDesc) {
-                    throw new RuntimeException("No routing information found for command {$messageOrName->messageName()}");
-                }
+                $processorDesc = $this->compiledCommandRouting[$messageOrName->messageName()] ?? [];
 
                 $container = $this->container;
 
@@ -614,7 +683,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $this->aggregateDescriptions,
                     $this->eventQueue ?? $this,
                     $this->documentStore,
-                    $processorDesc['contextProvider'] ? $container->get($processorDesc['contextProvider']) : null
+                    isset($processorDesc['contextProvider']) ? $container->get($processorDesc['contextProvider']) : null
                 );
                 break;
             case Message::TYPE_EVENT:
@@ -677,6 +746,158 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         }
 
         return $aggregate->currentState();
+    }
+
+    /**
+     * @param string $projectorServiceId
+     * @return Projector|CustomEventProjector
+     */
+    public function loadProjector(string $projectorServiceId, string $projectionName = '')
+    {
+        if($projectorServiceId === AggregateProjector::class && $this->documentStore
+            && !$this->container->has($projectorServiceId)) {
+            $projector = new AggregateProjector($this->documentStore, $this);
+        } else {
+            $projector = $this->container->get($projectorServiceId);
+        }
+
+        if (! $projector instanceof Projector
+            && ! $projector instanceof CustomEventProjector) {
+            throw new RuntimeException(
+                \sprintf(
+                    "Projector $projectorServiceId should either be an instance of %s or %s",
+                    Projector::class,
+                    CustomEventProjector::class
+                )
+            );
+        }
+
+        $projectionDesc = $this->compiledProjectionDescriptions[$projectionName] ?? [];
+
+        if ($projector instanceof FlavourAware) {
+            $projector->setFlavour($this->flavour());
+        }
+
+        if($projector instanceof DocumentStoreIndexAware) {
+            if(!empty($projectionDesc[ProjectionDescription::DOCUMENT_STORE_INDICES] ?? [])) {
+                $indices = array_map(function (array $index) {
+                    if(array_key_exists('fields', $index)) {
+                        return MultiFieldIndex::fromArray($index);
+                    }
+
+                    return FieldIndex::fromArray($index);
+                }, $projectionDesc[ProjectionDescription::DOCUMENT_STORE_INDICES]);
+
+                $projector->setDocumentStoreIndices($indices);
+            }
+        }
+
+        if($projector instanceof OptionsAware) {
+            $projector->setProjectorOptions($projectionDesc[ProjectionDescription::PROJECTOR_OPTIONS] ?? []);
+        }
+
+        return $projector;
+    }
+
+    public function runAllProjections(string $sourceStream, GenericEvent ...$events): void
+    {
+        foreach ($this->compiledProjectionDescriptions as $prj => $desc) {
+            $this->runProjection($prj, $sourceStream, ...$events);
+        }
+    }
+
+    public function runProjection(string $projectionName, string $sourceStream, GenericEvent ...$events): void
+    {
+        $this->assertInitialized(__METHOD__);
+
+        if(! array_key_exists($projectionName, $this->compiledProjectionDescriptions)) {
+            throw new RuntimeException("Unknown projection $projectionName.");
+        }
+
+        $projection = Projection::fromProjectionDescription(
+            $this->compiledProjectionDescriptions[$projectionName],
+            $this->flavour,
+            $this
+        );
+
+        foreach ($events as $event) {
+            if($projection->isInterestedIn($sourceStream, $event)) {
+                try {
+                    $projection->handle($event);
+                } catch (\Throwable $error) {
+                    throw ProjectorFailed::atEvent(
+                        $event,
+                        $projectionName,
+                        $this->compiledProjectionDescriptions[$projectionName][ProjectionDescription::PROJECTOR_SERVICE_ID] ?? 'Unknown',
+                        $error
+                        );
+                }
+            }
+        }
+    }
+
+    public function setUpAllProjections(): void
+    {
+        foreach ($this->compiledProjectionDescriptions as $prj => $desc) {
+            $this->setUpProjection($prj);
+        }
+    }
+
+    public function setUpProjection(string $projectionName): void
+    {
+        $this->assertInitialized(__METHOD__);
+
+        if(! array_key_exists($projectionName, $this->compiledProjectionDescriptions)) {
+            throw new RuntimeException("Unknown projection $projectionName.");
+        }
+
+        $projection = Projection::fromProjectionDescription(
+            $this->compiledProjectionDescriptions[$projectionName],
+            $this->flavour,
+            $this
+        );
+
+        $projection->prepareForRun();
+    }
+
+    public function deleteAllProjections(): void
+    {
+        foreach ($this->compiledProjectionDescriptions as $prj => $desc) {
+            $this->deleteProjection($prj);
+        }
+    }
+
+    public function deleteProjection(string $projectionName): void
+    {
+        $this->assertInitialized(__METHOD__);
+
+        if(! array_key_exists($projectionName, $this->compiledProjectionDescriptions)) {
+            throw new RuntimeException("Unknown projection $projectionName.");
+        }
+
+        $projection = Projection::fromProjectionDescription(
+            $this->compiledProjectionDescriptions[$projectionName],
+            $this->flavour,
+            $this
+        );
+
+        $projection->delete();
+    }
+
+    public function projectionVersion(string $projectionName): string
+    {
+        $this->assertInitialized(__METHOD__);
+
+        if(! array_key_exists($projectionName, $this->compiledProjectionDescriptions)) {
+            throw new RuntimeException("Unknown projection $projectionName.");
+        }
+
+        return $this->compiledProjectionDescriptions[$projectionName][ProjectionDescription::PROJECTION_VERSION] ?? '0.1.0';
+    }
+
+    public function projectionInfo(): ProjectionInfoList
+    {
+        return ProjectionInfoList::fromDescriptions($this->compiledProjectionDescriptions);
     }
 
     private function compileAggregateAndRoutingDescriptions(): void

@@ -91,6 +91,7 @@ final class InMemoryEventStore implements TransactionalEventStore
         if (! isset($this->inMemoryConnection['event_streams'][$streamName->toString()])) {
             throw StreamNotFound::with($streamName);
         }
+
         if (! isset($this->inMemoryConnection['events'][$streamName->toString()])) {
             return new EmptyIterator();
         }

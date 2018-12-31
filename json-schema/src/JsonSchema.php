@@ -123,6 +123,10 @@ final class JsonSchema
 
     public static function typeRef(string $typeName): TypeRef
     {
+        if(strpos($typeName, '\\') !== -1 && class_exists($typeName) && is_callable([$typeName, '__type'])) {
+            $typeName = call_user_func([$typeName, '__type']);
+        }
+
         return new TypeRef($typeName);
     }
 

@@ -11,10 +11,9 @@ declare(strict_types=1);
 
 namespace EventEngineExample\FunctionalFlavour\Resolver;
 
-use Prooph\EventMachine\Querying\SyncResolver;
 use EventEngineExample\FunctionalFlavour\Query\GetUser;
 
-final class GetUserResolver implements SyncResolver
+final class GetUserResolver
 {
     /**
      * @var array
@@ -26,10 +25,11 @@ final class GetUserResolver implements SyncResolver
         $this->cachedUserState = $cachedUserState;
     }
 
-    public function __invoke(GetUser $getUser)
+    public function resolve(GetUser $getUser): \Generator
     {
         if ($this->cachedUserState['userId'] === $getUser->userId) {
-            return $this->cachedUserState;
+            yield $this->cachedUserState;
+            return;
         }
         new \RuntimeException('User not found');
     }

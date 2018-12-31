@@ -60,13 +60,14 @@ final class GenericSchemaMessageFactory implements MessageFactory
      */
     private $flavour;
 
-    public function __construct(Schema $schema, array $commandMap, array $eventMap, array $queryMap, TypeSchemaMap $typeSchemaMap)
+    public function __construct(Schema $schema, array $commandMap, array $eventMap, array $queryMap, TypeSchemaMap $typeSchemaMap, Flavour $flavour)
     {
         $this->schema = $schema;
         $this->commandMap = $commandMap;
         $this->eventMap = $eventMap;
         $this->queryMap = $queryMap;
         $this->typeSchemaMap = $typeSchemaMap;
+        $this->flavour = $flavour;
     }
 
     /**
@@ -114,11 +115,7 @@ final class GenericSchemaMessageFactory implements MessageFactory
                 break;
         }
 
-        if ($this->flavour) {
-            return $this->flavour->convertMessageReceivedFromNetwork($message);
-        }
-
-        return $message;
+        return $this->flavour->convertMessageReceivedFromNetwork($message);
     }
 
     public function setFlavour(Flavour $flavour): void

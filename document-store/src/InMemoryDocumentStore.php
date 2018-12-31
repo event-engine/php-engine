@@ -12,6 +12,13 @@ declare(strict_types=1);
 namespace EventEngine\DocumentStore;
 
 use Codeliner\ArrayReader\ArrayReader;
+use EventEngine\DocumentStore\Exception\RuntimeException;
+use EventEngine\DocumentStore\Exception\UnknownCollection;
+use EventEngine\DocumentStore\Filter\Filter;
+use EventEngine\DocumentStore\OrderBy\AndOrder;
+use EventEngine\DocumentStore\OrderBy\Asc;
+use EventEngine\DocumentStore\OrderBy\Desc;
+use EventEngine\DocumentStore\OrderBy\OrderBy;
 use EventEngine\Persistence\InMemoryConnection;
 
 final class InMemoryDocumentStore implements DocumentStore
@@ -85,7 +92,7 @@ final class InMemoryDocumentStore implements DocumentStore
         $this->assertHasCollection($collectionName);
 
         if ($this->hasDoc($collectionName, $docId)) {
-            throw new \RuntimeException("Cannot add doc with id $docId. The doc already exists in collection $collectionName");
+            throw new RuntimeException("Cannot add doc with id $docId. The doc already exists in collection $collectionName");
         }
 
         $this->inMemoryConnection['documents'][$collectionName][$docId] = $doc;
@@ -109,11 +116,11 @@ final class InMemoryDocumentStore implements DocumentStore
 
     /**
      * @param string $collectionName
-     * @param DocumentStore\Filter\Filter $filter
+     * @param Filter $filter
      * @param array $set
      * @throws \Throwable in case of connection error or other issues
      */
-    public function updateMany(string $collectionName, DocumentStore\Filter\Filter $filter, array $set): void
+    public function updateMany(string $collectionName, Filter $filter, array $set): void
     {
         $docs = $this->filterDocs($collectionName, $filter);
 
@@ -153,10 +160,10 @@ final class InMemoryDocumentStore implements DocumentStore
 
     /**
      * @param string $collectionName
-     * @param DocumentStore\Filter\Filter $filter
+     * @param Filter $filter
      * @throws \Throwable in case of connection error or other issues
      */
-    public function deleteMany(string $collectionName, DocumentStore\Filter\Filter $filter): void
+    public function deleteMany(string $collectionName, Filter $filter): void
     {
         $docs = $this->filterDocs($collectionName, $filter);
 
@@ -177,18 +184,18 @@ final class InMemoryDocumentStore implements DocumentStore
 
     /**
      * @param string $collectionName
-     * @param DocumentStore\Filter\Filter $filter
+     * @param Filter $filter
      * @param int|null $skip
      * @param int|null $limit
-     * @param DocumentStore\OrderBy\OrderBy|null $orderBy
+     * @param OrderBy|null $orderBy
      * @return \Traversable list of docs
      */
     public function filterDocs(
         string $collectionName,
-        DocumentStore\Filter\Filter $filter,
+        Filter $filter,
         int $skip = null,
         int $limit = null,
-        DocumentStore\OrderBy\OrderBy $orderBy = null): \Traversable
+        OrderBy $orderBy = null): \Traversable
     {
         $this->assertHasCollection($collectionName);
 
@@ -225,7 +232,7 @@ final class InMemoryDocumentStore implements DocumentStore
     private function assertHasCollection(string $collectionName): void
     {
         if (! $this->hasCollection($collectionName)) {
-            throw new \RuntimeException("Unknown collection $collectionName");
+            throw UnknownCollection::withName($collectionName);
         }
     }
 
@@ -234,18 +241,18 @@ final class InMemoryDocumentStore implements DocumentStore
         $this->assertHasCollection($collectionName);
 
         if (! $this->hasDoc($collectionName, $docId)) {
-            throw new \RuntimeException("Doc with id $docId does not exist in collection $collectionName");
+            throw new RuntimeException("Doc with id $docId does not exist in collection $collectionName");
         }
     }
 
-    private function sort(&$docs, DocumentStore\OrderBy\OrderBy $orderBy)
+    private function sort(&$docs, OrderBy $orderBy)
     {
         $defaultCmp = function ($a, $b) {
             return ($a < $b) ? -1 : (($a > $b) ? 1 : 0);
         };
 
-        $getField = function (array $doc, DocumentStore\OrderBy\OrderBy $orderBy) {
-            if ($orderBy instanceof DocumentStore\OrderBy\Asc || $orderBy instanceof DocumentStore\OrderBy\Desc) {
+        $getField = function (array $doc, OrderBy $orderBy) {
+            if ($orderBy instanceof Asc || $orderBy instanceof Desc) {
                 $field = $orderBy->prop();
 
                 return (new ArrayReader($doc))->mixedValue($field);
@@ -254,16 +261,16 @@ final class InMemoryDocumentStore implements DocumentStore
             throw new \RuntimeException(\sprintf(
                 'Unable to get field from doc: %s. Given OrderBy is neither an instance of %s nor %s',
                 \json_encode($doc),
-                DocumentStore\OrderBy\Asc::class,
-                DocumentStore\OrderBy\Desc::class
+                Asc::class,
+                Desc::class
             ));
         };
 
         $docCmp = null;
-        $docCmp = function (array $docA, array $docB, DocumentStore\OrderBy\OrderBy $orderBy) use (&$docCmp, $defaultCmp, $getField) {
+        $docCmp = function (array $docA, array $docB, OrderBy $orderBy) use (&$docCmp, $defaultCmp, $getField) {
             $orderByB = null;
 
-            if ($orderBy instanceof DocumentStore\OrderBy\AndOrder) {
+            if ($orderBy instanceof AndOrder) {
                 $orderByB = $orderBy->b();
                 $orderBy = $orderBy->a();
             }
@@ -285,7 +292,7 @@ final class InMemoryDocumentStore implements DocumentStore
                 return 0;
             }
 
-            if ($orderBy instanceof DocumentStore\OrderBy\Desc) {
+            if ($orderBy instanceof Desc) {
                 return $orderResult * -1;
             }
 

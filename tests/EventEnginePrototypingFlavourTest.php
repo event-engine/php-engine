@@ -11,28 +11,32 @@ declare(strict_types=1);
 
 namespace EventEngineTest;
 
+use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventEngine;
+use EventEngine\Messaging\CommandDispatchResult;
+use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageDispatcher;
 use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\PrototypingFlavour;
+use EventEngine\Util\Await;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserDescription;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserState;
+use EventEngineExample\PrototypingFlavour\Messaging\CommandWithCustomHandler;
 use EventEngineExample\PrototypingFlavour\Messaging\MessageDescription;
 use EventEngineExample\PrototypingFlavour\ProcessManager\SendWelcomeEmail;
 use EventEngineExample\PrototypingFlavour\Projector\RegisteredUsersProjector;
 use EventEngineExample\PrototypingFlavour\Resolver\GetUserResolver;
 use EventEngineExample\PrototypingFlavour\Resolver\GetUsersResolver;
-use Prooph\Common\Messaging\Message as ProophMessage;
-use Psr\Container\ContainerInterface;
+use Prophecy\Argument;
 
-class EventMachinePrototypingFlavourTest extends EventEngineTestAbstract
+class EventEnginePrototypingFlavourTest extends EventEngineTestAbstract
 {
-    protected function loadEventMachineDescriptions(EventEngine $eventMachine)
+    protected function loadEventMachineDescriptions(EventEngine $eventEngine)
     {
-        $eventMachine->load(MessageDescription::class);
-        $eventMachine->load(UserDescription::class);
+        $eventEngine->load(MessageDescription::class);
+        $eventEngine->load(UserDescription::class);
     }
 
     protected function getFlavour(): Flavour
@@ -71,35 +75,20 @@ class EventMachinePrototypingFlavourTest extends EventEngineTestAbstract
      */
     public function it_throws_exception_if_config_should_be_cached_but_contains_closures()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $eventMachine = new EventMachine();
-
-        $eventMachine->load(MessageDescription::class);
-        $eventMachine->load(UserDescription::class);
-
-        $container = $this->prophesize(ContainerInterface::class);
-
-        $eventMachine->initialize($container->reveal());
+        $this->initializeEventEngine();
 
         self::expectException(\RuntimeException::class);
-        self::expectExceptionMessage('At least one EventMachineDescription contains a Closure and is therefor not cacheable!');
+        self::expectExceptionMessage('At least one EventEngineDescription contains a Closure and is therefor not cacheable!');
 
-        $eventMachine->compileCacheableConfig();
+        $this->eventEngine->compileCacheableConfig();
     }
 
     /**
      * @test
      */
-    public function it_stops_dispatch_if_preprocessor_sets_metadata_flag()
+    public function it_stops_dispatch_if_preprocessor_yields_dispatch_result()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $eventMachine = new EventMachine();
-
-        $eventMachine->load(CommandWithCustomHandler::class);
+        $this->eventEngine->load(CommandWithCustomHandler::class);
 
         $noOpHandler = new class() implements CommandPreProcessor {
             private $msg;
@@ -107,13 +96,13 @@ class EventMachinePrototypingFlavourTest extends EventEngineTestAbstract
             /**
              * {@inheritdoc}
              */
-            public function preProcess(ProophMessage $message): ProophMessage
+            public function preProcess(Message $message): CommandDispatchResult
             {
                 if ($message instanceof Message) {
                     $this->msg = $message->get('msg');
                 }
 
-                return $message->withAddedMetadata(EventMachine::CMD_METADATA_STOP_DISPATCH, true);
+                return CommandDispatchResult::forCommandHandledByPreProcessor($message);
             }
 
             public function msg(): ?string
@@ -122,15 +111,15 @@ class EventMachinePrototypingFlavourTest extends EventEngineTestAbstract
             }
         };
 
-        $eventMachine->initialize(new EventMachineContainer($eventMachine));
+        $this->appContainer->get(Argument::exact(CommandWithCustomHandler::NO_OP_HANDLER))->willReturn($noOpHandler);
 
-        $eventMachine->bootstrapInTestMode([], [
-            CommandWithCustomHandler::NO_OP_HANDLER => $noOpHandler,
-        ]);
 
-        $eventMachine->dispatch(CommandWithCustomHandler::CMD_DO_NOTHING, [
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        Await::lastResult($this->eventEngine->dispatch(CommandWithCustomHandler::CMD_DO_NOTHING_NO_HANDLER, [
             'msg' => 'test',
-        ]);
+        ]));
 
         $this->assertEquals('test', $noOpHandler->msg());
     }

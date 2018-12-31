@@ -217,8 +217,12 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         $listener($event);
     }
 
-    public function callQueryResolver(Resolver $resolver, Message $query): \Generator
+    public function callQueryResolver($resolver, Message $query): \Generator
     {
+        if(! $resolver instanceof Resolver) {
+            throw new RuntimeException(__METHOD__ . ' only works with instances of ' . Resolver::class);
+        }
+
         yield from $resolver->resolve($query);
     }
 

@@ -30,4 +30,9 @@ final class MapIterator extends \IteratorIterator
     {
         return \call_user_func($this->callback, parent::current());
     }
+
+    public function valid()
+    {
+        return parent::getInnerIterator()->valid();
+    }
 }

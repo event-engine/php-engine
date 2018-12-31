@@ -9,14 +9,17 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\DocumentStore;
+namespace EventEngine\Persistence;
 
-interface Index
+trait InnerConnection
 {
-    public const SORT_ASC = 1;
-    public const SORT_DESC = -1;
+    /**
+     * @var TransactionalConnection
+     */
+    private $connection;
 
-    public function toArray();
-
-    public static function fromArray(array $data): Index;
+    public function connection(): TransactionalConnection
+    {
+        return $this->connection;
+    }
 }

@@ -246,7 +246,7 @@ final class OopFlavour implements Flavour, MessageFactoryAware
         $this->functionalFlavour->callEventListener($listener, $event);
     }
 
-    public function callQueryResolver(Resolver $resolver, Message $query): \Generator
+    public function callQueryResolver($resolver, Message $query): \Generator
     {
         yield from $this->functionalFlavour->callQueryResolver($resolver, $query);
     }

@@ -34,7 +34,7 @@ final class QueryDescription
     private $resolver;
 
     /**
-     * @var array
+     * @var ResponseTypeSchema
      */
     private $returnType;
 
@@ -51,7 +51,7 @@ final class QueryDescription
         return [
             'name' => $this->queryName,
             'resolver' => $this->resolver,
-            'returnType' => $this->returnType,
+            'returnType' => $this->returnType->toArray(),
         ];
     }
 
@@ -70,7 +70,7 @@ final class QueryDescription
         return $this;
     }
 
-    public function returnType(): ?array
+    public function returnType(): ?ResponseTypeSchema
     {
         return $this->returnType;
     }

@@ -25,6 +25,11 @@ final class Command
         self::CHANGE_USERNAME => ChangeUsername::class,
     ];
 
+    public static function canCreate(string $commandName): bool
+    {
+        return array_key_exists($commandName, self::CLASS_MAP);
+    }
+
     public static function createFromNameAndPayload(string $commandName, array $payload)
     {
         $class = self::CLASS_MAP[$commandName];

@@ -9,14 +9,9 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\DocumentStore;
+namespace EventEngine\Projecting;
 
-interface Index
+interface OptionsAware
 {
-    public const SORT_ASC = 1;
-    public const SORT_DESC = -1;
-
-    public function toArray();
-
-    public static function fromArray(array $data): Index;
+    public function setProjectorOptions(array $options): void;
 }

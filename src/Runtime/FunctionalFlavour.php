@@ -291,7 +291,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
         $listener($event->get(MessageBag::MESSAGE));
     }
 
-    public function callQueryResolver(Resolver $resolver, Message $query): \Generator
+    public function callQueryResolver($resolver, Message $query): \Generator
     {
         if (! $query instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
@@ -299,6 +299,6 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
 
         $query = $query->get(MessageBag::MESSAGE);
 
-        yield from $resolver->resolve($query);
+        yield from $this->port->callResolver($query, $resolver);
     }
 }

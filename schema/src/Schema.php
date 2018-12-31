@@ -11,6 +11,10 @@ declare(strict_types=1);
 
 namespace EventEngine\Schema;
 
+use EventEngine\Schema\MessageBox\CommandMap;
+use EventEngine\Schema\MessageBox\EventMap;
+use EventEngine\Schema\MessageBox\QueryMap;
+
 interface Schema
 {
     public function assertPayload(string $messageName, array $payload, PayloadSchema $payloadSchema, TypeSchemaMap $typeSchemaMap): void;
@@ -28,4 +32,6 @@ interface Schema
     public function assertInputTypeSchema(string $typeName, InputTypeSchema $inputTypeSchema): void;
 
     public function buildInputTypeSchemaFromArray(string $typeName, array $typeSchema): InputTypeSchema;
+
+    public function buildMessageBoxSchema(CommandMap $commandMap, EventMap $eventMap, QueryMap $queryMap, TypeSchemaMap $typeSchemaMap): array;
 }

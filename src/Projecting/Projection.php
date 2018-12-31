@@ -16,7 +16,7 @@ use EventEngine\Messaging\Message;
 use EventEngine\Persistence\Stream;
 use EventEngine\Runtime\Flavour;
 
-final class ReadModel
+final class Projection
 {
     /**
      * @var array
@@ -43,7 +43,7 @@ final class ReadModel
      */
     private $projectionVersion;
 
-    public static function fromProjectionDescription(array $desc, Flavour $flavour, EventEngine $eventEngine): ReadModel
+    public static function fromProjectionDescription(array $desc, Flavour $flavour, EventEngine $eventEngine): Projection
     {
         $projector = $eventEngine->loadProjector($desc[ProjectionDescription::PROJECTOR_SERVICE_ID]);
 

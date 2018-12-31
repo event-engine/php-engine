@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace EventEngineExample\FunctionalFlavour;
 
-use Prooph\EventMachine\Messaging\Message;
-use Prooph\EventMachine\Messaging\MessageBag;
-use Prooph\EventMachine\Runtime\Functional\Port;
+use EventEngine\Messaging\Message;
+use EventEngine\Messaging\MessageBag;
+use EventEngine\Runtime\Functional\Port;
 use EventEngineExample\FunctionalFlavour\Api\Command;
 use EventEngineExample\FunctionalFlavour\Api\Event;
 use EventEngineExample\FunctionalFlavour\Api\Query;
@@ -29,6 +29,10 @@ final class ExampleFunctionalPort implements Port
         //You could also use a deserializer or other techniques
         switch ($message->messageType()) {
             case Message::TYPE_COMMAND:
+                if(! Command::canCreate($message->messageName())) {
+                    return $message;
+                }
+                
                 return Command::createFromNameAndPayload($message->messageName(), $message->payload());
             case Message::TYPE_EVENT:
                 return Event::createFromNameAndPayload($message->messageName(), $message->payload());
@@ -84,5 +88,14 @@ final class ExampleFunctionalPort implements Port
     {
         //Duck typing, do not do this in production but rather use your own interfaces
         return $contextProvider->provide($customCommand);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function callResolver($customQuery, $resolver): \Generator
+    {
+        //Duck typing, do not do this in production but rather use your own interfaces
+        yield from $resolver->resolve($customQuery);
     }
 }

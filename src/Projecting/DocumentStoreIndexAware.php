@@ -9,14 +9,11 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\DocumentStore;
+namespace EventEngine\Projecting;
 
-interface Index
+use EventEngine\DocumentStore\Index;
+
+interface DocumentStoreIndexAware
 {
-    public const SORT_ASC = 1;
-    public const SORT_DESC = -1;
-
-    public function toArray();
-
-    public static function fromArray(array $data): Index;
+    public function setDocumentStoreIndices(Index ...$indices): void;
 }

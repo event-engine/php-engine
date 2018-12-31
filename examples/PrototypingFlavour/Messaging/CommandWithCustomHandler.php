@@ -17,12 +17,12 @@ use EventEngine\JsonSchema\JsonSchema;
 
 final class CommandWithCustomHandler implements EventEngineDescription
 {
-    public const CMD_DO_NOTHING = 'DoNothing';
+    public const CMD_DO_NOTHING_NO_HANDLER = 'DoNothingNoHandler';
     public const NO_OP_HANDLER = 'NoOpHandler';
 
     public static function describe(EventEngine $eventEngine): void
     {
-        $eventEngine->registerCommand(self::CMD_DO_NOTHING, JsonSchema::object(['msg' => JsonSchema::string()]));
-        $eventEngine->preProcess(self::CMD_DO_NOTHING, self::NO_OP_HANDLER);
+        $eventEngine->registerCommand(self::CMD_DO_NOTHING_NO_HANDLER, JsonSchema::object(['msg' => JsonSchema::string()]));
+        $eventEngine->preProcess(self::CMD_DO_NOTHING_NO_HANDLER, self::NO_OP_HANDLER);
     }
 }

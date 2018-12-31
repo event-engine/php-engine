@@ -9,14 +9,8 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\DocumentStore;
+namespace EventEngine\DocumentStore\Exception;
 
-interface Index
+interface DocumentStoreException
 {
-    public const SORT_ASC = 1;
-    public const SORT_DESC = -1;
-
-    public function toArray();
-
-    public static function fromArray(array $data): Index;
 }

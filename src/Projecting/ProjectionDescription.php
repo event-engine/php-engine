@@ -11,9 +11,13 @@ declare(strict_types=1);
 
 namespace EventEngine\Projecting;
 
+use EventEngine\DocumentStore\Index;
 use EventEngine\EventEngine;
 use EventEngine\Exception\InvalidArgumentException;
+use EventEngine\Messaging\Exception\RuntimeException;
+use EventEngine\Messaging\GenericSchemaMessage;
 use EventEngine\Persistence\Stream;
+use EventEngine\Util\VariableType;
 
 final class ProjectionDescription
 {
@@ -23,6 +27,8 @@ final class ProjectionDescription
     public const PROJECTOR_SERVICE_ID = 'projector_service_id';
     public const AGGREGATE_TYPE_FILTER = 'aggregate_type_filter';
     public const EVENTS_FILTER = 'events_filter';
+    public const DOCUMENT_STORE_INDICES = 'document_store_indices';
+    public const PROJECTOR_OPTIONS = 'projector_options';
 
     /**
      * @var Stream
@@ -53,6 +59,16 @@ final class ProjectionDescription
      * @var string
      */
     private $projectionVersion;
+
+    /**
+     * @var array
+     */
+    private $documentStoreIndices = [];
+
+    /**
+     * @var array
+     */
+    private $projectorOptions = [];
 
     /**
      * @var EventEngine
@@ -122,6 +138,28 @@ final class ProjectionDescription
         return $this;
     }
 
+    public function useIndices(Index ...$indices): self
+    {
+        $this->documentStoreIndices = array_map(function (Index $index) {
+            return $index->toArray();
+        }, $indices);
+
+        return $this;
+    }
+
+    public function setProjectorOptions(array $options): self
+    {
+        try {
+            GenericSchemaMessage::assertPayload($options);
+        } catch (RuntimeException $error) {
+            throw new \EventEngine\Exception\RuntimeException("Projector options should only contain scalar values and arrays.");
+        }
+
+        $this->projectorOptions = $options;
+
+        return $this;
+    }
+
     public function __invoke()
     {
         $this->assertWithProjectionIsCalled('EventEngine::initialize');
@@ -133,6 +171,8 @@ final class ProjectionDescription
             self::SOURCE_STREAM => $this->sourceStream->toArray(),
             self::AGGREGATE_TYPE_FILTER => $this->aggregateTypeFilter,
             self::EVENTS_FILTER => $this->eventsFilter,
+            self::DOCUMENT_STORE_INDICES => $this->documentStoreIndices,
+            self::PROJECTOR_OPTIONS => $this->projectorOptions,
         ];
     }
 

@@ -13,6 +13,7 @@ namespace EventEngine\Prooph\V7\EventStore;
 
 use EventEngine\EventStore\EventStore;
 use EventEngine\Messaging\GenericEvent;
+use EventEngine\Prooph\V7\EventStore\Exception\NoTransactionalStore;
 use EventEngine\Util\MapIterator;
 use Prooph\Common\Messaging\DomainMessage;
 use Prooph\EventStore\EventStore as ProophV7EventStore;
@@ -20,31 +21,75 @@ use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
 use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamName;
+use Prooph\EventStore\TransactionalEventStore;
 
 final class ProophEventStore implements EventStore
 {
     /**
-     * @var ProophV7EventStore
+     * @var ProophV7EventStore|TransactionalEventStore
      */
     private $pes;
+    private $manageTransaction;
 
-    public function __construct(ProophV7EventStore $pes)
+    public function __construct(ProophV7EventStore $pes, $manageTransaction = false)
     {
         $this->pes = $pes;
+
+        if($manageTransaction && !$pes instanceof TransactionalEventStore) {
+            throw NoTransactionalStore::withProophEventStore($pes);
+        }
+
+        $this->manageTransaction = $manageTransaction;
     }
 
+    /**
+     * @param string $streamName
+     * @throws \Exception
+     */
     public function createStream(string $streamName): void
     {
+        if($this->manageTransaction) {
+            $this->pes->transactional(function (ProophV7EventStore $eventStore) use ($streamName) {
+                $eventStore->create(new Stream(new StreamName($streamName), new \ArrayIterator([])));
+            });
+            return;
+        }
+
         $this->pes->create(new Stream(new StreamName($streamName), new \ArrayIterator([])));
     }
 
+    /**
+     * @param string $streamName
+     * @throws \Exception
+     */
     public function deleteStream(string $streamName): void
     {
+        if($this->manageTransaction) {
+            $this->pes->transactional(function (ProophV7EventStore $eventStore) use ($streamName) {
+                $eventStore->delete(new StreamName($streamName));
+            });
+            return;
+        }
+
         $this->pes->delete(new StreamName($streamName));
     }
 
+    /**
+     * @param string $streamName
+     * @param GenericEvent ...$events
+     * @throws \Exception
+     */
     public function appendTo(string $streamName, GenericEvent ...$events): void
     {
+        if($this->manageTransaction) {
+            $this->pes->transactional(function (ProophV7EventStore $eventStore) use ($streamName, &$events) {
+                $eventStore->appendTo(new StreamName($streamName), new MapIterator(new \ArrayIterator($events), function (GenericEvent $event): DomainMessage {
+                    return GenericProophEvent::fromArray($event->toArray());
+                }));
+            });
+            return;
+        }
+
         $this->pes->appendTo(new StreamName($streamName), new MapIterator(new \ArrayIterator($events), function (GenericEvent $event): DomainMessage {
             return GenericProophEvent::fromArray($event->toArray());
         }));

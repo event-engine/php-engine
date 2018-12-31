@@ -22,7 +22,7 @@ use EventEngine\Persistence\DeletableState;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\PrototypingFlavour;
 
-final class AggregateProjector implements Projector, FlavourAware
+final class AggregateProjector implements Projector, FlavourAware, DocumentStoreIndexAware
 {
     /**
      * @var DocumentStore
@@ -37,7 +37,17 @@ final class AggregateProjector implements Projector, FlavourAware
     /**
      * @var Index[]
      */
-    private $indices;
+    private $indices = [];
+
+    /**
+     * Set to true, if document should only be the aggregate state.
+     *
+     * By default document has the structure ['state' => $aggregateState, 'version' => $aggregateVersion]
+     * which can be used as a snapshot. However, it adds an extra level of structure that makes it slightly harder to query.
+     *
+     * @var bool
+     */
+    private $storeStateOnly;
 
     /**
      * @var Flavour
@@ -59,16 +69,21 @@ final class AggregateProjector implements Projector, FlavourAware
         return \str_replace('.', '_', $projectionName.'_'.$projectionVersion);
     }
 
-    public function __construct(DocumentStore $documentStore, AggregateStateStore $stateStore, Index ...$indices)
+    public function __construct(DocumentStore $documentStore, AggregateStateStore $stateStore, $storeStateOnly = false)
     {
         $this->documentStore = $documentStore;
         $this->stateStore = $stateStore;
-        $this->indices = $indices;
+        $this->storeStateOnly = $storeStateOnly;
     }
 
     public function setFlavour(Flavour $flavour): void
     {
         $this->flavour = $flavour;
+    }
+
+    public function setDocumentStoreIndices(Index ...$indices): void
+    {
+        $this->indices = $indices;
     }
 
     private function flavour(): Flavour
@@ -80,6 +95,12 @@ final class AggregateProjector implements Projector, FlavourAware
         return $this->flavour;
     }
 
+    /**
+     * @param string $appVersion
+     * @param string $projectionName
+     * @param Message $event
+     * @throws \Throwable
+     */
     public function handle(string $appVersion, string $projectionName, Message $event): void
     {
         if (! $event instanceof Message) {
@@ -98,6 +119,8 @@ final class AggregateProjector implements Projector, FlavourAware
             return;
         }
 
+        $aggregateVersion = $event->metadata()[GenericEvent::META_AGGREGATE_VERSION] ?? 0;
+
         $this->assertProjectionNameMatchesWithAggregateType($projectionName, (string) $aggregateType);
 
         try {
@@ -106,7 +129,7 @@ final class AggregateProjector implements Projector, FlavourAware
             return;
         }
 
-        if ($aggregateState instanceof DeletableState && $aggregateState->deleted()) {
+        if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
             $this->documentStore->deleteDoc(
                 $this->generateCollectionName($appVersion, $projectionName),
                 (string) $aggregateId
@@ -115,10 +138,19 @@ final class AggregateProjector implements Projector, FlavourAware
             return;
         }
 
+        $document = $this->flavour()->convertAggregateStateToArray((string)$aggregateType, $aggregateState);
+
+        if(!$this->storeStateOnly) {
+            $document = [
+                'state' => $document,
+                'version' => $aggregateVersion
+            ];
+        }
+
         $this->documentStore->upsertDoc(
             $this->generateCollectionName($appVersion, $projectionName),
             (string) $aggregateId,
-            $this->flavour()->convertAggregateStateToArray($aggregateState)
+            $document
         );
     }
 

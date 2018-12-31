@@ -14,6 +14,7 @@ namespace EventEngine\Aggregate;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Messaging\GenericEvent;
+use EventEngine\Persistence\DeletableState;
 use EventEngine\Persistence\MultiModelStore;
 use EventEngine\Runtime\Flavour;
 
@@ -73,14 +74,23 @@ final class GenericAggregateRepository
             try {
                 $this->eventStore->appendTo($this->streamName, ...$domainEvents);
 
-                $this->eventStore->upsertDoc(
-                    $this->aggregateCollection,
-                    $aggregateRoot->aggregateId(),
-                    [
-                        'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $aggregateRoot->currentState()),
-                        'version' => $aggregateRoot->version()
-                    ]
-                );
+                $aggregateState = $aggregateRoot->currentState();
+
+                if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
+                    $this->eventStore->deleteDoc(
+                        $this->aggregateCollection,
+                        (string) $aggregateRoot->aggregateId()
+                    );
+                } else {
+                    $this->eventStore->upsertDoc(
+                        $this->aggregateCollection,
+                        $aggregateRoot->aggregateId(),
+                        [
+                            'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $aggregateRoot->currentState()),
+                            'version' => $aggregateRoot->version()
+                        ]
+                    );
+                }
 
                 $this->eventStore->connection()->commit();
             } catch (\Throwable $error) {

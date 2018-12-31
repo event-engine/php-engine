@@ -38,7 +38,7 @@ final class FieldIndex implements Index
         return new self($field, $sort, $unique);
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): Index
     {
         return new self(
             $data['field'] ?? '',

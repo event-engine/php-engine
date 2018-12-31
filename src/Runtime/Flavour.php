@@ -153,5 +153,5 @@ interface Flavour
 
     public function callEventListener(callable $listener, Message $event): void;
 
-    public function callQueryResolver(Resolver $resolver, Message $query): \Generator;
+    public function callQueryResolver($resolver, Message $query): \Generator;
 }

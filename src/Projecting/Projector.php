@@ -14,15 +14,15 @@ namespace EventEngine\Projecting;
 use EventEngine\Messaging\Message;
 
 /**
- * Projections are rebuilt on each deployment
+ * Projections can be rebuilt on deployment
  *
- * A projector should always include the app version in table/collection names.
+ * A projector should always include the projection version in table/collection names.
  *
  * A blue/green deployment strategy can be used:
- * This means that the read model for the new app version is built during deployment.
+ * This means that the read model for the new projection version is built during deployment.
  * The old read model remains active. In case of a rollback it is still available and can be accessed.
  *
- * The old read model is first deleted when yet another new version of the app is deployed.
+ * The old read model is first deleted when yet another new version of the projection is deployed.
  *
  * Interface Projector
  * @package EventEngine\Projecting

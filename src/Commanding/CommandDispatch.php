@@ -14,6 +14,7 @@ namespace EventEngine\Commanding;
 use EventEngine\Aggregate\ContextProvider;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventStore\EventStore;
+use EventEngine\Exception\RuntimeException;
 use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageProducer;
@@ -52,6 +53,10 @@ final class CommandDispatch
             if($command instanceof CommandDispatchResult) {
                 return $command;
             }
+        }
+
+        if(empty($processorDescription)) {
+            throw new RuntimeException("No routing information found for command {$command->messageName()}");
         }
 
         $commandProcessor = CommandProcessor::fromDescriptionArraysAndDependencies(

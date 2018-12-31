@@ -12,35 +12,49 @@ declare(strict_types=1);
 namespace EventEngineTest;
 
 use EventEngine\DocumentStore\DocumentStore;
+use EventEngine\DocumentStore\Exception\UnknownCollection;
+use EventEngine\DocumentStore\InMemoryDocumentStore;
 use EventEngine\EventEngine;
 use EventEngine\EventStore\EventStore;
+use EventEngine\JsonSchema\JsonSchema;
 use EventEngine\JsonSchema\JustinRainbowJsonSchema;
+use EventEngine\JsonSchema\Type\EmailType;
+use EventEngine\JsonSchema\Type\EnumType;
+use EventEngine\JsonSchema\Type\StringType;
+use EventEngine\JsonSchema\Type\UuidType;
 use EventEngine\Logger\DevNull;
-use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageDispatcher;
 use EventEngine\Messaging\MessageFactoryAware;
+use EventEngine\Messaging\MessageProducer;
 use EventEngine\Persistence\InMemoryConnection;
+use EventEngine\Persistence\Stream;
 use EventEngine\Projecting\AggregateProjector;
 use EventEngine\Prooph\V7\EventStore\InMemoryEventStore;
+use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
 use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Util\Await;
+use EventEngineExample\FunctionalFlavour\Api\Query;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
+use EventEngineExample\PrototypingFlavour\Aggregate\Aggregate;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserDescription;
 use EventEngineExample\PrototypingFlavour\Messaging\Command;
 use EventEngineExample\PrototypingFlavour\Messaging\Event;
+use EventEngineTest\Stubs\TestIdentityVO;
 use Prophecy\Argument;
+use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 
 abstract class EventEngineTestAbstract extends BasicTestCase
 {
-    abstract protected function loadEventMachineDescriptions(EventEngine $eventMachine);
+    abstract protected function loadEventMachineDescriptions(EventEngine $eventEngine);
 
     abstract protected function getFlavour(): Flavour;
 
@@ -48,11 +62,16 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
     abstract protected function getUserRegisteredListener(MessageDispatcher $messageDispatcher);
 
-    abstract protected function getUserResolver(array $cachedUserState): Resolver;
+    abstract protected function getUserResolver(array $cachedUserState);
 
-    abstract protected function getUsersResolver(array $cachedUsers): Resolver;
+    abstract protected function getUsersResolver(array $cachedUsers);
 
     abstract protected function assertLoadedUserState($userState): void;
+
+    /**
+     * @var EventEngine
+     */
+    protected $eventEngine;
 
     /**
      * @var EventStore
@@ -60,13 +79,9 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     private $eventStore;
 
     /**
-     * @var ContainerInterface
+     * @var ObjectProphecy
      */
-    private $appContainer;
-    /**
-     * @var EventEngine
-     */
-    private $eventEngine;
+    protected $appContainer;
 
     /**
      * InMemoryConnection
@@ -88,7 +103,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
         $this->inMemoryConnection = new InMemoryConnection();
 
-        $this->eventStore = new ProophEventStore(new InMemoryEventStore($this->inMemoryConnection));
+        $this->eventStore = new ProophEventStore(new InMemoryEventStore($this->inMemoryConnection), true);
 
         $this->eventStore->createStream($this->eventEngine->writeModelStreamName());
 
@@ -107,22 +122,9 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     }
 
     protected function setUpAggregateProjector(
-        DocumentStore $documentStore,
-        EventStore $eventStore,
-        StreamName $streamName
+        DocumentStore $documentStore
     ): void {
-        $aggregateProjector = new AggregateProjector($documentStore, $this->eventEngine);
-
-        $eventStore->create(new \Prooph\EventStore\Stream($streamName, new \ArrayIterator([])));
-
-        $this->appContainer->has(EventMachine::SERVICE_ID_PROJECTION_MANAGER)->willReturn(true);
-        $this->appContainer->get(EventMachine::SERVICE_ID_PROJECTION_MANAGER)->willReturn(new InMemoryProjectionManager(
-            $eventStore,
-            $this->inMemoryConnection
-        ));
-        $this->appContainer->get(EventMachine::SERVICE_ID_EVENT_STORE)->will(function ($args) use ($eventStore) {
-            return $eventStore;
-        });
+        $aggregateProjector = new AggregateProjector($documentStore, $this->eventEngine, true);
 
         $this->appContainer->has(AggregateProjector::class)->willReturn(true);
         $this->appContainer->get(AggregateProjector::class)->will(function ($args) use ($aggregateProjector) {
@@ -130,27 +132,13 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         });
 
         $this->eventEngine->watch(Stream::ofWriteModel())
-            ->with(AggregateProjector::generateProjectionName(Aggregate::USER), AggregateProjector::class)
-            ->filterAggregateType(Aggregate::USER);
+            ->withAggregateProjection(Aggregate::USER);
     }
 
     protected function setUpRegisteredUsersProjector(
-        DocumentStore $documentStore,
-        EventStore $eventStore,
-        StreamName $streamName
+        DocumentStore $documentStore
     ): void {
         $projector = $this->getRegisteredUsersProjector($documentStore);
-
-        $eventStore->create(new \Prooph\EventStore\Stream($streamName, new \ArrayIterator([])));
-
-        $this->appContainer->has(EventMachine::SERVICE_ID_PROJECTION_MANAGER)->willReturn(true);
-        $this->appContainer->get(EventMachine::SERVICE_ID_PROJECTION_MANAGER)->willReturn(new InMemoryProjectionManager(
-            $eventStore,
-            $this->inMemoryConnection
-        ));
-        $this->appContainer->get(EventMachine::SERVICE_ID_EVENT_STORE)->will(function ($args) use ($eventStore) {
-            return $eventStore;
-        });
 
         $this->appContainer->has('Test.Projector.RegisteredUsers')->willReturn(true);
         $this->appContainer->get('Test.Projector.RegisteredUsers')->will(function ($args) use ($projector) {
@@ -160,8 +148,31 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->eventEngine->watch(Stream::ofWriteModel())
             ->with('registered_users', 'Test.Projector.RegisteredUsers')
             ->filterEvents([
-                \ProophExample\PrototypingFlavour\Messaging\Event::USER_WAS_REGISTERED,
+                \EventEngineExample\PrototypingFlavour\Messaging\Event::USER_WAS_REGISTERED,
             ]);
+    }
+
+    protected function initializeEventEngine(
+        LoggerInterface $logger = null,
+        DocumentStore $documentStore = null,
+        MessageProducer $eventQueue = null): void {
+        if(!$logger) {
+            $logger = new DevNull();
+        }
+
+        $this->eventEngine->initialize(
+            $this->flavour,
+            $this->eventStore,
+            $logger,
+            $this->appContainer->reveal(),
+            $documentStore,
+            $eventQueue
+        );
+    }
+
+    protected function bootstrapEventEngine(): void
+    {
+        $this->eventEngine->bootstrap(EventEngine::ENV_TEST, true);
     }
 
     /**
@@ -175,16 +186,10 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             $publishedEvents[] = $this->convertToEventMachineMessage($event);
         });
 
-        $this->eventEngine->initialize(
-            $this->flavour,
-            $this->eventStore,
-            new DevNull(),
-            $this->appContainer->reveal()
-        );
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $userId = Uuid::uuid4()->toString();
-
-        $this->eventEngine->bootstrap();
 
         $registerUser = $this->eventEngine->messageFactory()->createMessageFromArray(
             Command::REGISTER_USER,
@@ -195,8 +200,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        /** @var CommandDispatchResult $result */
-        $result = Await::lastResult($this->eventEngine->dispatch($registerUser));
+        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
 
         $recordedEvents = $result->recordedEvents();
 
@@ -213,9 +217,6 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_dispatches_a_known_query()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
         $userId = Uuid::uuid4()->toString();
 
         $getUserResolver = $this->getUserResolver([
@@ -223,12 +224,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             UserDescription::USERNAME => 'Alex',
         ]);
 
-        $this->appContainer->has(\get_class($getUserResolver))->willReturn(true);
-        $this->appContainer->get(\get_class($getUserResolver))->will(function ($args) use ($getUserResolver) {
-            return $getUserResolver;
-        });
+        $this->appContainer->get(\get_class($getUserResolver))->willReturn($getUserResolver);
 
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
 
         $getUser = $this->eventEngine->messageFactory()->createMessageFromArray(
             Query::GET_USER,
@@ -237,13 +237,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $promise = $this->eventEngine->bootstrap()->dispatch($getUser);
-
-        $userData = null;
-
-        $promise->done(function (array $data) use (&$userData) {
-            $userData = $data;
-        });
+        $userData = Await::lastResult($this->eventEngine->dispatch($getUser));
 
         self::assertEquals([
             UserDescription::IDENTIFIER => $userId,
@@ -256,9 +250,6 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_allows_queries_without_payload()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
         $getUsersResolver = $this->getUsersResolver([
             [
                 UserDescription::IDENTIFIER => '123',
@@ -267,25 +258,17 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ],
         ]);
 
-        $this->appContainer->has(\get_class($getUsersResolver))->willReturn(true);
-        $this->appContainer->get(\get_class($getUsersResolver))->will(function ($args) use ($getUsersResolver) {
-            return $getUsersResolver;
-        });
+        $this->appContainer->get(\get_class($getUsersResolver))->willReturn($getUsersResolver);
 
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $getUsers = $this->eventEngine->messageFactory()->createMessageFromArray(
             Query::GET_USERS,
             ['payload' => []]
         );
 
-        $promise = $this->eventEngine->bootstrap()->dispatch($getUsers);
-
-        $userList = null;
-
-        $promise->done(function (array $data) use (&$userList) {
-            $userList = $data;
-        });
+        $userList = Await::lastResult($this->eventEngine->dispatch($getUsers));
 
         self::assertEquals([
             [
@@ -301,34 +284,27 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_creates_message_on_dispatch_if_only_name_and_payload_is_given()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $recordedEvents = [];
-
-        $this->eventStore->appendTo(new StreamName('event_stream'), Argument::any())->will(function ($args) use (&$recordedEvents) {
-            $recordedEvents = \iterator_to_array($args[1]);
-        });
-
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
             $publishedEvents[] = $this->convertToEventMachineMessage($event);
         });
 
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $userId = Uuid::uuid4()->toString();
 
-        $this->eventEngine->bootstrap()->dispatch(Command::REGISTER_USER, [
+        $result = Await::commandDispatchResult($this->eventEngine->dispatch(Command::REGISTER_USER, [
             UserDescription::IDENTIFIER => $userId,
             UserDescription::USERNAME => 'Alex',
             UserDescription::EMAIL => 'contact@prooph.de',
-        ]);
+        ]));
+
+        $recordedEvents = $result->recordedEvents();
 
         self::assertCount(1, $recordedEvents);
         self::assertCount(1, $publishedEvents);
-        /** @var GenericJsonSchemaEvent $event */
         $event = $recordedEvents[0];
         self::assertEquals(Event::USER_WAS_REGISTERED, $event->messageName());
     }
@@ -338,18 +314,6 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_can_handle_command_for_existing_aggregate()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $recordedEvents = [];
-
-        $this->eventStore->appendTo(new StreamName('event_stream'), Argument::any())->will(function ($args) use (&$recordedEvents) {
-            $recordedEvents = \array_merge($recordedEvents, \iterator_to_array($args[1]));
-        });
-
-        $this->eventStore->load(new StreamName('event_stream'), 1, null, Argument::type(MetadataMatcher::class))->will(function ($args) use (&$recordedEvents) {
-            return new \ArrayIterator([$recordedEvents[0]]);
-        });
 
         $publishedEvents = [];
 
@@ -361,24 +325,27 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             $publishedEvents[] = $this->convertToEventMachineMessage($event);
         });
 
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $userId = Uuid::uuid4()->toString();
 
-        $this->eventEngine->bootstrap()->dispatch(Command::REGISTER_USER, [
+        $firstResult = Await::commandDispatchResult($this->eventEngine->dispatch(Command::REGISTER_USER, [
             UserDescription::IDENTIFIER => $userId,
             UserDescription::USERNAME => 'Alex',
             UserDescription::EMAIL => 'contact@prooph.de',
-        ]);
+        ]));
 
-        $this->eventEngine->dispatch(Command::CHANGE_USERNAME, [
+        $secondResult = Await::commandDispatchResult($this->eventEngine->dispatch(Command::CHANGE_USERNAME, [
             UserDescription::IDENTIFIER => $userId,
             UserDescription::USERNAME => 'John',
-        ]);
+        ]));
+
+        $recordedEvents = array_merge($firstResult->recordedEvents(), $secondResult->recordedEvents());
 
         self::assertCount(2, $recordedEvents);
         self::assertCount(2, $publishedEvents);
-        /** @var GenericJsonSchemaEvent $event */
+        /** @var GenericEvent $event */
         $event = $recordedEvents[1];
         self::assertEquals(Event::USERNAME_WAS_CHANGED, $event->messageName());
     }
@@ -386,32 +353,19 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_enables_async_switch_message_router_if_container_has_a_producer()
+    public function it_uses_event_queue()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
         $producedEvents = [];
 
-        $eventMachine = $this->eventEngine;
+        $eventEngine = $this->eventEngine;
 
         $messageProducer = $this->prophesize(MessageProducer::class);
-        $messageProducer->__invoke(Argument::type(ProophMessage::class), Argument::exact(null))
-            ->will(function ($args) use (&$producedEvents, $eventMachine) {
+        $messageProducer->produce(Argument::type(Message::class))
+            ->will(function ($args) use (&$producedEvents, $eventEngine) {
                 $producedEvents[] = $args[0];
-                $eventMachine->dispatch($args[0]);
+                yield from $eventEngine->dispatch($args[0]);
             });
 
-        $this->appContainer->has(EventMachine::SERVICE_ID_ASYNC_EVENT_PRODUCER)->willReturn(true);
-        $this->appContainer->get(EventMachine::SERVICE_ID_ASYNC_EVENT_PRODUCER)->will(function ($args) use ($messageProducer) {
-            return $messageProducer->reveal();
-        });
-
-        $recordedEvents = [];
-
-        $this->eventStore->appendTo(new StreamName('event_stream'), Argument::any())->will(function ($args) use (&$recordedEvents) {
-            $recordedEvents = \iterator_to_array($args[1]);
-        });
 
         $publishedEvents = [];
 
@@ -419,7 +373,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             $publishedEvents[] = $this->convertToEventMachineMessage($event);
         });
 
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine(null, null, $messageProducer->reveal());
+        $this->bootstrapEventEngine();
 
         $userId = Uuid::uuid4()->toString();
 
@@ -432,12 +387,13 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $this->eventEngine->bootstrap()->dispatch($registerUser);
+        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
+
+        $recordedEvents = $result->recordedEvents();
 
         self::assertCount(1, $recordedEvents);
         self::assertCount(1, $publishedEvents);
         self::assertCount(1, $producedEvents);
-        /** @var GenericJsonSchemaEvent $event */
         $event = $recordedEvents[0];
 
         $this->assertUserWasRegistered($event, $registerUser, $userId);
@@ -451,16 +407,15 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_can_load_aggregate_state()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
 
-        $this->eventEngine->initialize($this->containerChain);
-        $eventMachine = $this->eventEngine;
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
         $userId = Uuid::uuid4()->toString();
 
-        $this->eventStore->load(new StreamName('event_stream'), 1, null, Argument::any())->will(function ($args) use ($userId, $eventMachine) {
-            return new \ArrayIterator([
-                $eventMachine->messageFactory()->createMessageFromArray(Event::USER_WAS_REGISTERED, [
+        $this->eventStore->appendTo($this->eventEngine->writeModelStreamName(),
+            GenericEvent::fromMessage($this->flavour->prepareNetworkTransmission(
+                $this->eventEngine->messageFactory()->createMessageFromArray(Event::USER_WAS_REGISTERED, [
                     'payload' => [
                         'userId' => $userId,
                         'username' => 'Tester',
@@ -471,11 +426,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
                         '_aggregate_type' => Aggregate::USER,
                         '_aggregate_version' => 1,
                     ],
-                ]),
-            ]);
-        });
+                ])
+            ))
+        );
 
-        $userState = $eventMachine->bootstrap()->loadAggregateState(Aggregate::USER, $userId);
+        $userState = $this->eventEngine->loadAggregateState(Aggregate::USER, $userId);
 
         $this->assertLoadedUserState($userState);
     }
@@ -483,127 +438,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_sets_up_transaction_manager_if_event_store_supports_transactions()
-    {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $this->eventStore = $this->prophesize(TransactionalEventStore::class);
-
-        $this->actionEventEmitterEventStore = new TransactionalActionEventEmitterEventStore(
-            $this->eventStore->reveal(),
-            new ProophActionEventEmitter(TransactionalActionEventEmitterEventStore::ALL_EVENTS)
-        );
-
-        $recordedEvents = [];
-
-        $this->eventStore->beginTransaction()->shouldBeCalled();
-
-        $this->eventStore->inTransaction()->willReturn(true);
-
-        $this->eventStore->appendTo(new StreamName('event_stream'), Argument::any())->will(function ($args) use (&$recordedEvents) {
-            $recordedEvents = \iterator_to_array($args[1]);
-        });
-
-        $this->eventStore->commit()->shouldBeCalled();
-
-        $publishedEvents = [];
-
-        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $event;
-        });
-
-        $this->eventEngine->initialize($this->containerChain);
-
-        $userId = Uuid::uuid4()->toString();
-
-        $this->eventEngine->bootstrap()->dispatch(Command::REGISTER_USER, [
-            UserDescription::IDENTIFIER => $userId,
-            UserDescription::USERNAME => 'Alex',
-            UserDescription::EMAIL => 'contact@prooph.de',
-        ]);
-
-        self::assertCount(1, $recordedEvents);
-        self::assertCount(1, $publishedEvents);
-        /** @var GenericJsonSchemaEvent $event */
-        $event = $recordedEvents[0];
-        self::assertEquals(Event::USER_WAS_REGISTERED, $event->messageName());
-    }
-
-    /**
-     * @test
-     */
-    public function it_provides_message_schemas()
-    {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $this->eventEngine->initialize($this->containerChain);
-
-        $userId = new UuidType();
-
-        $username = (new StringType())->withMinLength(1);
-
-        $userDataSchema = JsonSchema::object([
-            UserDescription::IDENTIFIER => $userId,
-            UserDescription::USERNAME => $username,
-            UserDescription::EMAIL => new EmailType(),
-        ], [
-            'shouldFail' => JsonSchema::boolean(),
-        ]);
-
-        $filterInput = JsonSchema::object([
-            'username' => JsonSchema::nullOr(JsonSchema::string()),
-            'email' => JsonSchema::nullOr(JsonSchema::email()),
-        ]);
-
-        self::assertEquals([
-            'commands' => [
-                Command::REGISTER_USER => $userDataSchema->toArray(),
-                Command::CHANGE_USERNAME => JsonSchema::object([
-                    UserDescription::IDENTIFIER => $userId,
-                    UserDescription::USERNAME => $username,
-                ])->toArray(),
-                Command::DO_NOTHING => JsonSchema::object([
-                    UserDescription::IDENTIFIER => $userId,
-                ])->toArray(),
-            ],
-            'events' => [
-                Event::USER_WAS_REGISTERED => $userDataSchema->toArray(),
-                Event::USERNAME_WAS_CHANGED => JsonSchema::object([
-                    UserDescription::IDENTIFIER => $userId,
-                    'oldName' => $username,
-                    'newName' => $username,
-                ])->toArray(),
-                Event::USER_REGISTRATION_FAILED => JsonSchema::object([
-                    UserDescription::IDENTIFIER => $userId,
-                ])->toArray(),
-            ],
-            'queries' => [
-                Query::GET_USER => JsonSchema::object([
-                    UserDescription::IDENTIFIER => $userId,
-                ])->toArray(),
-                Query::GET_USERS => JsonSchema::object([])->toArray(),
-                Query::GET_FILTERED_USERS => JsonSchema::object([], [
-                    'filter' => $filterInput,
-                ])->toArray(),
-            ],
-        ],
-            $this->eventEngine->messageSchemas()
-        );
-    }
-
-    /**
-     * @test
-     */
     public function it_builds_a_message_box_schema(): void
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
-        $this->eventEngine->initialize($this->containerChain);
-
-        $this->eventEngine->bootstrap();
 
         $userId = new UuidType();
 
@@ -637,8 +476,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $queries[Query::GET_FILTERED_USERS]['response'] = JsonSchema::array(JsonSchema::typeRef('User'))->toArray();
 
         $this->assertEquals([
-            'title' => 'Event Machine MessageBox',
-            'description' => 'A mechanism for handling prooph messages',
+            'title' => 'Event Engine MessageBox',
+            'description' => 'A mechanism for handling Event Engine messages',
             '$schema' => 'http://json-schema.org/draft-06/schema#',
             'type' => 'object',
             'properties' => [
@@ -676,19 +515,14 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_watches_write_model_stream()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
+        $documentStore = new InMemoryDocumentStore($this->inMemoryConnection);
 
-        $documentStore = new DocumentStore\InMemoryDocumentStore(new InMemoryConnection());
+        $this->setUpAggregateProjector($documentStore);
 
-        $eventStore = new ActionEventEmitterEventStore(
-            new InMemoryEventStore($this->inMemoryConnection),
-            new ProophActionEventEmitter(ActionEventEmitterEventStore::ALL_EVENTS)
-        );
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
-        $this->setUpAggregateProjector($documentStore, $eventStore, new StreamName('event_stream'));
-
-        $this->eventEngine->initialize($this->containerChain);
+        $this->eventEngine->setUpAllProjections();
 
         $userId = Uuid::uuid4()->toString();
 
@@ -701,9 +535,9 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $this->eventEngine->bootstrap()->dispatch($registerUser);
+        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
 
-        $this->eventEngine->runProjections(false);
+        $this->eventEngine->runAllProjections($this->eventEngine->writeModelStreamName(), ...$result->recordedEvents());
 
         $userState = $documentStore->getDoc(
             $this->getAggregateCollectionName(Aggregate::USER),
@@ -725,19 +559,14 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_forwards_projector_call_to_flavour()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
+        $documentStore = new InMemoryDocumentStore($this->inMemoryConnection);
 
-        $documentStore = new DocumentStore\InMemoryDocumentStore(new InMemoryConnection());
+        $this->setUpRegisteredUsersProjector($documentStore);
 
-        $eventStore = new ActionEventEmitterEventStore(
-            new InMemoryEventStore($this->inMemoryConnection),
-            new ProophActionEventEmitter(ActionEventEmitterEventStore::ALL_EVENTS)
-        );
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
-        $this->setUpRegisteredUsersProjector($documentStore, $eventStore, new StreamName('event_stream'));
-
-        $this->eventEngine->initialize($this->containerChain);
+        $this->eventEngine->setUpAllProjections();
 
         $userId = Uuid::uuid4()->toString();
 
@@ -750,11 +579,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $this->eventEngine->bootstrap()->dispatch($registerUser);
+        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
 
-        $this->eventEngine->runProjections(false);
+        $this->eventEngine->runAllProjections($this->eventEngine->writeModelStreamName(), ...$result->recordedEvents());
 
-        //We expect RegisteredUsersProjector to use collection naming convention: <projection_name>_<app_version>
+        //We expect RegisteredUsersProjector to use collection naming convention: <projection_name>_<projection_version>
         $userState = $documentStore->getDoc(
             'registered_users_0.1.0',
             $userId
@@ -774,9 +603,6 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_invokes_event_listener_using_flavour()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
         $messageDispatcher = $this->prophesize(MessageDispatcher::class);
 
         $newCmdName = null;
@@ -784,6 +610,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $messageDispatcher->dispatch(Argument::any(), Argument::any())->will(function ($args) use (&$newCmdName, &$newCmdPayload) {
             $newCmdName = $args[0] ?? null;
             $newCmdPayload = $args[1] ?? null;
+            yield null;
         });
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, 'Test.Listener.UserRegistered');
@@ -795,7 +622,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             return $listener;
         });
 
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $userId = Uuid::uuid4()->toString();
 
@@ -808,7 +636,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $this->eventEngine->bootstrap()->dispatch($registerUser);
+        Await::join($this->eventEngine->dispatch($registerUser));
 
         $this->assertNotNull($newCmdName);
         $this->assertNotNull($newCmdPayload);
@@ -822,33 +650,32 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_passes_registered_types_to_json_schema_assertion()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
         $this->eventEngine->registerType('UserState', JsonSchema::object([
             'id' => JsonSchema::string(['minLength' => 3]),
             'email' => JsonSchema::string(['format' => 'email']),
         ], [], true));
 
-        $this->eventEngine->initialize($this->containerChain);
-
-        $this->eventEngine->bootstrap();
-
         $visitorSchema = JsonSchema::object(['role' => JsonSchema::enum(['guest'])], [], true);
 
-        $identifiedVisitorSchema = ['allOf' => [
-            JsonSchema::typeRef('UserState')->toArray(),
+        $identifiedVisitorSchema = JsonSchema::implementTypes(
             $visitorSchema,
-        ]];
+            'UserState'
+        );
+
+        $this->eventEngine->registerCommand('Guest', $visitorSchema);
+        $this->eventEngine->registerCommand('IdentifiedVisitor', $identifiedVisitorSchema);
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $guest = ['id' => '123', 'role' => 'guest'];
 
-        $this->eventEngine->jsonSchemaAssertion()->assert('Guest', $guest, $visitorSchema->toArray());
+        $this->eventEngine->messageFactory()->createMessageFromArray('Guest', ['payload' => $guest]);
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of IdentifiedVisitor failed: \[email\] The property email is required/');
+        $this->expectExceptionMessageRegExp('/Validation of IdentifiedVisitor payload failed: \[email\] The property email is required/');
 
-        $this->eventEngine->jsonSchemaAssertion()->assert('IdentifiedVisitor', $guest, $identifiedVisitorSchema);
+        $this->eventEngine->messageFactory()->createMessageFromArray('IdentifiedVisitor', ['payload' => $guest]);
     }
 
     /**
@@ -856,23 +683,23 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_registers_enum_type_as_type()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
         $colorSchema = new EnumType('red', 'blue', 'yellow');
 
-        $this->eventEngine->registerEnumType('color', $colorSchema);
-
-        $this->eventEngine->initialize($this->containerChain);
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of ball failed: \[color\] Does not have a value in the enumeration \["red","blue","yellow"\]/');
+        $this->eventEngine->registerType('color', $colorSchema);
 
         $ballSchema = JsonSchema::object([
             'color' => JsonSchema::typeRef('color'),
-        ])->toArray();
+        ]);
 
-        $this->eventEngine->jsonSchemaAssertion()->assert('ball', ['color' => 'green'], $ballSchema);
+        $this->eventEngine->registerCommand('ball', $ballSchema);
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageRegExp('/Validation of ball payload failed: \[color\] Does not have a value in the enumeration \["red","blue","yellow"\]/');
+
+        $this->eventEngine->messageFactory()->createMessageFromArray('ball', ['payload' => ['color' => 'green']]);
     }
 
     /**
@@ -880,12 +707,14 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     public function it_uses_immutable_record_info_to_register_a_type()
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
         $this->eventEngine->registerType(TestIdentityVO::class);
 
-        $this->eventEngine->initialize($this->containerChain)->bootstrap(EventMachine::ENV_TEST, true);
+        $this->eventEngine->registerCommand('AddIdentity', JsonSchema::object([
+            'identity' => JsonSchema::typeRef(TestIdentityVO::class)
+        ]));
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $userIdentityData = [
             'identity' => [
@@ -895,58 +724,28 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         ];
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of UserIdentityData failed: \[identity.password\] Integer value found, but a string is required/');
+        $this->expectExceptionMessageRegExp('/Validation of AddIdentity payload failed: \[identity.password\] Integer value found, but a string is required/');
 
-        $this->eventEngine->jsonSchemaAssertion()->assert('UserIdentityData', $userIdentityData, JsonSchema::object([
-            'identity' => JsonSchema::typeRef(TestIdentityVO::__type()),
-        ])->toArray());
+        $this->eventEngine->messageFactory()->createMessageFromArray('AddIdentity', ['payload' => $userIdentityData]);
     }
 
     /**
      * @test
      */
-    public function it_sets_app_version()
+    public function it_dispatches_a_known_command_with_aggregate_state_consistency(): void
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
+        $this->eventStore = InMemoryMultiModelStore::fromConnection($this->inMemoryConnection);
 
-        $this->eventEngine->initialize($this->containerChain, '0.2.0');
+        $this->eventStore->addCollection($this->getAggregateCollectionName(Aggregate::USER));
 
-        $this->eventEngine->bootstrap();
-
-        $this->assertEquals('0.2.0', $this->eventEngine->appVersion());
-    }
-
-    /**
-     * @test
-     */
-    public function it_dispatches_a_known_command_with_immediate_consistency(): void
-    {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $documentStore = new DocumentStore\InMemoryDocumentStore($this->inMemoryConnection);
-
-        $inMemoryEventStore = new InMemoryEventStore($this->inMemoryConnection);
-
-        $eventStore = new ActionEventEmitterEventStore(
-            $inMemoryEventStore,
-            new ProophActionEventEmitter(ActionEventEmitterEventStore::ALL_EVENTS)
-        );
-
-        $streamName = new StreamName('event_stream');
-
-        $this->setUpAggregateProjector($documentStore, $eventStore, $streamName);
-
-        $this->transactionManager = new TransactionManager($this->inMemoryConnection);
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
             $publishedEvents[] = $event;
         });
 
-        $this->eventEngine->setImmediateConsistency(true);
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $userId = Uuid::uuid4()->toString();
 
@@ -959,17 +758,17 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $this->eventEngine->bootstrap()->dispatch($registerUser);
+        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
 
-        $recordedEvents = $inMemoryEventStore->load($streamName);
+
+        $recordedEvents = iterator_to_array($this->eventStore->loadAggregateEvents($this->eventEngine->writeModelStreamName(), Aggregate::USER, $userId));
 
         self::assertCount(1, $recordedEvents);
         self::assertCount(1, $publishedEvents);
-        /** @var GenericJsonSchemaEvent $event */
         $event = $recordedEvents[0];
         $this->assertUserWasRegistered($event, $registerUser, $userId);
 
-        $userState = $documentStore->getDoc(
+        $userState = $this->eventStore->getDoc(
             $this->getAggregateCollectionName(Aggregate::USER),
             $userId
         );
@@ -981,44 +780,24 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             'username' => 'Alex',
             'email' => 'contact@prooph.de',
             'failed' => null,
-        ], $userState);
+        ], $userState['state']);
     }
 
     /**
      * @test
      */
-    public function it_rolls_back_events_and_projection_with_immediate_consistency(): void
+    public function it_rolls_back_events_with_aggregate_state_consistency(): void
     {
-        $this->markTestSkipped("Reactivate Test");
-        return;
+        $this->eventStore = InMemoryMultiModelStore::fromConnection($this->inMemoryConnection);
 
-        $documentStore = $this->prophesize(DocumentStore::class);
-        $documentStore->hasCollection(Argument::type('string'))->willReturn(false);
-        $documentStore->addCollection(Argument::type('string'))->shouldBeCalled();
-        $documentStore
-            ->upsertDoc(Argument::type('string'), Argument::type('string'), Argument::type('array'))
-            ->willThrow(new \RuntimeException('projection error'));
-
-        $inMemoryEventStore = new InMemoryEventStore($this->inMemoryConnection);
-
-        $eventStore = new ActionEventEmitterEventStore(
-            $inMemoryEventStore,
-            new ProophActionEventEmitter(ActionEventEmitterEventStore::ALL_EVENTS)
-        );
-
-        $streamName = new StreamName('event_stream');
-
-        $this->setUpAggregateProjector($documentStore->reveal(), $eventStore, $streamName);
-
-        $this->transactionManager = new TransactionManager($this->inMemoryConnection);
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
             $publishedEvents[] = $event;
         });
 
-        $this->eventEngine->setImmediateConsistency(true);
-        $this->eventEngine->initialize($this->containerChain);
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
 
         $userId = Uuid::uuid4()->toString();
 
@@ -1033,50 +812,17 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
         $exceptionThrown = false;
 
-        // more tests after exception needed
         try {
-            $this->eventEngine->bootstrap()->dispatch($registerUser);
-        } catch (TransactionCommitFailed $e) {
+            Await::join($this->eventEngine->dispatch($registerUser));
+        } catch (UnknownCollection $e) {
             $exceptionThrown = true;
         }
         $this->assertTrue($exceptionThrown);
-        $this->assertEmpty(\iterator_to_array($eventStore->load($streamName)));
-    }
-
-    /**
-     * @test
-     */
-    public function it_switches_action_event_emitter_with_immediate_consistency(): void
-    {
-        $this->markTestSkipped("Reactivate Test");
-        return;
-
-        $documentStore = new DocumentStore\InMemoryDocumentStore($this->inMemoryConnection);
-
-        $inMemoryEventStore = new InMemoryEventStore($this->inMemoryConnection);
-
-        //A TransactionalActionEventEmitterEventStore conflicts with the immediate consistency mode
-        //because the EventPublisher listens on commit event, but it never happens due to transaction managed
-        //outside of the event store
-        //Event Machine needs to take care of it
-        $eventStore = new TransactionalActionEventEmitterEventStore(
-            $inMemoryEventStore,
-            new ProophActionEventEmitter(TransactionalActionEventEmitterEventStore::ALL_EVENTS)
-        );
-
-        $streamName = new StreamName('event_stream');
-
-        $this->setUpAggregateProjector($documentStore, $eventStore, $streamName);
-
-        $this->transactionManager = new TransactionManager($this->inMemoryConnection);
-        $publishedEvents = [];
-
-        $this->eventEngine->setImmediateConsistency(true);
-        $this->eventEngine->initialize($this->containerChain);
-
-        $this->expectException(RuntimeException::class);
-
-        $this->eventEngine->bootstrap();
+        $this->assertEmpty(\iterator_to_array($this->eventStore->loadAggregateEvents(
+            $this->eventEngine->writeModelStreamName(),
+            Aggregate::USER,
+            $userId
+        )));
     }
 
     private function assertUserWasRegistered(

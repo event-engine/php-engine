@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace EventEngineExample\FunctionalFlavour\Projector;
 
-use Prooph\EventMachine\Exception\RuntimeException;
-use Prooph\EventMachine\Persistence\DocumentStore;
-use Prooph\EventMachine\Projecting\CustomEventProjector;
+use EventEngine\DocumentStore\DocumentStore;
+use EventEngine\Exception\RuntimeException;
+use EventEngine\Projecting\CustomEventProjector;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 
 final class RegisteredUsersProjector implements CustomEventProjector

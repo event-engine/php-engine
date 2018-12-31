@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace EventEngineExample\FunctionalFlavour\Aggregate;
 
-use Prooph\EventMachine\EventMachine;
-use Prooph\EventMachine\EventMachineDescription;
+use EventEngine\EventEngine;
+use EventEngine\EventEngineDescription;
 use EventEngineExample\FunctionalFlavour\Api\Command;
 use EventEngineExample\FunctionalFlavour\Api\Event;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
@@ -38,7 +38,7 @@ use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
  *
  * @package EventEngineExample\Aggregate
  */
-final class UserDescription implements EventMachineDescription
+final class UserDescription implements EventEngineDescription
 {
     public const IDENTIFIER = 'userId';
     public const USERNAME = 'username';
@@ -46,15 +46,15 @@ final class UserDescription implements EventMachineDescription
 
     const STATE_CLASS = UserState::class;
 
-    public static function describe(EventMachine $eventMachine): void
+    public static function describe(EventEngine $eventEngine): void
     {
-        self::describeRegisterUser($eventMachine);
-        self::describeChangeUsername($eventMachine);
+        self::describeRegisterUser($eventEngine);
+        self::describeChangeUsername($eventEngine);
     }
 
-    private static function describeRegisterUser(EventMachine $eventMachine): void
+    private static function describeRegisterUser(EventEngine $eventEngine): void
     {
-        $eventMachine->process(Command::REGISTER_USER)
+        $eventEngine->process(Command::REGISTER_USER)
             ->withNew(Aggregate::USER)
             ->identifiedBy(self::IDENTIFIER)
             // Note: Our custom command is passed to the function
@@ -83,9 +83,9 @@ final class UserDescription implements EventMachineDescription
             });
     }
 
-    private static function describeChangeUsername(EventMachine $eventMachine): void
+    private static function describeChangeUsername(EventEngine $eventEngine): void
     {
-        $eventMachine->process(Command::CHANGE_USERNAME)
+        $eventEngine->process(Command::CHANGE_USERNAME)
             ->withExisting(Aggregate::USER)
             // This time we handle command with existing aggregate, hence we get current user state injected
             ->handle(function (UserState $user, ChangeUsername $changeUsername) {

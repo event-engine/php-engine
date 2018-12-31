@@ -54,4 +54,6 @@ interface Port
      * @return mixed
      */
     public function callContextProvider($customCommand, $contextProvider);
+
+    public function callResolver($customQuery, $resolver): \Generator;
 }

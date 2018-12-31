@@ -11,7 +11,8 @@ declare(strict_types=1);
 
 namespace EventEngineExample\FunctionalFlavour\ProcessManager;
 
-use Prooph\EventMachine\Messaging\MessageDispatcher;
+use EventEngine\Messaging\MessageDispatcher;
+use EventEngine\Util\Await;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 
 final class SendWelcomeEmail
@@ -28,6 +29,6 @@ final class SendWelcomeEmail
 
     public function __invoke(UserRegistered $event)
     {
-        $this->messageDispatcher->dispatch('SendWelcomeEmail', ['email' => $event->email]);
+        Await::join($this->messageDispatcher->dispatch('SendWelcomeEmail', ['email' => $event->email]));
     }
 }

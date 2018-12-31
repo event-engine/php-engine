@@ -31,7 +31,7 @@ final class MultiFieldIndex implements Index
         ]);
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): Index
     {
         $fields = \array_map(function (string $field): FieldIndex {
             return FieldIndex::forFieldInMultiFieldIndex($field);

@@ -11,8 +11,9 @@ declare(strict_types=1);
 
 namespace EventEngine\DocumentStore;
 
+use EventEngine\DocumentStore\Exception\RuntimeException;
+use EventEngine\DocumentStore\Exception\UnknownCollection;
 use EventEngine\DocumentStore\Filter\Filter;
-use EventEngine\DocumentStore\Index;
 use EventEngine\DocumentStore\OrderBy\OrderBy;
 
 interface DocumentStore
@@ -42,7 +43,7 @@ interface DocumentStore
 
     /**
      * @param string $collectionName
-     * @throws \Throwable if dropping did not succeed
+     * @throws RuntimeException if dropping did not succeed
      */
     public function dropCollection(string $collectionName): void;
 
@@ -50,7 +51,8 @@ interface DocumentStore
      * @param string $collectionName
      * @param string $docId
      * @param array $doc
-     * @throws \Throwable if adding did not succeed
+     * @throws UnknownCollection
+     * @throws RuntimeException if adding did not succeed
      */
     public function addDoc(string $collectionName, string $docId, array $doc): void;
 
@@ -58,7 +60,8 @@ interface DocumentStore
      * @param string $collectionName
      * @param string $docId
      * @param array $docOrSubset
-     * @throws \Throwable if updating did not succeed
+     * @throws UnknownCollection
+     * @throws RuntimeException if updating did not succeed
      */
     public function updateDoc(string $collectionName, string $docId, array $docOrSubset): void;
 
@@ -66,7 +69,8 @@ interface DocumentStore
      * @param string $collectionName
      * @param Filter $filter
      * @param array $set
-     * @throws \Throwable in case of connection error or other issues
+     * @throws UnknownCollection
+     * @throws RuntimeException in case of connection error or other issues
      */
     public function updateMany(string $collectionName, Filter $filter, array $set): void;
 
@@ -76,21 +80,24 @@ interface DocumentStore
      * @param string $collectionName
      * @param string $docId
      * @param array $docOrSubset
-     * @throws \Throwable if insert/update did not succeed
+     * @throws UnknownCollection
+     * @throws RuntimeException if insert/update did not succeed
      */
     public function upsertDoc(string $collectionName, string $docId, array $docOrSubset): void;
 
     /**
      * @param string $collectionName
      * @param string $docId
-     * @throws \Throwable if deleting did not succeed
+     * @throws UnknownCollection
+     * @throws RuntimeException if deleting did not succeed
      */
     public function deleteDoc(string $collectionName, string $docId): void;
 
     /**
      * @param string $collectionName
      * @param Filter $filter
-     * @throws \Throwable in case of connection error or other issues
+     * @throws UnknownCollection
+     * @throws RuntimeException in case of connection error or other issues
      */
     public function deleteMany(string $collectionName, Filter $filter): void;
 
@@ -98,6 +105,7 @@ interface DocumentStore
      * @param string $collectionName
      * @param string $docId
      * @return array|null
+     * @throws UnknownCollection
      */
     public function getDoc(string $collectionName, string $docId): ?array;
 
@@ -108,6 +116,7 @@ interface DocumentStore
      * @param int|null $limit
      * @param OrderBy|null $orderBy
      * @return \Traversable list of docs
+     * @throws UnknownCollection
      */
     public function filterDocs(string $collectionName, Filter $filter, int $skip = null, int $limit = null, OrderBy $orderBy = null): \Traversable;
 }

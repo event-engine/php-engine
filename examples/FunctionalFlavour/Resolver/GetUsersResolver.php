@@ -11,11 +11,10 @@ declare(strict_types=1);
 
 namespace EventEngineExample\FunctionalFlavour\Resolver;
 
-use Prooph\EventMachine\Querying\AsyncResolver;
+use EventEngine\Querying\Resolver;
 use EventEngineExample\FunctionalFlavour\Query\GetUsers;
-use React\Promise\Deferred;
 
-final class GetUsersResolver implements AsyncResolver
+final class GetUsersResolver
 {
     private $cachedUsers;
 
@@ -24,11 +23,12 @@ final class GetUsersResolver implements AsyncResolver
         $this->cachedUsers = $cachedUsers;
     }
 
-    public function __invoke(GetUsers $getUsers, Deferred $deferred): void
+    public function resolve(GetUsers $getUsers): \Generator
     {
-        $deferred->resolve(\array_filter($this->cachedUsers, function (array $user) use ($getUsers): bool {
+        yield \array_filter($this->cachedUsers, function (array $user) use ($getUsers): bool {
             return (null === $getUsers->username || $user['username'] === $getUsers->username)
                 && (null === $getUsers->email || $user['email'] === $getUsers->email);
-        }));
+        });
+        return;
     }
 }

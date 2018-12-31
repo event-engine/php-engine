@@ -14,6 +14,9 @@ namespace EventEngine\JsonSchema;
 use EventEngine\JsonSchema\Exception\InvalidArgumentException;
 use EventEngine\JsonSchema\Type\ObjectType;
 use EventEngine\Schema\InputTypeSchema;
+use EventEngine\Schema\MessageBox\CommandMap;
+use EventEngine\Schema\MessageBox\EventMap;
+use EventEngine\Schema\MessageBox\QueryMap;
 use EventEngine\Schema\PayloadSchema;
 use EventEngine\Schema\ResponseTypeSchema;
 use EventEngine\Schema\Schema;
@@ -81,6 +84,39 @@ final class JustinRainbowJsonSchema implements Schema
         return new JsonSchemaArray($typeSchema);
     }
 
+    public function buildMessageBoxSchema(CommandMap $commandMap, EventMap $eventMap, QueryMap $queryMap, TypeSchemaMap $typeSchemaMap): array
+    {
+        $commandSchemas = [];
+
+        foreach ($commandMap->commands() as $command) {
+            $commandSchemas[$command->name()] = $command->payloadSchema()->toArray();
+        }
+
+        $eventSchemas = [];
+
+        foreach ($eventMap->events() as $event) {
+            $eventSchemas[$event->name()] = $event->payloadSchema()->toArray();
+        }
+
+        $querySchemas = [];
+        foreach ($queryMap->queries() as $query) {
+            $querySchemas[$query->name()] = array_merge($query->payloadSchema()->toArray(), ['response' => $query->returnType()->toArray()]);
+        }
+
+        return [
+            'title' => 'Event Engine MessageBox',
+            'description' => 'A mechanism for handling Event Engine messages',
+            '$schema' => 'http://json-schema.org/draft-06/schema#',
+            'type' => 'object',
+            'properties' => [
+                'commands' => $commandSchemas,
+                'events' => $eventSchemas,
+                'queries' => $querySchemas,
+            ],
+            'definitions' => $typeSchemaMap->toArray(),
+        ];
+    }
+
     public function assert(string $objectName, array $data, array $jsonSchema)
     {
         if ($data === [] && JsonSchema::isObjectType($jsonSchema)) {
@@ -101,9 +137,8 @@ final class JustinRainbowJsonSchema implements Schema
                 $errors[$i] = \sprintf("[%s] %s\n", $error['property'], $error['message']);
             }
 
-            throw new \InvalidArgumentException(
-                "Validation of $objectName failed: " . \implode("\n", $errors),
-                400
+            throw new InvalidArgumentException(
+                "Validation of $objectName failed: " . \implode("\n", $errors)
             );
         }
 

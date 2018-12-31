@@ -11,8 +11,20 @@ declare(strict_types=1);
 
 namespace EventEngine\Util;
 
+use EventEngine\Exception\RuntimeException;
+use EventEngine\Messaging\CommandDispatchResult;
+
 final class Await
 {
+    public static function commandDispatchResult(\Generator $generator): CommandDispatchResult
+    {
+        foreach ($generator as $result) {
+            if($result instanceof CommandDispatchResult) return $result;
+        }
+
+        throw new RuntimeException("No " . CommandDispatchResult::class . " yielded!");
+    }
+
     public static function oneResult(\Generator $generator)
     {
         foreach ($generator as $result) {
@@ -42,5 +54,10 @@ final class Await
         }
 
         return $results;
+    }
+
+    public static function join(\Generator $generator): void
+    {
+        foreach ($generator as $result) {}
     }
 }
