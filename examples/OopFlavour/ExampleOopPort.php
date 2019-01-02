@@ -11,16 +11,14 @@ declare(strict_types=1);
 
 namespace EventEngineExample\OopFlavour;
 
-use Prooph\EventMachine\Exception\InvalidArgumentException;
-use Prooph\EventMachine\Runtime\Oop\Port;
-use Prooph\EventMachine\Util\DetermineVariableType;
+use EventEngine\Exception\InvalidArgumentException;
+use EventEngine\Runtime\Oop\Port;
+use EventEngine\Util\VariableType;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
 use EventEngineExample\OopFlavour\Aggregate\User;
 
 final class ExampleOopPort implements Port
 {
-    use DetermineVariableType;
-
     /**
      * {@inheritdoc}
      */
@@ -40,7 +38,7 @@ final class ExampleOopPort implements Port
                 $aggregate->changeName($customCommand);
                 break;
             default:
-                throw new InvalidArgumentException('Unknown command: ' . self::getType($customCommand));
+                throw new InvalidArgumentException('Unknown command: ' . VariableType::determine($customCommand));
         }
     }
 
@@ -79,6 +77,22 @@ final class ExampleOopPort implements Port
         switch ($aggregateType) {
             case User::TYPE:
                 return User::reconstituteFromHistory($events);
+                break;
+            default:
+                throw new InvalidArgumentException("Unknown aggregate type $aggregateType");
+        }
+    }
+
+    /**
+     * @param string $aggregateType
+     * @param array $state
+     * @return mixed Aggregate instance
+     */
+    public function reconstituteAggregateFromStateArray(string $aggregateType, array $state)
+    {
+        switch ($aggregateType) {
+            case User::TYPE:
+                return User::reconstituteFromState($state);
                 break;
             default:
                 throw new InvalidArgumentException("Unknown aggregate type $aggregateType");

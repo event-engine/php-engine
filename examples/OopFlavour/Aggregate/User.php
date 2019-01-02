@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngineExample\OopFlavour\Aggregate;
 
-use Prooph\EventMachine\Exception\RuntimeException;
+use EventEngine\Exception\RuntimeException;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
 use EventEngineExample\FunctionalFlavour\Command\RegisterUser;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
@@ -38,6 +38,18 @@ final class User
         foreach ($history as $event) {
             $self->apply($event);
         }
+
+        return $self;
+    }
+
+    public static function reconstituteFromState(array $state): self
+    {
+        $self = new self();
+
+        $self->userId = $state['userId'];
+        $self->username = $state['username'];
+        $self->email = $state['email'];
+        $self->failed = $state['failed'];
 
         return $self;
     }

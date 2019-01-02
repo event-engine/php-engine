@@ -32,7 +32,7 @@ final class ExampleFunctionalPort implements Port
                 if(! Command::canCreate($message->messageName())) {
                     return $message;
                 }
-                
+
                 return Command::createFromNameAndPayload($message->messageName(), $message->payload());
             case Message::TYPE_EVENT:
                 return Event::createFromNameAndPayload($message->messageName(), $message->payload());
