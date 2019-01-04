@@ -19,10 +19,12 @@ use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Exception\RuntimeException;
+use EventEngine\Logger\LogEngine;
 use EventEngine\Messaging\GenericCommand;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Runtime\Flavour;
+use Psr\Log\LoggerInterface;
 
 final class CommandProcessor
 {
@@ -86,11 +88,17 @@ final class CommandProcessor
      */
     private $contextProvider;
 
+    /**
+     * @var LoggerInterface
+     */
+    private $log;
+
     public static function fromDescriptionArraysAndDependencies(
         array &$processorDesc,
         array &$aggregateDescriptions,
         Flavour $flavour,
         EventStore $eventStore,
+        LogEngine $logEngine,
         DocumentStore $documentStore = null,
         ContextProvider $contextProvider = null
     ): self {
@@ -134,6 +142,7 @@ final class CommandProcessor
             $processorDesc['streamName'],
             $flavour,
             $eventStore,
+            $logEngine,
             $contextProvider,
             $documentStore,
             $aggregateDesc['aggregateCollection'] ?? null
@@ -150,6 +159,7 @@ final class CommandProcessor
         string $streamName,
         Flavour $flavour,
         EventStore $eventStore,
+        LogEngine $log,
         ContextProvider $contextProvider = null,
         DocumentStore $documentStore = null,
         string $aggregateCollection = null
@@ -163,6 +173,7 @@ final class CommandProcessor
         $this->streamName = $streamName;
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
+        $this->log = $log;
         $this->documentStore = $documentStore;
         $this->contextProvider = $contextProvider;
         $this->aggregateCollection = $aggregateCollection;
@@ -204,6 +215,7 @@ final class CommandProcessor
 
         if ($this->contextProvider) {
             $context = $this->flavour->callContextProvider($this->contextProvider, $command);
+            $this->log->contextProviderCalled($this->contextProvider, $command, $context);
         }
 
         $arFunc = $this->aggregateFunction;
@@ -221,7 +233,15 @@ final class CommandProcessor
             $aggregate->recordThat($event);
         }
 
-        return $arRepository->saveAggregateRoot($aggregate);
+        $events = $arRepository->saveAggregateRoot($aggregate);
+
+        if($this->createAggregate) {
+            $this->log->newAggregateCreated($this->aggregateType, $arId, ...$events);
+        } else {
+            $this->log->existingAggregateChanged($this->aggregateType, $arId, $aggregateState, ...$events);
+        }
+
+        return $events;
     }
 
     private function getAggregateRepository(): GenericAggregateRepository

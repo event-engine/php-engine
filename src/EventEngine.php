@@ -25,6 +25,7 @@ use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\BadMethodCallException;
 use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Exception\RuntimeException;
+use EventEngine\Logger\LogEngine;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\GenericSchemaMessageFactory;
 use EventEngine\Messaging\Message;
@@ -56,10 +57,8 @@ use EventEngine\Schema\ResponseTypeSchema;
 use EventEngine\Schema\Schema;
 use EventEngine\Schema\TypeSchema;
 use EventEngine\Schema\TypeSchemaMap;
-use EventEngine\Util\Await;
 use EventEngine\Util\VariableType;
 use Psr\Container\ContainerInterface;
-use Psr\Log\LoggerInterface;
 
 final class EventEngine implements MessageDispatcher, MessageProducer, AggregateStateStore
 {
@@ -171,9 +170,9 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     private $container;
 
     /**
-     * @var LoggerInterface
+     * @var LogEngine
      */
-    private $logger;
+    private $log;
 
     /**
      * @var Flavour
@@ -218,7 +217,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         Schema $schema,
         Flavour $flavour,
         EventStore $eventStore,
-        LoggerInterface $logger,
+        LogEngine $logEngine,
         ContainerInterface $container,
         DocumentStore $documentStore = null,
         MessageProducer $eventQueue = null
@@ -271,7 +270,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         $self->flavour = $flavour;
         $self->eventStore = $eventStore;
-        $self->logger = $logger;
+        $self->log = $logEngine;
         $self->container = $container;
         $self->documentStore = $documentStore;
         $self->eventQueue = $eventQueue;
@@ -285,6 +284,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         }
 
         $self->initialized = true;
+
+        $self->log->initializedFromCachedConfig($config);
 
         return $self;
     }
@@ -588,7 +589,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     public function initialize(
         Flavour $flavour,
         EventStore $eventStore,
-        LoggerInterface $logger,
+        LogEngine $logEngine,
         ContainerInterface $container,
         DocumentStore $documentStore = null,
         MessageProducer $eventQueue = null
@@ -601,12 +602,14 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
-        $this->logger = $logger;
+        $this->log = $logEngine;
         $this->container = $container;
         $this->documentStore = $documentStore;
         $this->eventQueue = $eventQueue;
 
         $this->initialized = true;
+
+        $this->log->initializedAfterLoadingDescriptions($this->commandMap, $this->eventMap, $this->queryMap);
 
         return $this;
     }
@@ -637,6 +640,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $this->debugMode = $debugMode;
         $this->env = $env;
 
+        $this->log->bootstrapped($this->env, $this->debugMode);
+
         return $this;
     }
 
@@ -661,6 +666,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             );
         }
 
+        $this->log->dispatchStarted($messageOrName);
+
         switch ($messageOrName->messageType()) {
             case Message::TYPE_COMMAND:
                 $processorDesc = $this->compiledCommandRouting[$messageOrName->messageName()] ?? [];
@@ -678,6 +685,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $messageOrName,
                     $this->flavour,
                     $this->eventStore,
+                    $this->log,
                     $preProcessors,
                     $processorDesc,
                     $this->aggregateDescriptions,
@@ -695,6 +703,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     }
 
                     $this->flavour->callEventListener($listener, $messageOrName);
+                    $this->log->eventListenerCalled($listener, $messageOrName);
                 }
 
                 yield null;
@@ -709,6 +718,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                 $resolver = $this->container->get($queryDesc['resolver'] ?? null);
 
                 yield from $this->flavour->callQueryResolver($resolver, $messageOrName);
+                $this->log->queryResolverCalled($resolver, $messageOrName);
                 break;
             default:
                 throw new RuntimeException('Unsupported message type: ' . $messageOrName->messageType());
@@ -744,6 +754,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         if (! $aggregate) {
             throw AggregateNotFound::with($aggregateType, $aggregateId);
         }
+
+        $this->log->aggregateStateLoaded($aggregate->aggregateType(), $aggregate->aggregateId(), $aggregate->version());
 
         return $aggregate->currentState();
     }
@@ -824,6 +836,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             if($projection->isInterestedIn($sourceStream, $event)) {
                 try {
                     $projection->handle($event);
+                    $this->log->projectionHandledEvent($projectionName, $event);
                 } catch (\Throwable $error) {
                     throw ProjectorFailed::atEvent(
                         $event,
@@ -858,6 +871,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         );
 
         $projection->prepareForRun();
+
+        $this->log->projectionSetUp($projectionName);
     }
 
     public function deleteAllProjections(): void
@@ -882,6 +897,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         );
 
         $projection->delete();
+
+        $this->log->projectionDeleted($projectionName);
     }
 
     public function projectionVersion(string $projectionName): string

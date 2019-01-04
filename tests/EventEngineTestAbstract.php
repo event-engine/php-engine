@@ -23,6 +23,8 @@ use EventEngine\JsonSchema\Type\EnumType;
 use EventEngine\JsonSchema\Type\StringType;
 use EventEngine\JsonSchema\Type\UuidType;
 use EventEngine\Logger\DevNull;
+use EventEngine\Logger\LogEngine;
+use EventEngine\Logger\SimpleMessageEngine;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
@@ -153,17 +155,17 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     }
 
     protected function initializeEventEngine(
-        LoggerInterface $logger = null,
+        LogEngine $logEngine = null,
         DocumentStore $documentStore = null,
         MessageProducer $eventQueue = null): void {
-        if(!$logger) {
-            $logger = new DevNull();
+        if(!$logEngine) {
+            $logEngine = new SimpleMessageEngine(new DevNull());
         }
 
         $this->eventEngine->initialize(
             $this->flavour,
             $this->eventStore,
-            $logger,
+            $logEngine,
             $this->appContainer->reveal(),
             $documentStore,
             $eventQueue

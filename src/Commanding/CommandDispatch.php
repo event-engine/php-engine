@@ -15,11 +15,14 @@ use EventEngine\Aggregate\ContextProvider;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\RuntimeException;
+use EventEngine\Logger\LogEngine;
 use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageProducer;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Util\Await;
+use EventEngine\Util\VariableType;
+use Psr\Log\LoggerInterface;
 
 final class CommandDispatch
 {
@@ -27,6 +30,7 @@ final class CommandDispatch
      * @param Message $command
      * @param Flavour $flavour
      * @param EventStore $eventStore
+     * @param LoggerInterface $log
      * @param array $preProcessors
      * @param array $processorDescription
      * @param array $aggregateDescriptions
@@ -40,6 +44,7 @@ final class CommandDispatch
         Message $command,
         Flavour $flavour,
         EventStore $eventStore,
+        LogEngine $log,
         array &$preProcessors,
         array &$processorDescription,
         array &$aggregateDescriptions,
@@ -48,10 +53,14 @@ final class CommandDispatch
         ContextProvider $contextProvider = null): CommandDispatchResult
     {
         foreach ($preProcessors as $preProcessor) {
+            $orgCommand = $command;
             $command = $flavour->callCommandPreProcessor($preProcessor, $command);
 
             if($command instanceof CommandDispatchResult) {
+                $log->preProcessorReturnedDispatchResult($preProcessor, $orgCommand, $command);
                 return $command;
+            } else {
+                $log->preProcessorCalled($preProcessor, $orgCommand, $command);
             }
         }
 
@@ -64,6 +73,7 @@ final class CommandDispatch
             $aggregateDescriptions,
             $flavour,
             $eventStore,
+            $log,
             $documentStore,
             $contextProvider
         );
@@ -72,6 +82,7 @@ final class CommandDispatch
 
         foreach ($recordedEvents as $event) {
             Await::lastResult($eventQueue->produce($event));
+            $log->eventPublished($event);
         }
 
         $arId = $flavour->getAggregateIdFromCommand($processorDescription['aggregateIdentifier'], $command);
