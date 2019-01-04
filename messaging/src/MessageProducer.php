@@ -15,7 +15,7 @@ interface MessageProducer
 {
     /**
      * @param Message $message
-     * @return \Generator In case of a query a result is yielded otherwise null
+     * @return mixed|null In case of a query a result is returned otherwise null
      */
-    public function produce(Message $message): \Generator;
+    public function produce(Message $message);
 }

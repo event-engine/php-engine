@@ -13,7 +13,6 @@ namespace EventEngineExample\PrototypingFlavour\ProcessManager;
 
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageDispatcher;
-use EventEngine\Util\Await;
 
 final class SendWelcomeEmail
 {
@@ -29,6 +28,6 @@ final class SendWelcomeEmail
 
     public function __invoke(Message $event)
     {
-        Await::join($this->messageDispatcher->dispatch('SendWelcomeEmail', ['email' => $event->get('email')]));
+        $this->messageDispatcher->dispatch('SendWelcomeEmail', ['email' => $event->get('email')]);
     }
 }

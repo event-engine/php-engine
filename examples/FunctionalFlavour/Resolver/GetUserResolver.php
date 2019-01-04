@@ -25,11 +25,10 @@ final class GetUserResolver
         $this->cachedUserState = $cachedUserState;
     }
 
-    public function resolve(GetUser $getUser): \Generator
+    public function resolve(GetUser $getUser)
     {
         if ($this->cachedUserState['userId'] === $getUser->userId) {
-            yield $this->cachedUserState;
-            return;
+            return $this->cachedUserState;
         }
         new \RuntimeException('User not found');
     }

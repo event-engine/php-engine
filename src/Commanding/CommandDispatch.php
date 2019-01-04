@@ -21,8 +21,6 @@ use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageProducer;
 use EventEngine\Runtime\Flavour;
-use EventEngine\Util\Await;
-use EventEngine\Util\VariableType;
 use Psr\Log\LoggerInterface;
 
 final class CommandDispatch
@@ -90,7 +88,7 @@ final class CommandDispatch
 
         if($autoPublish) {
             foreach ($recordedEvents as $event) {
-                Await::lastResult($eventQueue->produce($event));
+                $eventQueue->produce($event);
                 $log->eventPublished($event);
             }
         }

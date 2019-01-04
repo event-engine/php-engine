@@ -25,14 +25,13 @@ final class GetUsersResolver implements Resolver
 
     /**
      * @param Message $query
-     * @return \Generator
      */
-    public function resolve(Message $getUsers): \Generator
+    public function resolve(Message $getUsers)
     {
         $usernameFilter = $getUsers->getOrDefault('username', null);
         $emailFilter = $getUsers->getOrDefault('email', null);
 
-        yield \array_filter($this->cachedUsers, function (array $user) use ($usernameFilter, $emailFilter): bool {
+        return \array_filter($this->cachedUsers, function (array $user) use ($usernameFilter, $emailFilter): bool {
             return (null === $usernameFilter || $user['username'] === $usernameFilter)
                 && (null === $emailFilter || $user['email'] === $emailFilter);
         });

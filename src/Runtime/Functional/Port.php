@@ -55,5 +55,5 @@ interface Port
      */
     public function callContextProvider($customCommand, $contextProvider);
 
-    public function callResolver($customQuery, $resolver): \Generator;
+    public function callResolver($customQuery, $resolver);
 }

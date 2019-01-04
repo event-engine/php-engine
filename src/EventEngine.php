@@ -687,7 +687,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      * {@inheritdoc}
      * @throws \Throwable
      */
-    public function dispatch($messageOrName, array $payload = []): \Generator
+    public function dispatch($messageOrName, array $payload = [])
     {
         $this->assertBootstrapped(__METHOD__);
 
@@ -719,7 +719,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     return $preProcessor;
                 }, $this->commandPreProcessors[$messageOrName->messageName()] ?? []);
 
-                yield CommandDispatch::exec(
+                return CommandDispatch::exec(
                     $messageOrName,
                     $this->flavour,
                     $this->eventStore,
@@ -747,7 +747,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $this->log->eventListenerCalled($listener, $messageOrName);
                 }
 
-                yield null;
+                return null;
                 break;
             case Message::TYPE_QUERY:
                 $queryDesc = $this->compiledQueryDescriptions[$messageOrName->messageName()] ?? null;
@@ -758,17 +758,19 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
                 $resolver = $this->container->get($queryDesc['resolver'] ?? null);
 
-                yield from $this->flavour->callQueryResolver($resolver, $messageOrName);
+                $result = $this->flavour->callQueryResolver($resolver, $messageOrName);
                 $this->log->queryResolverCalled($resolver, $messageOrName);
+
+                return $result;
                 break;
             default:
                 throw new RuntimeException('Unsupported message type: ' . $messageOrName->messageType());
         }
     }
 
-    public function produce(Message $message): \Generator
+    public function produce(Message $message)
     {
-        yield from $this->dispatch($message);
+        return $this->dispatch($message);
     }
 
     public function loadAggregateState(string $aggregateType, string $aggregateId, int $expectedVersion = null)

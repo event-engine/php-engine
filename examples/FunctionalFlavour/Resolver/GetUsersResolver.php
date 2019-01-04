@@ -23,12 +23,11 @@ final class GetUsersResolver
         $this->cachedUsers = $cachedUsers;
     }
 
-    public function resolve(GetUsers $getUsers): \Generator
+    public function resolve(GetUsers $getUsers)
     {
-        yield \array_filter($this->cachedUsers, function (array $user) use ($getUsers): bool {
+        return \array_filter($this->cachedUsers, function (array $user) use ($getUsers): bool {
             return (null === $getUsers->username || $user['username'] === $getUsers->username)
                 && (null === $getUsers->email || $user['email'] === $getUsers->email);
         });
-        return;
     }
 }

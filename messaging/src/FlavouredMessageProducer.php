@@ -35,10 +35,10 @@ final class FlavouredMessageProducer implements MessageProducer
      * @param Message $message
      * @return \Generator In case of a query a result is yielded otherwise null
      */
-    public function produce(Message $message): \Generator
+    public function produce(Message $message)
     {
         $message = $this->flavour->prepareNetworkTransmission($message);
 
-        yield from $this->producer->produce($message);
+        $this->producer->produce($message);
     }
 }

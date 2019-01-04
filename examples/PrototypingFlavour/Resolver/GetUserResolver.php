@@ -26,15 +26,10 @@ final class GetUserResolver implements Resolver
         $this->cachedUserState = $cachedUserState;
     }
 
-    /**
-     * @param Message $query
-     * @return \Generator
-     */
-    public function resolve(Message $getUser): \Generator
+    public function resolve(Message $getUser)
     {
         if ($this->cachedUserState['userId'] === $getUser->get('userId')) {
-            yield $this->cachedUserState;
-            return;
+            return $this->cachedUserState;
         }
 
         new \RuntimeException('User not found');

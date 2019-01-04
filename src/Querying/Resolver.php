@@ -17,7 +17,7 @@ interface Resolver
 {
     /**
      * @param Message $query
-     * @return \Generator
+     * @return mixed
      */
-    public function resolve(Message $query): \Generator;
+    public function resolve(Message $query);
 }

@@ -20,7 +20,6 @@ use EventEngine\Messaging\MessageDispatcher;
 use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\PrototypingFlavour;
-use EventEngine\Util\Await;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserDescription;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserState;
 use EventEngineExample\PrototypingFlavour\Messaging\CommandWithCustomHandler;
@@ -117,9 +116,9 @@ class EventEnginePrototypingFlavourTest extends EventEngineTestAbstract
         $this->initializeEventEngine();
         $this->bootstrapEventEngine();
 
-        Await::lastResult($this->eventEngine->dispatch(CommandWithCustomHandler::CMD_DO_NOTHING_NO_HANDLER, [
+        $this->eventEngine->dispatch(CommandWithCustomHandler::CMD_DO_NOTHING_NO_HANDLER, [
             'msg' => 'test',
-        ]));
+        ]);
 
         $this->assertEquals('test', $noOpHandler->msg());
     }

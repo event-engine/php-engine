@@ -38,7 +38,6 @@ use EventEngine\Prooph\V7\EventStore\InMemoryEventStore;
 use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
 use EventEngine\Runtime\Flavour;
-use EventEngine\Util\Await;
 use EventEngineExample\FunctionalFlavour\Api\Query;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
@@ -205,7 +204,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
+        $result = $this->eventEngine->dispatch($registerUser);
 
         $recordedEvents = $result->recordedEvents();
 
@@ -242,7 +241,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $userData = Await::lastResult($this->eventEngine->dispatch($getUser));
+        $userData = $this->eventEngine->dispatch($getUser);
 
         self::assertEquals([
             UserDescription::IDENTIFIER => $userId,
@@ -273,7 +272,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ['payload' => []]
         );
 
-        $userList = Await::lastResult($this->eventEngine->dispatch($getUsers));
+        $userList = $this->eventEngine->dispatch($getUsers);
 
         self::assertEquals([
             [
@@ -300,11 +299,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
         $userId = Uuid::uuid4()->toString();
 
-        $result = Await::commandDispatchResult($this->eventEngine->dispatch(Command::REGISTER_USER, [
+        $result = $this->eventEngine->dispatch(Command::REGISTER_USER, [
             UserDescription::IDENTIFIER => $userId,
             UserDescription::USERNAME => 'Alex',
             UserDescription::EMAIL => 'contact@prooph.de',
-        ]));
+        ]);
 
         $recordedEvents = $result->recordedEvents();
 
@@ -335,16 +334,16 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
         $userId = Uuid::uuid4()->toString();
 
-        $firstResult = Await::commandDispatchResult($this->eventEngine->dispatch(Command::REGISTER_USER, [
+        $firstResult = $this->eventEngine->dispatch(Command::REGISTER_USER, [
             UserDescription::IDENTIFIER => $userId,
             UserDescription::USERNAME => 'Alex',
             UserDescription::EMAIL => 'contact@prooph.de',
-        ]));
+        ]);
 
-        $secondResult = Await::commandDispatchResult($this->eventEngine->dispatch(Command::CHANGE_USERNAME, [
+        $secondResult = $this->eventEngine->dispatch(Command::CHANGE_USERNAME, [
             UserDescription::IDENTIFIER => $userId,
             UserDescription::USERNAME => 'John',
-        ]));
+        ]);
 
         $recordedEvents = array_merge($firstResult->recordedEvents(), $secondResult->recordedEvents());
 
@@ -368,7 +367,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $messageProducer->produce(Argument::type(Message::class))
             ->will(function ($args) use (&$producedEvents, $eventEngine) {
                 $producedEvents[] = $args[0];
-                yield from $eventEngine->dispatch($args[0]);
+                return $eventEngine->dispatch($args[0]);
             });
 
 
@@ -392,7 +391,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
+        $result = $this->eventEngine->dispatch($registerUser);
 
         $recordedEvents = $result->recordedEvents();
 
@@ -540,7 +539,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
+        $result = $this->eventEngine->dispatch($registerUser);
 
         $this->eventEngine->runAllProjections($this->eventEngine->writeModelStreamName(), ...$result->recordedEvents());
 
@@ -584,7 +583,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
+        $result = $this->eventEngine->dispatch($registerUser);
 
         $this->eventEngine->runAllProjections($this->eventEngine->writeModelStreamName(), ...$result->recordedEvents());
 
@@ -615,7 +614,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $messageDispatcher->dispatch(Argument::any(), Argument::any())->will(function ($args) use (&$newCmdName, &$newCmdPayload) {
             $newCmdName = $args[0] ?? null;
             $newCmdPayload = $args[1] ?? null;
-            yield null;
+            return null;
         });
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, 'Test.Listener.UserRegistered');
@@ -641,7 +640,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        Await::join($this->eventEngine->dispatch($registerUser));
+        $this->eventEngine->dispatch($registerUser);
 
         $this->assertNotNull($newCmdName);
         $this->assertNotNull($newCmdPayload);
@@ -763,7 +762,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ]]
         );
 
-        $result = Await::commandDispatchResult($this->eventEngine->dispatch($registerUser));
+        $result = $this->eventEngine->dispatch($registerUser);
 
 
         $recordedEvents = iterator_to_array($this->eventStore->loadAggregateEvents($this->eventEngine->writeModelStreamName(), Aggregate::USER, $userId));
@@ -818,7 +817,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $exceptionThrown = false;
 
         try {
-            Await::join($this->eventEngine->dispatch($registerUser));
+            $this->eventEngine->dispatch($registerUser);
         } catch (UnknownCollection $e) {
             $exceptionThrown = true;
         }

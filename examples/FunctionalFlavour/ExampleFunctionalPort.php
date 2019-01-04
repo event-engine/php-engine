@@ -93,9 +93,9 @@ final class ExampleFunctionalPort implements Port
     /**
      * {@inheritdoc}
      */
-    public function callResolver($customQuery, $resolver): \Generator
+    public function callResolver($customQuery, $resolver)
     {
         //Duck typing, do not do this in production but rather use your own interfaces
-        yield from $resolver->resolve($customQuery);
+        return $resolver->resolve($customQuery);
     }
 }
