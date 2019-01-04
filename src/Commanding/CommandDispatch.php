@@ -13,6 +13,7 @@ namespace EventEngine\Commanding;
 
 use EventEngine\Aggregate\ContextProvider;
 use EventEngine\DocumentStore\DocumentStore;
+use EventEngine\EventEngine;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\RuntimeException;
 use EventEngine\Logger\LogEngine;
@@ -48,7 +49,10 @@ final class CommandDispatch
         array &$preProcessors,
         array &$processorDescription,
         array &$aggregateDescriptions,
+        bool $autoPublish,
+        bool $autoProject,
         MessageProducer $eventQueue,
+        EventEngine $eventEngine,
         DocumentStore $documentStore = null,
         ContextProvider $contextProvider = null): CommandDispatchResult
     {
@@ -80,9 +84,15 @@ final class CommandDispatch
 
         $recordedEvents = $commandProcessor($command);
 
-        foreach ($recordedEvents as $event) {
-            Await::lastResult($eventQueue->produce($event));
-            $log->eventPublished($event);
+        if($autoProject) {
+            $eventEngine->runAllProjections($eventEngine->writeModelStreamName(), ...$recordedEvents);
+        }
+
+        if($autoPublish) {
+            foreach ($recordedEvents as $event) {
+                Await::lastResult($eventQueue->produce($event));
+                $log->eventPublished($event);
+            }
         }
 
         $arId = $flavour->getAggregateIdFromCommand($processorDescription['aggregateIdentifier'], $command);

@@ -37,7 +37,6 @@ use EventEngine\Projecting\AggregateProjector;
 use EventEngine\Prooph\V7\EventStore\InMemoryEventStore;
 use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
-use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Util\Await;
 use EventEngineExample\FunctionalFlavour\Api\Query;
@@ -51,7 +50,6 @@ use EventEngineTest\Stubs\TestIdentityVO;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerInterface;
-use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 
 abstract class EventEngineTestAbstract extends BasicTestCase
@@ -157,9 +155,14 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     protected function initializeEventEngine(
         LogEngine $logEngine = null,
         DocumentStore $documentStore = null,
-        MessageProducer $eventQueue = null): void {
+        MessageProducer $eventQueue = null,
+        bool $autoProjecting = false): void {
         if(!$logEngine) {
             $logEngine = new SimpleMessageEngine(new DevNull());
+        }
+
+        if(!$autoProjecting) {
+            $this->eventEngine->disableAutoProjecting();
         }
 
         $this->eventEngine->initialize(

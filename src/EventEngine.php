@@ -206,6 +206,20 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      */
     private $eventQueue;
 
+    /**
+     * Use EventEngine::disableAutoPublish() to take control of event publishing yourself
+     *
+     * @var bool
+     */
+    private $autoPublishEnabled = true;
+
+    /**
+     * Use EventEngine::disableAutoPojecting() to take control of projection runs
+     *
+     * @var bool
+     */
+    private $autoProjectingEnabled = true;
+
     public function __construct(Schema $schema)
     {
         $this->schema = $schema;
@@ -248,6 +262,14 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             throw new InvalidArgumentException('Missing key writeModelStreamName in cached event engine config');
         }
 
+        if (! \array_key_exists('autoPublish', $config)) {
+            throw new InvalidArgumentException('Missing key autoPublish in cached event engine config');
+        }
+
+        if (! \array_key_exists('autoProjecting', $config)) {
+            throw new InvalidArgumentException('Missing key autoProjecting in cached event engine config');
+        }
+
         $mapPayloadSchema = function (array $payloadSchema) use ($schema): PayloadSchema {
             return $schema->buildPayloadSchemaFromArray($payloadSchema);
         };
@@ -274,6 +296,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $self->container = $container;
         $self->documentStore = $documentStore;
         $self->eventQueue = $eventQueue;
+        $self->autoPublishEnabled = $config['autoPublish'];
+        $self->autoProjectingEnabled = $config['autoProjecting'];
 
         foreach ($self->responseTypes as $typeName => $responseType) {
             $self->typeSchemaMap->add($typeName, $responseType);
@@ -336,6 +360,20 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $this->assertNotInitialized(__METHOD__);
         $this->writeModelStreamName = $streamName;
 
+        return $this;
+    }
+
+    public function disableAutoPublish(): self
+    {
+        $this->assertNotInitialized(__METHOD__);
+        $this->autoPublishEnabled = false;
+        return $this;
+    }
+
+    public function disableAutoProjecting(): self
+    {
+        $this->assertNotInitialized(__METHOD__);
+        $this->autoProjectingEnabled = false;
         return $this;
     }
 
@@ -689,7 +727,10 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $preProcessors,
                     $processorDesc,
                     $this->aggregateDescriptions,
+                    $this->autoPublishEnabled,
+                    $this->autoProjectingEnabled,
                     $this->eventQueue ?? $this,
+                    $this,
                     $this->documentStore,
                     isset($processorDesc['contextProvider']) ? $container->get($processorDesc['contextProvider']) : null
                 );

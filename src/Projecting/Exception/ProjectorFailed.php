@@ -34,6 +34,8 @@ final class ProjectorFailed extends \RuntimeException implements EventEngineExce
         ));
 
         $self->failedEvent = $event;
+
+        return $self;
     }
 
     /**
