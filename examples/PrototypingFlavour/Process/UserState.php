@@ -9,15 +9,12 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\Aggregate;
+namespace EventEngineExample\PrototypingFlavour\Process;
 
-use EventEngine\Messaging\Message;
-
-interface ContextProvider
+class UserState
 {
-    /**
-     * @param Message $command
-     * @return mixed The context passed as last argument to aggregate functions
-     */
-    public function provide(Message $command);
+    public $userId;
+    public $username;
+    public $email;
+    public $failed;
 }

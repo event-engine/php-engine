@@ -23,12 +23,12 @@ interface EventStore
 
     /**
      * @param string $streamName
-     * @param string $aggregateType
-     * @param string $aggregateId
+     * @param string $processType
+     * @param string $processId
      * @param int $minVersion
      * @return \Iterator GenericEvent[]
      */
-    public function loadAggregateEvents(string $streamName, string $aggregateType, string $aggregateId, int $minVersion = 1): \Iterator;
+    public function loadProcessEvents(string $streamName, string $processType, string $processId, int $minVersion = 1): \Iterator;
 
     /**
      * @param string $streamName

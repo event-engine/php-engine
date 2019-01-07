@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Commanding;
 
-use EventEngine\Aggregate\ContextProvider;
+use EventEngine\Process\ContextProvider;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventEngine;
 use EventEngine\EventStore\EventStore;
@@ -32,7 +32,7 @@ final class CommandDispatch
      * @param LoggerInterface $log
      * @param array $preProcessors
      * @param array $processorDescription
-     * @param array $aggregateDescriptions
+     * @param array $processDescriptions
      * @param MessageProducer $eventQueue
      * @param DocumentStore|null $documentStore
      * @param ContextProvider|null $contextProvider
@@ -46,7 +46,7 @@ final class CommandDispatch
         LogEngine $log,
         array &$preProcessors,
         array &$processorDescription,
-        array &$aggregateDescriptions,
+        array &$processDescriptions,
         bool $autoPublish,
         bool $autoProject,
         MessageProducer $eventQueue,
@@ -72,7 +72,7 @@ final class CommandDispatch
 
         $commandProcessor = CommandProcessor::fromDescriptionArraysAndDependencies(
             $processorDescription,
-            $aggregateDescriptions,
+            $processDescriptions,
             $flavour,
             $eventStore,
             $log,
@@ -93,9 +93,9 @@ final class CommandDispatch
             }
         }
 
-        $arId = $flavour->getAggregateIdFromCommand($processorDescription['aggregateIdentifier'], $command);
+        $arId = $flavour->getPidFromCommand($processorDescription['pidKey'], $command);
 
-        return CommandDispatchResult::forCommandHandledByAggregate(
+        return CommandDispatchResult::forCommandHandledByProcess(
             $command,
             $arId,
             ...$recordedEvents

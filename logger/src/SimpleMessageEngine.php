@@ -83,20 +83,20 @@ class SimpleMessageEngine implements LogEngine
         $this->logger->info(" Event {$event->messageName()} published on event queue");
     }
 
-    public function newAggregateCreated(string $aggregateType, string $aggregateId, GenericEvent ...$events): void
+    public function newProcessCreated(string $processType, string $processId, GenericEvent ...$events): void
     {
-        $this->logger->info("New aggregate of type $aggregateType with id $aggregateId created");
+        $this->logger->info("New aggregate of type $processType with id $processId created");
     }
 
 
-    public function existingAggregateChanged(string $aggregateType, string $aggregateId, $aggregateState, GenericEvent ...$events)
+    public function existingProcessChanged(string $processType, string $processId, $processState, GenericEvent ...$events)
     {
-        $this->logger->info("Changed existing aggregate of type $aggregateType with id $aggregateId");
+        $this->logger->info("Changed existing aggregate of type $processType with id $processId");
     }
 
-    public function aggregateStateLoaded(string $aggregateType, string $aggregateId, int $aggregateVersion)
+    public function processStateLoaded(string $processType, string $processId, int $processVersion)
     {
-        $this->logger->info("Loaded aggregate state of type $aggregateType with id $aggregateId and version $aggregateVersion");
+        $this->logger->info("Loaded aggregate state of type $processType with id $processId and version $processVersion");
     }
 
 

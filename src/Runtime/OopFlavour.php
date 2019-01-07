@@ -17,18 +17,17 @@ use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
-use EventEngine\Querying\Resolver;
-use EventEngine\Runtime\Oop\AggregateAndEventBag;
+use EventEngine\Runtime\Oop\ProcessAndEventBag;
 use EventEngine\Runtime\Oop\Port;
 use EventEngine\Util\MapIterator;
 
 /**
  * Class OopFlavour
  *
- * Event Sourcing can be implemented using either a functional programming approach (pure aggregate functions + immutable data types)
- * or an object-oriented approach with stateful aggregates. The latter is supported by the OopFlavour.
+ * Event Sourcing can be implemented using either a functional programming approach (pure process functions + immutable data types)
+ * or an object-oriented approach with stateful processes. The latter is supported by the OopFlavour.
  *
- * Aggregates manage their state internally. Event Engine takes over the rest like history replays and event persistence.
+ * Processes manage their state internally. Event Engine takes over the rest like history replays and event persistence.
  * You can focus on the business logic with a 100% decoupled domain model.
  *
  * Decoupling is achieved by implementing the Oop\Port tailored to your domain model.
@@ -59,23 +58,23 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator
+    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $aggregate = $this->port->callAggregateFactory($aggregateType, $aggregateFunction, $command->get(MessageBag::MESSAGE), $context);
+        $process = $this->port->callProcessFactory($processType, $processFunction, $command->get(MessageBag::MESSAGE), $context);
 
-        $events = $this->port->popRecordedEvents($aggregate);
+        $events = $this->port->popRecordedEvents($process);
 
-        yield from new MapIterator(new \ArrayIterator($events), function ($event) use ($command, $aggregate, $aggregateType) {
+        yield from new MapIterator(new \ArrayIterator($events), function ($event) use ($command, $process, $processType) {
             if (null === $event) {
                 return null;
             }
 
             return $this->functionalFlavour->decorateEvent($event)
-                ->withMessage(new AggregateAndEventBag($aggregate, $event))
+                ->withMessage(new ProcessAndEventBag($process, $event))
                 ->withAddedMetadata(GenericEvent::META_CAUSATION_ID, $command->uuid()->toString())
                 ->withAddedMetadata(GenericEvent::META_CAUSATION_NAME, $command->messageName());
         });
@@ -84,15 +83,15 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator
+    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $this->port->callAggregateWithCommand($aggregateState, $command->get(MessageBag::MESSAGE), $context);
+        $this->port->callProcessWithCommand($processState, $command->get(MessageBag::MESSAGE), $context);
 
-        $events = $this->port->popRecordedEvents($aggregateState);
+        $events = $this->port->popRecordedEvents($processState);
 
         yield from new MapIterator(new \ArrayIterator($events), function ($event) use ($command) {
             if (null === $event) {
@@ -114,29 +113,29 @@ final class OopFlavour implements Flavour, MessageFactoryAware
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $aggregateAndEventBag = $event->get(MessageBag::MESSAGE);
+        $processAndEventBag = $event->get(MessageBag::MESSAGE);
 
-        if (! $aggregateAndEventBag instanceof AggregateAndEventBag) {
-            throw new RuntimeException('MessageBag passed to ' . __METHOD__ . ' should contain a ' . AggregateAndEventBag::class . ' message.');
+        if (! $processAndEventBag instanceof ProcessAndEventBag) {
+            throw new RuntimeException('MessageBag passed to ' . __METHOD__ . ' should contain a ' . ProcessAndEventBag::class . ' message.');
         }
 
-        $aggregate = $aggregateAndEventBag->aggregate();
-        $event = $aggregateAndEventBag->event();
+        $process = $processAndEventBag->process();
+        $event = $processAndEventBag->event();
 
-        $this->port->applyEvent($aggregate, $event);
+        $this->port->applyEvent($process, $event);
 
-        return $aggregate;
+        return $process;
     }
 
-    public function callApplySubsequentEvent(callable $applyFunction, $aggregateState, Message $event)
+    public function callApplySubsequentEvent(callable $applyFunction, $processState, Message $event)
     {
         if (! $event instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $this->port->applyEvent($aggregateState, $event->get(MessageBag::MESSAGE));
+        $this->port->applyEvent($processState, $event->get(MessageBag::MESSAGE));
 
-        return $aggregateState;
+        return $processState;
     }
 
     /**
@@ -150,9 +149,9 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, Message $command): string
+    public function getPidFromCommand(string $pidKey, Message $command): string
     {
-        return $this->functionalFlavour->getAggregateIdFromCommand($aggregateIdPayloadKey, $command);
+        return $this->functionalFlavour->getPidFromCommand($pidKey, $command);
     }
 
     /**
@@ -171,7 +170,7 @@ final class OopFlavour implements Flavour, MessageFactoryAware
         if ($message instanceof MessageBag) {
             $innerEvent = $message->getOrDefault(MessageBag::MESSAGE, new \stdClass());
 
-            if ($innerEvent instanceof AggregateAndEventBag) {
+            if ($innerEvent instanceof ProcessAndEventBag) {
                 $message = $message->withMessage($innerEvent->event());
             }
         }
@@ -182,29 +181,29 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function convertMessageReceivedFromNetwork(Message $message, $aggregateEvent = false): Message
+    public function convertMessageReceivedFromNetwork(Message $message, $processEvent = false): Message
     {
         $customMessageInBag = $this->functionalFlavour->convertMessageReceivedFromNetwork($message);
 
-        if ($aggregateEvent && $message->messageType() === Message::TYPE_EVENT) {
-            $aggregateType = $message->metadata()[GenericEvent::META_AGGREGATE_TYPE] ?? null;
-            $aggregateVersion = $message->metadata()[GenericEvent::META_AGGREGATE_VERSION] ?? 0;
+        if ($processEvent && $message->messageType() === Message::TYPE_EVENT) {
+            $processType = $message->metadata()[GenericEvent::META_PROCESS_TYPE] ?? null;
+            $processVersion = $message->metadata()[GenericEvent::META_PROCESS_VERSION] ?? 0;
 
-            if($aggregateVersion !== 1) {
+            if($processVersion !== 1) {
                 return $customMessageInBag;
             }
 
-            if (null === $aggregateType) {
-                throw new RuntimeException('Event passed to ' . __METHOD__ . ' should have a metadata key: ' . GenericEvent::META_AGGREGATE_TYPE);
+            if (null === $processType) {
+                throw new RuntimeException('Event passed to ' . __METHOD__ . ' should have a metadata key: ' . GenericEvent::META_PROCESS_TYPE);
             }
 
             if (! $customMessageInBag instanceof MessageBag) {
                 throw new RuntimeException('FunctionalFlavour is expected to return a ' . MessageBag::class);
             }
 
-            $aggregate = $this->port->reconstituteAggregate((string) $aggregateType, [$customMessageInBag->get(MessageBag::MESSAGE)]);
+            $process = $this->port->reconstituteProcess((string) $processType, [$customMessageInBag->get(MessageBag::MESSAGE)]);
 
-            $customMessageInBag = $customMessageInBag->withMessage(new AggregateAndEventBag($aggregate, $customMessageInBag->get(MessageBag::MESSAGE)));
+            $customMessageInBag = $customMessageInBag->withMessage(new ProcessAndEventBag($process, $customMessageInBag->get(MessageBag::MESSAGE)));
         }
 
         return $customMessageInBag;
@@ -221,19 +220,19 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array
+    public function convertProcessStateToArray(string $processType, $processState): array
     {
-        return $this->port->serializeAggregate($aggregateState);
+        return $this->port->serializeProcess($processState);
     }
 
-    public function canBuildAggregateState(string $aggregateType): bool
+    public function canBuildProcessState(string $processType): bool
     {
         return true;
     }
 
-    public function buildAggregateState(string $aggregateType, array $state)
+    public function buildProcessState(string $processType, array $state)
     {
-        return $this->port->reconstituteAggregateFromStateArray($aggregateType, $state);
+        return $this->port->reconstituteProcessFromStateArray($processType, $state);
     }
 
     public function setMessageFactory(MessageFactory $messageFactory): void

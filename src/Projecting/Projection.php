@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace EventEngine\Projecting;
 
 use EventEngine\EventEngine;
+use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Persistence\Stream;
 use EventEngine\Runtime\Flavour;
@@ -65,14 +66,14 @@ final class Projection
             return false;
         }
 
-        if ($this->desc[ProjectionDescription::AGGREGATE_TYPE_FILTER]) {
-            $aggregateType = $event->metadata()['_aggregate_type'] ?? null;
+        if ($this->desc[ProjectionDescription::PROCESS_TYPE_FILTER]) {
+            $processType = $event->metadata()[GenericEvent::META_PROCESS_TYPE] ?? null;
 
-            if (! $aggregateType) {
+            if (! $processType) {
                 return false;
             }
 
-            if ($this->desc[ProjectionDescription::AGGREGATE_TYPE_FILTER] !== $aggregateType) {
+            if ($this->desc[ProjectionDescription::PROCESS_TYPE_FILTER] !== $processType) {
                 return false;
             }
         }

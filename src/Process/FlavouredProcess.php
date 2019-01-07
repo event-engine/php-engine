@@ -9,24 +9,24 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\Aggregate;
+namespace EventEngine\Process;
 
 use EventEngine\Exception\RuntimeException;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Runtime\Flavour;
 
-final class FlavouredAggregateRoot
+final class FlavouredProcess
 {
     /**
      * @var string
      */
-    private $aggregateId;
+    private $processId;
 
     /**
      * @var string
      */
-    private $aggregateType;
+    private $processType;
 
     /**
      * Map with event name being the key and callable apply method for that event being the value
@@ -38,7 +38,7 @@ final class FlavouredAggregateRoot
     /**
      * @var mixed
      */
-    private $aggregateState;
+    private $processState;
 
     /**
      * Current version
@@ -63,47 +63,47 @@ final class FlavouredAggregateRoot
      * @throws RuntimeException
      */
     public static function reconstituteFromHistory(
-        string $aggregateId,
-        string $aggregateType,
+        string $processId,
+        string $processType,
         array $eventApplyMap,
         Flavour $flavour,
         \Iterator $historyEvents
     ): self {
-        $instance = new self($aggregateId, $aggregateType, $eventApplyMap, $flavour);
+        $instance = new self($processId, $processType, $eventApplyMap, $flavour);
         $instance->replay($historyEvents);
 
         return $instance;
     }
 
-    public static function reconstituteFromAggregateState(
-        string $aggregateId,
-        string $aggregateType,
+    public static function reconstituteFromProcessState(
+        string $processId,
+        string $processType,
         array $eventApplyMap,
         Flavour $flavour,
         int $version,
         $state
     ): self {
-        $self = new self($aggregateId, $aggregateType, $eventApplyMap, $flavour);
-        $self->aggregateState = $state;
+        $self = new self($processId, $processType, $eventApplyMap, $flavour);
+        $self->processState = $state;
         $self->version = $version;
         return $self;
     }
 
-    public function __construct(string  $aggregateId, string $aggregateType, array $eventApplyMap, Flavour $flavour)
+    public function __construct(string  $processId, string $processType, array $eventApplyMap, Flavour $flavour)
     {
-        $this->aggregateId = $aggregateId;
-        $this->aggregateType = $aggregateType;
+        $this->processId = $processId;
+        $this->processType = $processType;
         $this->eventApplyMap = $eventApplyMap;
         $this->flavour = $flavour;
     }
 
     /**
-     * Record an aggregate changed event
+     * Record a process changed event
      */
     public function recordThat(Message $event): void
     {
         if (! \array_key_exists($event->messageName(), $this->eventApplyMap)) {
-            throw new RuntimeException('Wrong event recording detected. Unknown event passed to GenericAggregateRoot: ' . $event->messageName());
+            throw new RuntimeException('Wrong event recording detected. Unknown event passed to GenericProcess: ' . $event->messageName());
         }
 
         $this->version += 1;
@@ -111,9 +111,9 @@ final class FlavouredAggregateRoot
         $event = $event->withMetadata(\array_merge(
             $event->metadata(),
             [
-                GenericEvent::META_AGGREGATE_ID => $this->aggregateId(),
-                GenericEvent::META_AGGREGATE_TYPE => $this->aggregateType(),
-                GenericEvent::META_AGGREGATE_VERSION => $this->version()
+                GenericEvent::META_PROCESS_ID => $this->processId(),
+                GenericEvent::META_PROCESS_TYPE => $this->processType(),
+                GenericEvent::META_PROCESS_VERSION => $this->version()
             ]
         ));
 
@@ -124,12 +124,12 @@ final class FlavouredAggregateRoot
 
     public function currentState()
     {
-        return $this->aggregateState;
+        return $this->processState;
     }
 
-    public function aggregateId(): string
+    public function processId(): string
     {
-        return $this->aggregateId;
+        return $this->processId;
     }
 
     public function version(): int
@@ -137,9 +137,9 @@ final class FlavouredAggregateRoot
         return $this->version;
     }
 
-    public function aggregateType(): string
+    public function processType(): string
     {
-        return $this->aggregateType;
+        return $this->processType;
     }
 
     /**
@@ -188,16 +188,16 @@ final class FlavouredAggregateRoot
     {
         $apply = $this->eventApplyMap[$event->messageName()];
 
-        if ($this->aggregateState === null) {
+        if ($this->processState === null) {
             $newArState = $this->flavour->callApplyFirstEvent($apply, $event);
         } else {
-            $newArState = $this->flavour->callApplySubsequentEvent($apply, $this->aggregateState, $event);
+            $newArState = $this->flavour->callApplySubsequentEvent($apply, $this->processState, $event);
         }
 
         if (null === $newArState) {
-            throw new \RuntimeException('Apply function for ' . $event->messageName() . ' did not return a new aggregate state.');
+            throw new \RuntimeException('Apply function for ' . $event->messageName() . ' did not return a new process state.');
         }
 
-        $this->aggregateState = $newArState;
+        $this->processState = $newArState;
     }
 }

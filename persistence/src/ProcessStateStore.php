@@ -11,17 +11,17 @@ declare(strict_types=1);
 
 namespace EventEngine\Persistence;
 
-use EventEngine\Aggregate\Exception\AggregateNotFound;
+use EventEngine\Process\Exception\ProcessNotFound;
 use EventEngine\Exception\InvalidArgumentException;
 
-interface AggregateStateStore
+interface ProcessStateStore
 {
     /**
-     * @param string $aggregateType
-     * @param string $aggregateId
+     * @param string $processType
+     * @param string $processId
      * @param int|null $expectedVersion
-     * @return mixed State of the aggregate
-     * @throws AggregateNotFound
+     * @return mixed State of the process
+     * @throws ProcessNotFound
      */
-    public function loadAggregateState(string $aggregateType, string $aggregateId, int $expectedVersion = null);
+    public function loadProcessState(string $processType, string $processId, int $expectedVersion = null);
 }

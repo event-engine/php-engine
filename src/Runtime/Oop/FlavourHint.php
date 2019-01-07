@@ -15,7 +15,7 @@ use EventEngine\Runtime\OopFlavour;
 
 final class FlavourHint
 {
-    public static function useAggregate()
+    public static function useProcessInstance()
     {
         throw new \BadMethodCallException(__METHOD__  . ' should never be called. Check that EventEngine uses ' . OopFlavour::class);
     }

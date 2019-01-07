@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\OopFlavour\Aggregate;
+namespace EventEngineExample\OopFlavour\Process;
 
 use EventEngine\Exception\RuntimeException;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;

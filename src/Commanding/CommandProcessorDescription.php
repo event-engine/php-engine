@@ -30,27 +30,27 @@ final class CommandProcessorDescription
     /**
      * @var bool
      */
-    private $createAggregate;
+    private $createProcess;
 
     /**
      * @var string
      */
-    private $aggregateType;
+    private $processType;
 
     /**
      * @var string
      */
-    private $aggregateIdentifier = 'id';
+    private $pidKey = 'pid';
 
     /**
      * @var string|null
      */
-    private $aggregateCollection;
+    private $processStateCollection;
 
     /**
      * @var callable
      */
-    private $aggregateFunction;
+    private $processFunction;
 
     private $eventRecorderMap = [];
 
@@ -65,44 +65,44 @@ final class CommandProcessorDescription
         $this->eventEngine = $eventEngine;
     }
 
-    public function withNew(string $aggregateType): self
+    public function withNew(string $processType): self
     {
-        $this->assertWithAggregateWasNotCalled();
+        $this->assertWithProcessWasNotCalled();
 
-        $this->createAggregate = true;
-        $this->aggregateType = $aggregateType;
+        $this->createProcess = true;
+        $this->processType = $processType;
 
         return $this;
     }
 
-    public function withExisting(string  $aggregateType): self
+    public function withExisting(string  $processType): self
     {
-        $this->assertWithAggregateWasNotCalled();
+        $this->assertWithProcessWasNotCalled();
 
-        $this->createAggregate = false;
-        $this->aggregateType = $aggregateType;
+        $this->createProcess = false;
+        $this->processType = $processType;
 
         return $this;
     }
 
-    public function identifiedBy(string $aggregateIdentifier): self
+    public function identifiedBy(string $pidKey): self
     {
-        if (null === $this->aggregateType) {
-            throw new BadMethodCallException('You should not call identifiedBy before calling one of the with* Aggregate methods.');
+        if (null === $this->processType) {
+            throw new BadMethodCallException('You should not call identifiedBy before calling one of the with* Process methods.');
         }
 
-        $this->aggregateIdentifier = $aggregateIdentifier;
+        $this->pidKey = $pidKey;
 
         return $this;
     }
 
-    public function storeStateIn(string $aggregateCollection): self
+    public function storeStateIn(string $processStateCollection): self
     {
-        if (null === $this->aggregateType) {
-            throw new BadMethodCallException('You should not call storeStateIn before calling one of the with* Aggregate methods.');
+        if (null === $this->processType) {
+            throw new BadMethodCallException('You should not call storeStateIn before calling one of the with* Process methods.');
         }
 
-        $this->aggregateCollection = $aggregateCollection;
+        $this->processStateCollection = $processStateCollection;
 
         return $this;
     }
@@ -114,11 +114,11 @@ final class CommandProcessorDescription
         return $this;
     }
 
-    public function handle(callable $aggregateFunction): self
+    public function handle(callable $processFunction): self
     {
-        $this->assertWithAggregateWasCalled(__METHOD__);
+        $this->assertWithProcessWasCalled(__METHOD__);
 
-        $this->aggregateFunction = $aggregateFunction;
+        $this->processFunction = $processFunction;
 
         return $this;
     }
@@ -133,7 +133,7 @@ final class CommandProcessorDescription
             throw new BadMethodCallException("Event $eventName is unknown. You should register it first.");
         }
 
-        $this->assertWithAggregateWasCalled(__METHOD__);
+        $this->assertWithProcessWasCalled(__METHOD__);
         $this->assertHandleWasCalled(__METHOD__);
 
         $this->eventRecorderMap[$eventName] = new EventRecorderDescription($eventName, $this);
@@ -153,7 +153,7 @@ final class CommandProcessorDescription
 
     public function __invoke(): array
     {
-        $this->assertWithAggregateWasCalled('EventMachine::bootstrap');
+        $this->assertWithProcessWasCalled('EventMachine::bootstrap');
         $this->assertHandleWasCalled('EventMachine::bootstrap');
 
         $eventRecorderMap = [];
@@ -164,35 +164,35 @@ final class CommandProcessorDescription
 
         return [
             'commandName' => $this->commandName,
-            'createAggregate' => $this->createAggregate,
-            'aggregateType' => $this->aggregateType,
-            'aggregateIdentifier' => $this->aggregateIdentifier,
-            'aggregateFunction' => $this->aggregateFunction,
-            'aggregateCollection' => $this->aggregateCollection,
+            'createProcess' => $this->createProcess,
+            'processType' => $this->processType,
+            'pidKey' => $this->pidKey,
+            'processFunction' => $this->processFunction,
+            'processStateCollection' => $this->processStateCollection,
             'eventRecorderMap' => $eventRecorderMap,
             'streamName' => $this->eventEngine->writeModelStreamName(),
             'contextProvider' => $this->contextProvider,
         ];
     }
 
-    private function assertWithAggregateWasCalled(string $method): void
+    private function assertWithProcessWasCalled(string $method): void
     {
-        if (null === $this->createAggregate) {
-            throw new BadMethodCallException("Method with(New|Existing) Aggregate was not called. You need to call it before calling $method");
+        if (null === $this->createProcess) {
+            throw new BadMethodCallException("Method with(New|Existing) Process was not called. You need to call it before calling $method");
         }
     }
 
     private function assertHandleWasCalled(string $method): void
     {
-        if (null === $this->aggregateFunction) {
+        if (null === $this->processFunction) {
             throw new BadMethodCallException("Method handle was not called. You need to call it before calling $method");
         }
     }
 
-    private function assertWithAggregateWasNotCalled(): void
+    private function assertWithProcessWasNotCalled(): void
     {
-        if (null !== $this->createAggregate) {
-            throw new BadMethodCallException('Method with(New|Existing) Aggregate was called twice for the same command.');
+        if (null !== $this->createProcess) {
+            throw new BadMethodCallException('Method with(New|Existing) Process was called twice for the same command.');
         }
     }
 }

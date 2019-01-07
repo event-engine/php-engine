@@ -15,27 +15,27 @@ use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Runtime\Oop\Port;
 use EventEngine\Util\VariableType;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
-use EventEngineExample\OopFlavour\Aggregate\User;
+use EventEngineExample\OopFlavour\Process\User;
 
 final class ExampleOopPort implements Port
 {
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, $context = null)
+    public function callProcessFactory(string $processType, callable $processFactory, $customCommand, $context = null)
     {
-        return $aggregateFactory($customCommand, $context);
+        return $processFactory($customCommand, $context);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function callAggregateWithCommand($aggregate, $customCommand, $context = null): void
+    public function callProcessWithCommand($process, $customCommand, $context = null): void
     {
         switch (\get_class($customCommand)) {
             case ChangeUsername::class:
-                /** @var User $aggregate */
-                $aggregate->changeName($customCommand);
+                /** @var User $process */
+                $process->changeName($customCommand);
                 break;
             default:
                 throw new InvalidArgumentException('Unknown command: ' . VariableType::determine($customCommand));
@@ -45,57 +45,57 @@ final class ExampleOopPort implements Port
     /**
      * {@inheritdoc}
      */
-    public function popRecordedEvents($aggregate): array
+    public function popRecordedEvents($process): array
     {
         //Duck typing, do not do this in production but rather use your own interfaces
-        return $aggregate->popRecordedEvents();
+        return $process->popRecordedEvents();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function applyEvent($aggregate, $customEvent): void
+    public function applyEvent($process, $customEvent): void
     {
         //Duck typing, do not do this in production but rather use your own interfaces
-        $aggregate->apply($customEvent);
+        $process->apply($customEvent);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function serializeAggregate($aggregate): array
+    public function serializeProcess($process): array
     {
         //Duck typing, do not do this in production but rather use your own interfaces
-        return $aggregate->toArray();
+        return $process->toArray();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function reconstituteAggregate(string $aggregateType, iterable $events)
+    public function reconstituteProcess(string $processType, iterable $events)
     {
-        switch ($aggregateType) {
+        switch ($processType) {
             case User::TYPE:
                 return User::reconstituteFromHistory($events);
                 break;
             default:
-                throw new InvalidArgumentException("Unknown aggregate type $aggregateType");
+                throw new InvalidArgumentException("Unknown aggregate type $processType");
         }
     }
 
     /**
-     * @param string $aggregateType
+     * @param string $processType
      * @param array $state
-     * @return mixed Aggregate instance
+     * @return mixed Process instance
      */
-    public function reconstituteAggregateFromStateArray(string $aggregateType, array $state)
+    public function reconstituteProcessFromStateArray(string $processType, array $state)
     {
-        switch ($aggregateType) {
+        switch ($processType) {
             case User::TYPE:
                 return User::reconstituteFromState($state);
                 break;
             default:
-                throw new InvalidArgumentException("Unknown aggregate type $aggregateType");
+                throw new InvalidArgumentException("Unknown aggregate type $processType");
         }
     }
 }

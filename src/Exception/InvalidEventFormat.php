@@ -16,23 +16,23 @@ use EventEngine\Util\VariableType;
 
 final class InvalidEventFormat extends InvalidArgumentException
 {
-    public static function invalidEvent(string $aggregateType, Message $command): self
+    public static function invalidEvent(string $processType, Message $command): self
     {
         return new self(
             \sprintf(
-                'Event returned by aggregate of type %s while handling command %s does not have the format [string eventName, array payload]!',
-                $aggregateType,
+                'Event returned by process of type %s while handling command %s does not have the format [string eventName, array payload]!',
+                $processType,
                 $command->messageName()
             )
         );
     }
 
-    public static function invalidMetadata($metadata, string $aggregateType, Message $command): self
+    public static function invalidMetadata($metadata, string $processType, Message $command): self
     {
         return new self(
             \sprintf(
-                'Event returned by aggregate of type %s while handling command %s contains additional metadata but metadata type is not array. Detected type is: %s',
-                $aggregateType,
+                'Event returned by process of type %s while handling command %s contains additional metadata but metadata type is not array. Detected type is: %s',
+                $processType,
                 $command->messageName(),
                 VariableType::determine($metadata)
             )

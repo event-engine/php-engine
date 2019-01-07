@@ -11,19 +11,19 @@ declare(strict_types=1);
 
 namespace EventEngine\Runtime;
 
-use EventEngine\Aggregate\ContextProvider;
+use EventEngine\Process\ContextProvider;
 use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\Data\DataConverter;
 use EventEngine\Data\ImmutableRecordDataConverter;
 use EventEngine\Exception\InvalidEventFormat;
-use EventEngine\Exception\MissingAggregateIdentifier;
+use EventEngine\Exception\MissingPid;
 use EventEngine\Exception\NoGenerator;
 use EventEngine\Exception\RuntimeException;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
-use EventEngine\Projecting\AggregateProjector;
+use EventEngine\Projecting\ProcessStateProjector;
 use EventEngine\Projecting\Projector;
 use EventEngine\Querying\Resolver;
 use EventEngine\Util\MapIterator;
@@ -35,9 +35,9 @@ use EventEngine\Util\VariableType;
  * Default Flavour used by Event Engine if no other Flavour is configured.
  *
  * This Flavour is tailored to rapid prototyping of event sourced domain models. Event Engine passes
- * generic messages directly into pure aggregate functions, command preprocessors, context providers and so on.
+ * generic messages directly into pure process functions, command preprocessors, context providers and so on.
  *
- * Aggregate functions can use a short array syntax to describe events that should be recorded by Event Engine.
+ * Process functions can use a short array syntax to describe events that should be recorded by Event Engine.
  * Check the tutorial at: https://event-engine.github.io/event-engine/php-tutorial/
  * It uses the PrototypingFlavour.
  *
@@ -84,15 +84,15 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         return $preProcessor->preProcess($command);
     }
 
-    public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, Message $command): string
+    public function getPidFromCommand(string $pidKey, Message $command): string
     {
         $payload = $command->payload();
 
-        if (! \array_key_exists($aggregateIdPayloadKey, $payload)) {
-            throw MissingAggregateIdentifier::inCommand($command, $aggregateIdPayloadKey);
+        if (! \array_key_exists($pidKey, $payload)) {
+            throw MissingPid::inCommand($command, $pidKey);
         }
 
-        return (string) $payload[$aggregateIdPayloadKey];
+        return (string) $payload[$pidKey];
     }
 
     /**
@@ -113,40 +113,40 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator
+    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator
     {
-        $events = $aggregateFunction($command, $context);
+        $events = $processFunction($command, $context);
 
         if (! $events instanceof \Generator) {
-            throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);
+            throw NoGenerator::forProcessTypeAndCommand($processType, $command);
         }
 
-        yield from new MapIterator($events, function ($event) use ($aggregateType, $command) {
+        yield from new MapIterator($events, function ($event) use ($processType, $command) {
             if (null === $event) {
                 return null;
             }
 
-            return $this->mapToMessage($event, $aggregateType, $command);
+            return $this->mapToMessage($event, $processType, $command);
         });
     }
 
     /**
      * {@inheritdoc}
      */
-    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator
+    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
     {
-        $events = $aggregateFunction($aggregateState, $command, $context);
+        $events = $processFunction($processState, $command, $context);
 
         if (! $events instanceof \Generator) {
-            throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);
+            throw NoGenerator::forProcessTypeAndCommand($processType, $command);
         }
 
-        yield from new MapIterator($events, function ($event) use ($aggregateType, $command) {
+        yield from new MapIterator($events, function ($event) use ($processType, $command) {
             if (null === $event) {
                 return null;
             }
 
-            return $this->mapToMessage($event, $aggregateType, $command);
+            return $this->mapToMessage($event, $processType, $command);
         });
     }
 
@@ -161,9 +161,9 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callApplySubsequentEvent(callable $applyFunction, $aggregateState, Message $event)
+    public function callApplySubsequentEvent(callable $applyFunction, $processState, Message $event)
     {
-        return $applyFunction($aggregateState, $event);
+        return $applyFunction($processState, $event);
     }
 
     /**
@@ -177,7 +177,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function convertMessageReceivedFromNetwork(Message $message, $aggregateEvent = false): Message
+    public function convertMessageReceivedFromNetwork(Message $message, $processEvent = false): Message
     {
         return $message;
     }
@@ -187,7 +187,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
      */
     public function callProjector($projector, string $projectionVersion, string $projectionName, Message $event): void
     {
-        if (! $projector instanceof Projector && ! $projector instanceof AggregateProjector) {
+        if (! $projector instanceof Projector && ! $projector instanceof ProcessStateProjector) {
             throw new RuntimeException(__METHOD__ . ' can only call instances of ' . Projector::class);
         }
 
@@ -197,19 +197,19 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array
+    public function convertProcessStateToArray(string $processType, $processState): array
     {
-        return $this->stateConverter->convertDataToArray($aggregateType, $aggregateState);
+        return $this->stateConverter->convertDataToArray($processType, $processState);
     }
 
-    public function canBuildAggregateState(string $aggregateType): bool
+    public function canBuildProcessState(string $processType): bool
     {
-        return $this->stateConverter->canConvertTypeToData($aggregateType);
+        return $this->stateConverter->canConvertTypeToData($processType);
     }
 
-    public function buildAggregateState(string $aggregateType, array $state)
+    public function buildProcessState(string $processType, array $state)
     {
-        return $this->stateConverter->convertArrayToData($aggregateType, $state);
+        return $this->stateConverter->convertArrayToData($processType, $state);
     }
 
     public function callEventListener(callable $listener, Message $event): void
@@ -226,11 +226,11 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         return $resolver->resolve($query);
     }
 
-    private function mapToMessage($event, string $aggregateType, Message $command): Message
+    private function mapToMessage($event, string $processType, Message $command): Message
     {
         if (! \is_array($event) || ! \array_key_exists(0, $event) || ! \array_key_exists(1, $event)
             || ! \is_string($event[0]) || ! \is_array($event[1])) {
-            throw InvalidEventFormat::invalidEvent($aggregateType, $command);
+            throw InvalidEventFormat::invalidEvent($processType, $command);
         }
         [$eventName, $payload] = $event;
 
@@ -239,7 +239,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         if (\array_key_exists(2, $event)) {
             $metadata = $event[2];
             if (! \is_array($metadata)) {
-                throw InvalidEventFormat::invalidMetadata($metadata, $aggregateType, $command);
+                throw InvalidEventFormat::invalidMetadata($metadata, $processType, $command);
             }
         }
 

@@ -13,13 +13,13 @@ namespace EventEngine\Exception;
 
 use EventEngine\Messaging\Message;
 
-final class MissingAggregateIdentifier extends InvalidArgumentException
+final class MissingPid extends InvalidArgumentException
 {
-    public static function inCommand(Message $command, string $aggregateIdPayloadKey): self
+    public static function inCommand(Message $command, string $pidKey): self
     {
         return new self(\sprintf(
-            'Missing aggregate identifier %s in payload of command %s',
-            $aggregateIdPayloadKey,
+            'Missing pid key %s in payload of command %s',
+            $pidKey,
             $command->messageName()
         ));
     }

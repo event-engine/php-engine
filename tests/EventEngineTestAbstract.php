@@ -33,7 +33,7 @@ use EventEngine\Messaging\MessageFactoryAware;
 use EventEngine\Messaging\MessageProducer;
 use EventEngine\Persistence\InMemoryConnection;
 use EventEngine\Persistence\Stream;
-use EventEngine\Projecting\AggregateProjector;
+use EventEngine\Projecting\ProcessStateProjector;
 use EventEngine\Prooph\V7\EventStore\InMemoryEventStore;
 use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
@@ -41,8 +41,8 @@ use EventEngine\Runtime\Flavour;
 use EventEngineExample\FunctionalFlavour\Api\Query;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
-use EventEngineExample\PrototypingFlavour\Aggregate\Aggregate;
-use EventEngineExample\PrototypingFlavour\Aggregate\UserDescription;
+use EventEngineExample\PrototypingFlavour\Process\Process;
+use EventEngineExample\PrototypingFlavour\Process\UserDescription;
 use EventEngineExample\PrototypingFlavour\Messaging\Command;
 use EventEngineExample\PrototypingFlavour\Messaging\Event;
 use EventEngineTest\Stubs\TestIdentityVO;
@@ -120,18 +120,18 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->flavour = null;
     }
 
-    protected function setUpAggregateProjector(
+    protected function setUpProcessProjector(
         DocumentStore $documentStore
     ): void {
-        $aggregateProjector = new AggregateProjector($documentStore, $this->eventEngine, true);
+        $processStateProjector = new ProcessStateProjector($documentStore, $this->eventEngine, true);
 
-        $this->appContainer->has(AggregateProjector::class)->willReturn(true);
-        $this->appContainer->get(AggregateProjector::class)->will(function ($args) use ($aggregateProjector) {
-            return $aggregateProjector;
+        $this->appContainer->has(ProcessStateProjector::class)->willReturn(true);
+        $this->appContainer->get(ProcessStateProjector::class)->will(function ($args) use ($processStateProjector) {
+            return $processStateProjector;
         });
 
         $this->eventEngine->watch(Stream::ofWriteModel())
-            ->withAggregateProjection(Aggregate::USER);
+            ->withProcessProjection(Process::USER);
     }
 
     protected function setUpRegisteredUsersProjector(
@@ -316,7 +316,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_can_handle_command_for_existing_aggregate()
+    public function it_can_handle_command_for_existing_process()
     {
 
         $publishedEvents = [];
@@ -409,7 +409,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_can_load_aggregate_state()
+    public function it_can_load_process_state()
     {
 
         $this->initializeEventEngine();
@@ -426,15 +426,15 @@ abstract class EventEngineTestAbstract extends BasicTestCase
                         'email' => 'tester@test.com',
                     ],
                     'metadata' => [
-                        '_aggregate_id' => $userId,
-                        '_aggregate_type' => Aggregate::USER,
-                        '_aggregate_version' => 1,
+                        GenericEvent::META_PROCESS_ID => $userId,
+                        GenericEvent::META_PROCESS_TYPE => Process::USER,
+                        GenericEvent::META_PROCESS_VERSION => 1,
                     ],
                 ])
             ))
         );
 
-        $userState = $this->eventEngine->loadAggregateState(Aggregate::USER, $userId);
+        $userState = $this->eventEngine->loadProcessState(Process::USER, $userId);
 
         $this->assertLoadedUserState($userState);
     }
@@ -521,7 +521,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     {
         $documentStore = new InMemoryDocumentStore($this->inMemoryConnection);
 
-        $this->setUpAggregateProjector($documentStore);
+        $this->setUpProcessProjector($documentStore);
 
         $this->initializeEventEngine();
         $this->bootstrapEventEngine();
@@ -544,7 +544,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->eventEngine->runAllProjections($this->eventEngine->writeModelStreamName(), ...$result->recordedEvents());
 
         $userState = $documentStore->getDoc(
-            $this->getAggregateCollectionName(Aggregate::USER),
+            $this->getProcessStateCollectionName(Process::USER),
             $userId
         );
 
@@ -736,11 +736,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_dispatches_a_known_command_with_aggregate_state_consistency(): void
+    public function it_dispatches_a_known_command_with_process_state_consistency(): void
     {
         $this->eventStore = InMemoryMultiModelStore::fromConnection($this->inMemoryConnection);
 
-        $this->eventStore->addCollection($this->getAggregateCollectionName(Aggregate::USER));
+        $this->eventStore->addCollection($this->getProcessStateCollectionName(Process::USER));
 
         $publishedEvents = [];
 
@@ -765,7 +765,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $result = $this->eventEngine->dispatch($registerUser);
 
 
-        $recordedEvents = iterator_to_array($this->eventStore->loadAggregateEvents($this->eventEngine->writeModelStreamName(), Aggregate::USER, $userId));
+        $recordedEvents = iterator_to_array($this->eventStore->loadProcessEvents($this->eventEngine->writeModelStreamName(), Process::USER, $userId));
 
         self::assertCount(1, $recordedEvents);
         self::assertCount(1, $publishedEvents);
@@ -773,7 +773,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->assertUserWasRegistered($event, $registerUser, $userId);
 
         $userState = $this->eventStore->getDoc(
-            $this->getAggregateCollectionName(Aggregate::USER),
+            $this->getProcessStateCollectionName(Process::USER),
             $userId
         );
 
@@ -790,7 +790,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_rolls_back_events_with_aggregate_state_consistency(): void
+    public function it_rolls_back_events_with_process_state_consistency(): void
     {
         $this->eventStore = InMemoryMultiModelStore::fromConnection($this->inMemoryConnection);
 
@@ -822,9 +822,9 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             $exceptionThrown = true;
         }
         $this->assertTrue($exceptionThrown);
-        $this->assertEmpty(\iterator_to_array($this->eventStore->loadAggregateEvents(
+        $this->assertEmpty(\iterator_to_array($this->eventStore->loadProcessEvents(
             $this->eventEngine->writeModelStreamName(),
-            Aggregate::USER,
+            Process::USER,
             $userId
         )));
     }
@@ -838,17 +838,17 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         self::assertEquals([
             '_causation_id' => $registerUser->uuid()->toString(),
             '_causation_name' => $registerUser->messageName(),
-            '_aggregate_version' => 1,
-            '_aggregate_id' => $userId,
-            '_aggregate_type' => 'User',
+            GenericEvent::META_PROCESS_VERSION => 1,
+            GenericEvent::META_PROCESS_ID => $userId,
+            GenericEvent::META_PROCESS_TYPE => 'User',
         ], $event->metadata());
     }
 
-    private function getAggregateCollectionName(string $aggregate): string
+    private function getProcessStateCollectionName(string $process): string
     {
-        return AggregateProjector::aggregateCollectionName(
+        return ProcessStateProjector::processStateCollectionName(
             '0.1.0',
-            $aggregate
+            $process
         );
     }
 

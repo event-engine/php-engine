@@ -9,9 +9,9 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\PrototypingFlavour\Aggregate;
+namespace EventEngineExample\PrototypingFlavour\Process;
 
-final class Aggregate
+final class Process
 {
     const USER = 'User';
 

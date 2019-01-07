@@ -13,9 +13,9 @@ namespace EventEngine\Messaging;
 
 final class GenericEvent extends GenericSchemaMessage
 {
-    public const META_AGGREGATE_ID = '_aggregate_id';
-    public const META_AGGREGATE_TYPE = '_aggregate_type';
-    public const META_AGGREGATE_VERSION = '_aggregate_version';
+    public const META_PROCESS_ID = '_process_id';
+    public const META_PROCESS_TYPE = '_process_type';
+    public const META_PROCESS_VERSION = '_process_version';
     public const META_CAUSATION_ID = '_causation_id';
     public const META_CAUSATION_NAME = '_causation_name';
     public const META_CORRELATION_ID = '_correlation_id';
@@ -41,17 +41,17 @@ final class GenericEvent extends GenericSchemaMessage
 
     public function version(): int
     {
-        return $this->metadata[self::META_AGGREGATE_VERSION] ?? 0;
+        return $this->metadata[self::META_PROCESS_VERSION] ?? 0;
     }
 
-    public function aggregateId(): string
+    public function processId(): string
     {
-        return $this->metadata[self::META_AGGREGATE_ID] ?? '';
+        return $this->metadata[self::META_PROCESS_ID] ?? '';
     }
 
-    public function aggregateType(): string
+    public function processType(): string
     {
-        return $this->metadata[self::META_AGGREGATE_TYPE] ?? '';
+        return $this->metadata[self::META_PROCESS_TYPE] ?? '';
     }
 
     public function causationId(): string

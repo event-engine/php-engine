@@ -20,7 +20,7 @@ use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
-use EventEngine\Projecting\AggregateProjector;
+use EventEngine\Projecting\ProcessStateProjector;
 use EventEngine\Projecting\CustomEventProjector;
 use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Functional\Port;
@@ -29,7 +29,7 @@ use EventEngine\Util\MapIterator;
 /**
  * Class FunctionalFlavour
  *
- * Similar to the PrototypingFlavour pure aggregate functions + immutable data types are used.
+ * Similar to the PrototypingFlavour pure process functions + immutable data types are used.
  * Once you leave the prototyping or experimentation phase of a project behind, you'll likely want to harden the domain model.
  * This includes dedicated command, event and query types. If you find yourself in this situation the FunctionalFlavour
  * is for you. All parts of the system that handle messages will receive your own message types when using the
@@ -87,13 +87,13 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, Message $command): string
+    public function getPidFromCommand(string $pidKey, Message $command): string
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        return $this->port->getAggregateIdFromCommand($aggregateIdPayloadKey, $command->get(MessageBag::MESSAGE));
+        return $this->port->getProcessIdFromCommand($pidKey, $command->get(MessageBag::MESSAGE));
     }
 
     /**
@@ -111,16 +111,16 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator
+    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $events = $aggregateFunction($command->get(MessageBag::MESSAGE), $context);
+        $events = $processFunction($command->get(MessageBag::MESSAGE), $context);
 
         if (! $events instanceof \Generator) {
-            throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);
+            throw NoGenerator::forProcessTypeAndCommand($processType, $command);
         }
 
         yield from new MapIterator($events, function ($event) use ($command) {
@@ -137,16 +137,16 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator
+    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $events = $aggregateFunction($aggregateState, $command->get(MessageBag::MESSAGE), $context);
+        $events = $processFunction($processState, $command->get(MessageBag::MESSAGE), $context);
 
         if (! $events instanceof \Generator) {
-            throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);
+            throw NoGenerator::forProcessTypeAndCommand($processType, $command);
         }
 
         yield from new MapIterator($events, function ($event) use ($command) {
@@ -175,13 +175,13 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callApplySubsequentEvent(callable $applyFunction, $aggregateState, Message $event)
+    public function callApplySubsequentEvent(callable $applyFunction, $processState, Message $event)
     {
         if (! $event instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        return $applyFunction($aggregateState, $event->get(MessageBag::MESSAGE));
+        return $applyFunction($processState, $event->get(MessageBag::MESSAGE));
     }
 
     /**
@@ -201,7 +201,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function convertMessageReceivedFromNetwork(Message $message, $aggregateEvent = false): Message
+    public function convertMessageReceivedFromNetwork(Message $message, $processEvent = false): Message
     {
         if ($message instanceof MessageBag && $message->hasMessage()) {
             //Message is already decorated
@@ -228,7 +228,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
      */
     public function callProjector($projector, string $projectionVersion, string $projectionName, Message $event): void
     {
-        if ($projector instanceof AggregateProjector) {
+        if ($projector instanceof ProcessStateProjector) {
             $projector->handle($projectionVersion, $projectionName, $event);
 
             return;
@@ -257,23 +257,23 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     }
 
     /**
-     * @param string $aggregateType
-     * @param mixed $aggregateState
+     * @param string $processType
+     * @param mixed $processState
      * @return array
      */
-    public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array
+    public function convertProcessStateToArray(string $processType, $processState): array
     {
-        return $this->dataConverter->convertDataToArray($aggregateType, $aggregateState);
+        return $this->dataConverter->convertDataToArray($processType, $processState);
     }
 
-    public function canBuildAggregateState(string $aggregateType): bool
+    public function canBuildProcessState(string $processType): bool
     {
-        return $this->dataConverter->canConvertTypeToData($aggregateType);
+        return $this->dataConverter->canConvertTypeToData($processType);
     }
 
-    public function buildAggregateState(string $aggregateType, array $state)
+    public function buildProcessState(string $processType, array $state)
     {
-        return $this->dataConverter->convertArrayToData($aggregateType, $state);
+        return $this->dataConverter->convertArrayToData($processType, $state);
     }
 
     public function callEventListener(callable $listener, Message $event): void

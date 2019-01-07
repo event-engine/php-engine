@@ -12,38 +12,38 @@ declare(strict_types=1);
 namespace EventEngine\Runtime\Oop;
 
 /**
- * Class AggregateAndEventBag
+ * Class ProcessAndEventBag
  *
- * Immutable DTO used by the OopFlavour to pass a newly created aggregate instance together with the first
+ * Immutable DTO used by the OopFlavour to pass a newly created process instance together with the first
  * event to the first apply method. The DTO is put into a MessageBag, because Event Engine only takes care of events
- * produced by aggregate factories.
+ * produced by process factories.
  *
  * @package EventEngine\Runtime\Oop
  */
-final class AggregateAndEventBag
+final class ProcessAndEventBag
 {
     /**
      * @var mixed
      */
-    private $aggregate;
+    private $process;
 
     /**
      * @var mixed
      */
     private $event;
 
-    public function __construct($aggregate, $event)
+    public function __construct($process, $event)
     {
-        $this->aggregate = $aggregate;
+        $this->process = $process;
         $this->event = $event;
     }
 
     /**
      * @return mixed
      */
-    public function aggregate()
+    public function process()
     {
-        return $this->aggregate;
+        return $this->process;
     }
 
     /**

@@ -108,7 +108,7 @@ final class MessageBag implements Message
 
     public function version(): int
     {
-        return $this->metadata['_aggregate_version'] ?? 0;
+        return $this->metadata[GenericEvent::META_PROCESS_VERSION] ?? 0;
     }
 
     /**

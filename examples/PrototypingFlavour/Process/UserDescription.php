@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\PrototypingFlavour\Aggregate;
+namespace EventEngineExample\PrototypingFlavour\Process;
 
 use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
@@ -20,19 +20,19 @@ use EventEngineExample\PrototypingFlavour\Messaging\Event;
 /**
  * Class UserDescription
  *
- * Tell EventMachine how to handle commands with aggregates, which events are yielded by the handle methods
- * and how to apply the yielded events to the aggregate state.
+ * Tell EventMachine how to handle commands with processes, which events are yielded by the handle methods
+ * and how to apply the yielded events to the process state.
  *
  * Please note:
  * UserDescription uses closures. It is the fastest and most readable way of describing
- * aggregate behaviour BUT closures cannot be serialized/cached.
+ * process behaviour BUT closures cannot be serialized/cached.
  * So the closure style is useful for learning and prototyping but if you want to use Event Machine for
  * production, you should consider using a cacheable description like illustrated with CacheableUserDescription.
  * Also see EventMachine::cacheableConfig() which throws an exception if it detects usage of closure
  * The returned array can be used to call EventMachine::fromCachedConfig(). You can json_encode the config and store it
  * in a json file.
  *
- * @package EventEngineExample\Aggregate
+ * @package EventEngineExample\Process
  */
 final class UserDescription implements EventEngineDescription
 {
@@ -51,19 +51,19 @@ final class UserDescription implements EventEngineDescription
     private static function describeRegisterUser(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::REGISTER_USER)
-            ->withNew(Aggregate::USER)
-            // Every command for that aggregate SHOULD include the identifier property specified here
+            ->withNew(Process::USER)
+            // Every command for that process SHOULD include the identifier property specified here
             // If not called, identifier defaults to "id"
             ->identifiedBy(self::IDENTIFIER)
-            // If command is handled with a new aggregate no state is passed only the command
+            // If command is handled with a new process no state is passed only the command
             ->handle(function (Message $registerUser) {
                 //We just turn the command payload into event payload by yielding an event tuple
                 yield [Event::USER_WAS_REGISTERED, $registerUser->payload()];
             })
             ->recordThat(Event::USER_WAS_REGISTERED)
-            // Apply callback of the first recorded event don't get aggregate state injected
-            // what you return in an apply method will be passed to the next pair of handle & apply methods as aggregate state
-            // you can use anything for aggregate state - we use a simple class with public properties
+            // Apply callback of the first recorded event don't get process state injected
+            // what you return in an apply method will be passed to the next pair of handle & apply methods as process state
+            // you can use anything for process state - we use a simple class with public properties
             ->apply(function (Message $userWasRegistered) {
                 $user = new UserState();
                 $user->userId = $userWasRegistered->payload()[self::IDENTIFIER];
@@ -77,8 +77,8 @@ final class UserDescription implements EventEngineDescription
     private static function describeChangeUsername(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::CHANGE_USERNAME)
-            ->withExisting(Aggregate::USER)
-            // This time we handle command with existing aggregate, hence we get current user state injected
+            ->withExisting(Process::USER)
+            // This time we handle command with existing process, hence we get current user state injected
             ->handle(function (UserState $user, Message $changeUsername) {
                 yield [Event::USERNAME_WAS_CHANGED, [
                     self::IDENTIFIER => $user->userId,
