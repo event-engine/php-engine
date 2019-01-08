@@ -220,6 +220,11 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
      */
     private $autoProjectingEnabled = true;
 
+    /**
+     * @var mixed[]
+     */
+    private $processCache = [];
+
     public function __construct(Schema $schema)
     {
         $this->schema = $schema;
@@ -719,6 +724,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
                     return $preProcessor;
                 }, $this->commandPreProcessors[$messageOrName->messageName()] ?? []);
 
+                $this->clearProcessCache();
+
                 return CommandDispatch::exec(
                     $messageOrName,
                     $this->flavour,
@@ -781,6 +788,10 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
             throw new InvalidArgumentException('Unknown process type: ' . $processType);
         }
 
+        if($cachedProcess = $this->loadProcessStateFromCache($processType, $processId, $expectedVersion)) {
+            return $cachedProcess;
+        }
+
         $processDesc = $this->processDescriptions[$processType];
 
         $arRepository = new GenericProcessRepository(
@@ -799,6 +810,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         }
 
         $this->log->processStateLoaded($process->processType(), $process->processId(), $process->version());
+
+        $this->cacheProcessState($processType, $processId, $process->version(), $process->currentState());
 
         return $process->currentState();
     }
@@ -958,6 +971,41 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
     public function projectionInfo(): ProjectionInfoList
     {
         return ProjectionInfoList::fromDescriptions($this->compiledProjectionDescriptions);
+    }
+
+    public function cacheProcessState(string $processType, string $pid, int $version, $processState): void
+    {
+        $this->processCache[$processType][$pid] = [
+            'version' => $version,
+            'state' => $processState
+        ];
+    }
+
+    /**
+     * @param string $processType
+     * @param string $pid
+     * @return null|mixed Null is returned if no state is cached, otherwise the cached process state
+     */
+    public function loadProcessStateFromCache(string $processType, string $pid, int $expectedVersion = null)
+    {
+        $cache = $this->processCache[$processType][$pid] ?? null;
+
+        if(!$cache) {
+            return null;
+        }
+
+        if($expectedVersion) {
+            if($expectedVersion !== $cache['version']) {
+                return null;
+            }
+        }
+
+        return $cache['state'];
+    }
+
+    public function clearProcessCache(): void
+    {
+        $this->processCache = [];
     }
 
     private function compileProcessAndRoutingDescriptions(): void

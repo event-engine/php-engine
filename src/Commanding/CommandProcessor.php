@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Commanding;
 
+use EventEngine\EventEngine;
 use EventEngine\Process\ContextProvider;
 use EventEngine\Process\Exception\ProcessNotFound;
 use EventEngine\Process\FlavouredProcess;
@@ -84,6 +85,11 @@ final class CommandProcessor
     private $documentStore;
 
     /**
+     * @var EventEngine
+     */
+    private $eventEngine;
+
+    /**
      * @var ContextProvider|null
      */
     private $contextProvider;
@@ -99,6 +105,7 @@ final class CommandProcessor
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $logEngine,
+        EventEngine $eventEngine,
         DocumentStore $documentStore = null,
         ContextProvider $contextProvider = null
     ): self {
@@ -143,6 +150,7 @@ final class CommandProcessor
             $flavour,
             $eventStore,
             $logEngine,
+            $eventEngine,
             $contextProvider,
             $documentStore,
             $processDesc['processStateCollection'] ?? null
@@ -160,6 +168,7 @@ final class CommandProcessor
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $log,
+        EventEngine $eventEngine,
         ContextProvider $contextProvider = null,
         DocumentStore $documentStore = null,
         string $processStateCollection = null
@@ -174,6 +183,7 @@ final class CommandProcessor
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
         $this->log = $log;
+        $this->eventEngine = $eventEngine;
         $this->documentStore = $documentStore;
         $this->contextProvider = $contextProvider;
         $this->processStateCollection = $processStateCollection;
@@ -240,6 +250,8 @@ final class CommandProcessor
         } else {
             $this->log->existingProcessChanged($this->processType, $pid, $processState, ...$events);
         }
+
+        $this->eventEngine->cacheProcessState($this->processType, $pid, $process->version(), $process->currentState());
 
         return $events;
     }
