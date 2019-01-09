@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace EventEngine\Persistence;
 
+use EventEngine\EventStore\Stream\Name;
+
 final class Stream
 {
     public const LOCAL_SERVICE = '__local__';
@@ -69,9 +71,9 @@ final class Stream
     /**
      * @return string
      */
-    public function streamName(): string
+    public function streamName(): Name
     {
-        return $this->streamName;
+        return Name::fromString($this->streamName);
     }
 
     public function withStreamName(string $streamName): self

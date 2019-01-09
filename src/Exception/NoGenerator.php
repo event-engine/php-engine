@@ -12,10 +12,11 @@ declare(strict_types=1);
 namespace EventEngine\Exception;
 
 use EventEngine\Messaging\Message;
+use EventEngine\Process\ProcessType;
 
 final class NoGenerator extends InvalidArgumentException
 {
-    public static function forProcessTypeAndCommand(string $processType, Message $command): self
+    public static function forProcessTypeAndCommand(ProcessType $processType, Message $command): self
     {
         return new self('Expected processFunction to be of type Generator. ' .
             'Did you forget the yield keyword in your command handler?' .

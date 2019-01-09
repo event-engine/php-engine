@@ -9,25 +9,33 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\EventStore\Stream;
+namespace EventEngine\Process;
 
-final class WatcherId
+/**
+ * Class Pid
+ *
+ * The Pid identifies a process. Pids MUST be unique across a ProcessType.
+ * It's recommended to use globally unique Pids for example UUIDs.
+ *
+ * @package EventEngine\Process
+ */
+final class Pid
 {
-    private $watcherId;
+    private $pid;
 
-    public static function fromString(string $watchrId): self
+    public static function fromString(string $pid): self
     {
-        return new self($watchrId);
+        return new self($pid);
     }
 
-    private function __construct(string $watchrId)
+    private function __construct(string $pid)
     {
-        $this->watcherId = $watchrId;
+        $this->pid = $pid;
     }
 
     public function toString(): string
     {
-        return $this->watcherId;
+        return $this->pid;
     }
 
     public function equals($other): bool
@@ -36,11 +44,11 @@ final class WatcherId
             return false;
         }
 
-        return $this->watcherId === $other->watcherId;
+        return $this->pid === $other->pid;
     }
 
     public function __toString(): string
     {
-        return $this->watcherId;
+        return $this->pid;
     }
 }

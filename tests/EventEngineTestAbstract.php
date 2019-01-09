@@ -33,6 +33,8 @@ use EventEngine\Messaging\MessageFactoryAware;
 use EventEngine\Messaging\MessageProducer;
 use EventEngine\Persistence\InMemoryConnection;
 use EventEngine\Persistence\Stream;
+use EventEngine\Process\Pid;
+use EventEngine\Process\ProcessType;
 use EventEngine\Projecting\ProcessStateProjector;
 use EventEngine\Prooph\V7\EventStore\InMemoryEventStore;
 use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
@@ -434,7 +436,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             ))
         );
 
-        $userState = $this->eventEngine->loadProcessState(Process::USER, $userId);
+        $userState = $this->eventEngine->loadProcessState(ProcessType::fromString(Process::USER), Pid::fromString($userId));
 
         $this->assertLoadedUserState($userState);
     }
@@ -765,7 +767,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $result = $this->eventEngine->dispatch($registerUser);
 
 
-        $recordedEvents = iterator_to_array($this->eventStore->loadProcessEvents($this->eventEngine->writeModelStreamName(), Process::USER, $userId));
+        $recordedEvents = iterator_to_array($this->eventStore->loadProcessEvents($this->eventEngine->writeModelStreamName(), ProcessType::fromString(Process::USER), Pid::fromString($userId)));
 
         self::assertCount(1, $recordedEvents);
         self::assertCount(1, $publishedEvents);
@@ -824,8 +826,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->assertTrue($exceptionThrown);
         $this->assertEmpty(\iterator_to_array($this->eventStore->loadProcessEvents(
             $this->eventEngine->writeModelStreamName(),
-            Process::USER,
-            $userId
+            ProcessType::fromString(Process::USER),
+            Pid::fromString($userId)
         )));
     }
 
@@ -848,7 +850,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     {
         return ProcessStateProjector::processStateCollectionName(
             '0.1.0',
-            $process
+            ProcessType::fromString($process)
         );
     }
 

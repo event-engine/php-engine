@@ -14,6 +14,8 @@ namespace EventEngine\Logger;
 use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
+use EventEngine\Process\Pid;
+use EventEngine\Process\ProcessType;
 
 interface LogEngine
 {
@@ -37,17 +39,15 @@ interface LogEngine
 
     public function eventPublished(Message $event): void;
 
-    public function newProcessCreated(string $processType, string $processId, GenericEvent ...$events): void;
+    public function newProcessCreated(ProcessType $processType, Pid $processId, GenericEvent ...$events): void;
 
-    public function existingProcessChanged(string $processType, string $processId, $oldProcessState, GenericEvent ...$events);
+    public function existingProcessChanged(ProcessType $processType, Pid $processId, $oldProcessState, GenericEvent ...$events);
 
-    public function processStateLoaded(string $processType, string $processId, int $processVersion);
+    public function processStateLoaded(ProcessType $processType, Pid $processId, int $processVersion);
 
     public function projectionHandledEvent(string $projectionName, GenericEvent $event);
 
     public function projectionSetUp(string $projectionName);
 
     public function projectionDeleted(string $projectionName);
-
-
 }

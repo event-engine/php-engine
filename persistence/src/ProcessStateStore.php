@@ -13,15 +13,17 @@ namespace EventEngine\Persistence;
 
 use EventEngine\Process\Exception\ProcessNotFound;
 use EventEngine\Exception\InvalidArgumentException;
+use EventEngine\Process\Pid;
+use EventEngine\Process\ProcessType;
 
 interface ProcessStateStore
 {
     /**
-     * @param string $processType
-     * @param string $processId
+     * @param ProcessType $processType
+     * @param Pid $processId
      * @param int|null $expectedVersion
      * @return mixed State of the process
      * @throws ProcessNotFound
      */
-    public function loadProcessState(string $processType, string $processId, int $expectedVersion = null);
+    public function loadProcessState(ProcessType $processType, Pid $processId, int $expectedVersion = null);
 }

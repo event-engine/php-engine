@@ -17,6 +17,7 @@ use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Messaging\Exception\RuntimeException;
 use EventEngine\Messaging\GenericSchemaMessage;
 use EventEngine\Persistence\Stream;
+use EventEngine\Process\ProcessType;
 use EventEngine\Util\VariableType;
 
 final class ProjectionDescription
@@ -106,8 +107,13 @@ final class ProjectionDescription
 
     public function withProcessProjection(string $processType, string $projectionVersion = '0.1.0'): self
     {
-        return $this->with(ProcessStateProjector::generateProjectionName($processType), ProcessStateProjector::class, $projectionVersion)
-            ->filterProcessType($processType);
+        return $this->with(
+            ProcessStateProjector::generateProjectionName(
+                ProcessType::fromString($processType)
+            ),
+            ProcessStateProjector::class,
+            $projectionVersion
+        )->filterProcessType($processType);
     }
 
     public function filterProcessType(string $processType): self

@@ -13,6 +13,7 @@ namespace EventEngine\Runtime\Functional;
 
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
+use EventEngine\Process\Pid;
 
 interface Port
 {
@@ -37,9 +38,9 @@ interface Port
     /**
      * @param string $processIdPayloadKey
      * @param mixed $command
-     * @return string
+     * @return Pid
      */
-    public function getProcessIdFromCommand(string $processIdPayloadKey, $command): string;
+    public function getPidFromCommand(string $processIdPayloadKey, $command): Pid;
 
     /**
      * @param mixed $customCommand

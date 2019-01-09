@@ -11,6 +11,9 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
+use EventEngine\Process\Pid;
+use EventEngine\Process\ProcessType;
+
 final class GenericEvent extends GenericSchemaMessage
 {
     public const META_PROCESS_ID = '_process_id';
@@ -44,14 +47,16 @@ final class GenericEvent extends GenericSchemaMessage
         return $this->metadata[self::META_PROCESS_VERSION] ?? 0;
     }
 
-    public function processId(): string
+    public function pid(): Pid
     {
-        return $this->metadata[self::META_PROCESS_ID] ?? '';
+        $pidStr = $this->metadata[self::META_PROCESS_ID] ?? '';
+        return Pid::fromString($pidStr);
     }
 
-    public function processType(): string
+    public function processType(): ProcessType
     {
-        return $this->metadata[self::META_PROCESS_TYPE] ?? '';
+        $type =  $this->metadata[self::META_PROCESS_TYPE] ?? '';
+        return ProcessType::fromString($type);
     }
 
     public function causationId(): string

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace EventEngineExample\OopFlavour;
 
 use EventEngine\Exception\InvalidArgumentException;
+use EventEngine\Process\ProcessType;
 use EventEngine\Runtime\Oop\Port;
 use EventEngine\Util\VariableType;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
@@ -22,7 +23,7 @@ final class ExampleOopPort implements Port
     /**
      * {@inheritdoc}
      */
-    public function callProcessFactory(string $processType, callable $processFactory, $customCommand, $context = null)
+    public function callProcessFactory(ProcessType $processType, callable $processFactory, $customCommand, $context = null)
     {
         return $processFactory($customCommand, $context);
     }
@@ -72,30 +73,30 @@ final class ExampleOopPort implements Port
     /**
      * {@inheritdoc}
      */
-    public function reconstituteProcess(string $processType, iterable $events)
+    public function reconstituteProcess(ProcessType $processType, iterable $events)
     {
-        switch ($processType) {
+        switch ($processType->toString()) {
             case User::TYPE:
                 return User::reconstituteFromHistory($events);
                 break;
             default:
-                throw new InvalidArgumentException("Unknown aggregate type $processType");
+                throw new InvalidArgumentException("Unknown process type $processType");
         }
     }
 
     /**
-     * @param string $processType
+     * @param ProcessType $processType
      * @param array $state
      * @return mixed Process instance
      */
-    public function reconstituteProcessFromStateArray(string $processType, array $state)
+    public function reconstituteProcessFromStateArray(ProcessType $processType, array $state)
     {
-        switch ($processType) {
+        switch ($processType->toString()) {
             case User::TYPE:
                 return User::reconstituteFromState($state);
                 break;
             default:
-                throw new InvalidArgumentException("Unknown aggregate type $processType");
+                throw new InvalidArgumentException("Unknown process type $processType");
         }
     }
 }

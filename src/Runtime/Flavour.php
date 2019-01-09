@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace EventEngine\Runtime;
 use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\Message;
+use EventEngine\Process\Pid;
+use EventEngine\Process\ProcessType;
 use EventEngine\Projecting\CustomEventProjector;
 use EventEngine\Projecting\Projector;
 use EventEngine\Querying\Resolver;
@@ -40,9 +42,9 @@ interface Flavour
      *
      * @param string $pidKey
      * @param Message $command
-     * @return string
+     * @return Pid
      */
-    public function getPidFromCommand(string $pidKey, Message $command): string;
+    public function getPidFromCommand(string $pidKey, Message $command): Pid;
 
     /**
      * @param Message $command
@@ -54,27 +56,27 @@ interface Flavour
     /**
      * A process factory usually starts the lifecycle of a process by producing the first event(s).
      *
-     * @param string $processType
+     * @param ProcessType $processType
      * @param callable $processFunction
      * @param Message $command
      * @param null|mixed $context
      * @return \Generator Message[] yield events
      */
-    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator;
+    public function callProcessFactory(ProcessType $processType, callable $processFunction, Message $command, $context = null): \Generator;
 
     /**
      * Subsequent process functions receive current state of the process as an argument.
      *
      * In case of the OopFlavour $processState is the process instance itself. Check implementation of the OopFlavour for details.
      *
-     * @param string $processType
+     * @param ProcessType $processType
      * @param callable $processFunction
      * @param mixed $processState
      * @param Message $command
      * @param null|mixed $context
      * @return \Generator Message[] yield events
      */
-    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator;
+    public function callProcessFunction(ProcessType $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator;
 
     /**
      * First event apply function does not receive process state as an argument but should return the first version
@@ -136,20 +138,20 @@ interface Flavour
     public function callProjector($projector, string $projectionVersion, string $projectionName, Message $event): void;
 
     /**
-     * @param string $processType
+     * @param ProcessType $processType
      * @param mixed $processState
      * @return array
      */
-    public function convertProcessStateToArray(string $processType, $processState): array;
+    public function convertProcessStateToArray(ProcessType $processType, $processState): array;
 
-    public function canBuildProcessState(string $processType): bool;
+    public function canBuildProcessState(ProcessType $processType): bool;
 
     /**
-     * @param string $processType
+     * @param ProcessType $processType
      * @param array $state
      * @return mixed process state
      */
-    public function buildProcessState(string $processType, array $state);
+    public function buildProcessState(ProcessType $processType, array $state);
 
     public function callEventListener(callable $listener, Message $event): void;
 

@@ -11,16 +11,18 @@ declare(strict_types=1);
 
 namespace EventEngine\Runtime\Oop;
 
+use EventEngine\Process\ProcessType;
+
 interface Port
 {
     /**
-     * @param string $processType
+     * @param ProcessType $processType
      * @param callable $processFactory
      * @param $customCommand
      * @param null|mixed $context
      * @return mixed Created process
      */
-    public function callProcessFactory(string $processType, callable $processFactory, $customCommand, $context = null);
+    public function callProcessFactory(ProcessType $processType, callable $processFactory, $customCommand, $context = null);
 
     /**
      * @param mixed $process
@@ -48,16 +50,16 @@ interface Port
     public function serializeProcess($process): array;
 
     /**
-     * @param string $processType
+     * @param ProcessType $processType
      * @param iterable $events history
      * @return mixed Process instance
      */
-    public function reconstituteProcess(string $processType, iterable $events);
+    public function reconstituteProcess(ProcessType $processType, iterable $events);
 
     /**
-     * @param string $processType
+     * @param ProcessType $processType
      * @param array $state
      * @return mixed Process instance
      */
-    public function reconstituteProcessFromStateArray(string $processType, array $state);
+    public function reconstituteProcessFromStateArray(ProcessType $processType, array $state);
 }

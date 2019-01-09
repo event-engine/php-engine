@@ -11,23 +11,23 @@ declare(strict_types=1);
 
 namespace EventEngine\EventStore\Stream;
 
-final class WatcherId
+final class Name
 {
-    private $watcherId;
+    private $name;
 
-    public static function fromString(string $watchrId): self
+    public static function fromString(string $name): self
     {
-        return new self($watchrId);
+        return new self($name);
     }
 
-    private function __construct(string $watchrId)
+    private function __construct(string $name)
     {
-        $this->watcherId = $watchrId;
+        $this->name = $name;
     }
 
     public function toString(): string
     {
-        return $this->watcherId;
+        return $this->name;
     }
 
     public function equals($other): bool
@@ -36,11 +36,11 @@ final class WatcherId
             return false;
         }
 
-        return $this->watcherId === $other->watcherId;
+        return $this->name === $other->name;
     }
 
     public function __toString(): string
     {
-        return $this->watcherId;
+        return $this->name;
     }
 }

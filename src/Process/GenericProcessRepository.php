@@ -13,6 +13,7 @@ namespace EventEngine\Process;
 
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventStore\EventStore;
+use EventEngine\EventStore\Stream\Name;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Persistence\DeletableState;
 use EventEngine\Persistence\MultiModelStore;
@@ -31,7 +32,7 @@ final class GenericProcessRepository
     private $documentStore;
 
     /**
-     * @var string
+     * @var Name
      */
     private $streamName;
 
@@ -48,7 +49,7 @@ final class GenericProcessRepository
     public function __construct(
         Flavour $flavour,
         EventStore $eventStore,
-        string $streamName,
+        Name $streamName,
         DocumentStore $documentStore = null,
         string $processStateCollection = null
     ) {
@@ -60,13 +61,13 @@ final class GenericProcessRepository
     }
 
     /**
-     * @param FlavouredProcess $processRoot
+     * @param FlavouredProcess $process
      * @return GenericEvent[]
      * @throws \Throwable
      */
-    public function saveProcess(FlavouredProcess $processRoot): array
+    public function saveProcess(FlavouredProcess $process): array
     {
-        $domainEvents = $processRoot->popRecordedEvents();
+        $domainEvents = $process->popRecordedEvents();
 
         if($this->eventStore instanceof MultiModelStore) {
             $this->eventStore->connection()->beginTransaction();
@@ -74,20 +75,20 @@ final class GenericProcessRepository
             try {
                 $this->eventStore->appendTo($this->streamName, ...$domainEvents);
 
-                $processState = $processRoot->currentState();
+                $processState = $process->currentState();
 
                 if (is_object($processState) && $processState instanceof DeletableState && $processState->deleted()) {
                     $this->eventStore->deleteDoc(
                         $this->processStateCollection,
-                        (string) $processRoot->processId()
+                        (string) $process->pid()
                     );
                 } else {
                     $this->eventStore->upsertDoc(
                         $this->processStateCollection,
-                        $processRoot->processId(),
+                        $process->pid()->toString(),
                         [
-                            'state' => $this->flavour->convertProcessStateToArray($processRoot->processType(), $processRoot->currentState()),
-                            'version' => $processRoot->version()
+                            'state' => $this->flavour->convertProcessStateToArray($process->processType(), $process->currentState()),
+                            'version' => $process->version()
                         ]
                     );
                 }
@@ -107,13 +108,13 @@ final class GenericProcessRepository
     /**
      * Returns null if no stream events can be found for process otherwise the reconstituted process
      *
-     * @param string $processType
-     * @param string $pid
+     * @param ProcessType $processType
+     * @param Pid $pid
      * @param array $eventApplyMap
      * @param int|null $expectedVersion
      * @return null|FlavouredProcess
      */
-    public function getProcess(string $processType, string $pid, array $eventApplyMap, int $expectedVersion = null)
+    public function getProcess(ProcessType $processType, Pid $pid, array $eventApplyMap, int $expectedVersion = null)
     {
         if(
             $this->flavour->canBuildProcessState($processType)

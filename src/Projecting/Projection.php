@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace EventEngine\Projecting;
 
 use EventEngine\EventEngine;
+use EventEngine\EventStore\Stream\Name;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Persistence\Stream;
@@ -51,18 +52,18 @@ final class Projection
         return new self($desc, $projector, $flavour, $desc[ProjectionDescription::PROJECTION_VERSION]);
     }
 
-    private function __construct(array $desc, $projector, Flavour $flavour, string $projecionVersion)
+    private function __construct(array $desc, $projector, Flavour $flavour, string $projectionVersion)
     {
         $this->desc = $desc;
         $this->sourceStream = Stream::fromArray($this->desc[ProjectionDescription::SOURCE_STREAM]);
         $this->flavour = $flavour;
         $this->projector = $projector;
-        $this->projectionVersion = $projecionVersion;
+        $this->projectionVersion = $projectionVersion;
     }
 
-    public function isInterestedIn(string $sourceStreamName, Message $event): bool
+    public function isInterestedIn(Name $sourceStreamName, Message $event): bool
     {
-        if ($this->sourceStream->streamName() !== $sourceStreamName) {
+        if (!$this->sourceStream->streamName()->equals($sourceStreamName)) {
             return false;
         }
 

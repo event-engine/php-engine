@@ -9,25 +9,32 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\EventStore\Stream;
+namespace EventEngine\Process;
 
-final class WatcherId
+/**
+ * Class ProcessType
+ *
+ * Processes are grouped by type.
+ *
+ * @package EventEngine\Process
+ */
+final class ProcessType
 {
-    private $watcherId;
+    private $type;
 
-    public static function fromString(string $watchrId): self
+    public static function fromString(string $type): self
     {
-        return new self($watchrId);
+        return new self($type);
     }
 
-    private function __construct(string $watchrId)
+    private function __construct(string $type)
     {
-        $this->watcherId = $watchrId;
+        $this->type = $type;
     }
 
     public function toString(): string
     {
-        return $this->watcherId;
+        return $this->type;
     }
 
     public function equals($other): bool
@@ -36,11 +43,11 @@ final class WatcherId
             return false;
         }
 
-        return $this->watcherId === $other->watcherId;
+        return $this->type === $other->type;
     }
 
     public function __toString(): string
     {
-        return $this->watcherId;
+        return $this->type;
     }
 }

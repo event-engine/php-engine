@@ -11,36 +11,39 @@ declare(strict_types=1);
 
 namespace EventEngine\EventStore;
 
+use EventEngine\EventStore\Stream\Name;
 use EventEngine\Messaging\GenericEvent;
+use EventEngine\Process\Pid;
+use EventEngine\Process\ProcessType;
 
 interface EventStore
 {
-    public function createStream(string $streamName): void;
+    public function createStream(Name $streamName): void;
 
-    public function deleteStream(string $streamName): void;
+    public function deleteStream(Name $streamName): void;
 
-    public function appendTo(string $streamName, GenericEvent ...$events): void;
+    public function appendTo(Name $streamName, GenericEvent ...$events): void;
 
     /**
-     * @param string $streamName
-     * @param string $processType
-     * @param string $processId
+     * @param Name $streamName
+     * @param ProcessType $processType
+     * @param Pid $processId
      * @param int $minVersion
      * @return \Iterator GenericEvent[]
      */
-    public function loadProcessEvents(string $streamName, string $processType, string $processId, int $minVersion = 1): \Iterator;
+    public function loadProcessEvents(Name $streamName, ProcessType $processType, Pid $processId, int $minVersion = 1): \Iterator;
 
     /**
-     * @param string $streamName
+     * @param Name $streamName
      * @param string $correlationId
      * @return \Iterator GenericEvent[]
      */
-    public function loadEventsByCorrelationId(string $streamName, string $correlationId): \Iterator;
+    public function loadEventsByCorrelationId(Name $streamName, string $correlationId): \Iterator;
 
     /**
-     * @param string $streamName
+     * @param Name $streamName
      * @param string $causationId
      * @return \Iterator GenericEvent[]
      */
-    public function loadEventsByCausationId(string $streamName, string $causationId): \Iterator;
+    public function loadEventsByCausationId(Name $streamName, string $causationId): \Iterator;
 }
