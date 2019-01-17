@@ -76,6 +76,7 @@ final class CommandDispatch
             $flavour,
             $eventStore,
             $log,
+            $eventEngine,
             $documentStore,
             $contextProvider
         );

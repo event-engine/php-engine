@@ -16,6 +16,7 @@ use EventEngine\Aggregate\Exception\AggregateNotFound;
 use EventEngine\Aggregate\FlavouredAggregateRoot;
 use EventEngine\Aggregate\GenericAggregateRepository;
 use EventEngine\DocumentStore\DocumentStore;
+use EventEngine\EventEngine;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Exception\RuntimeException;
@@ -79,6 +80,11 @@ final class CommandProcessor
     private $flavour;
 
     /**
+     * @var EventEngine
+     */
+    private $eventEngine;
+
+    /**
      * @var DocumentStore|null
      */
     private $documentStore;
@@ -99,6 +105,7 @@ final class CommandProcessor
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $logEngine,
+        EventEngine $eventEngine,
         DocumentStore $documentStore = null,
         ContextProvider $contextProvider = null
     ): self {
@@ -143,6 +150,7 @@ final class CommandProcessor
             $flavour,
             $eventStore,
             $logEngine,
+            $eventEngine,
             $contextProvider,
             $documentStore,
             $aggregateDesc['aggregateCollection'] ?? null
@@ -160,6 +168,7 @@ final class CommandProcessor
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $log,
+        EventEngine $eventEngine,
         ContextProvider $contextProvider = null,
         DocumentStore $documentStore = null,
         string $aggregateCollection = null
@@ -174,6 +183,7 @@ final class CommandProcessor
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
         $this->log = $log;
+        $this->eventEngine = $eventEngine;
         $this->documentStore = $documentStore;
         $this->contextProvider = $contextProvider;
         $this->aggregateCollection = $aggregateCollection;
@@ -240,6 +250,8 @@ final class CommandProcessor
         } else {
             $this->log->existingAggregateChanged($this->aggregateType, $arId, $aggregateState, ...$events);
         }
+
+        $this->eventEngine->cacheAggregateState($this->aggregateType, $arId, $aggregate->version(), $aggregate->currentState());
 
         return $events;
     }

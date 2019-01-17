@@ -207,6 +207,11 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     private $eventQueue;
 
     /**
+     * @var mixed[]
+     */
+    private $aggregateCache = [];
+
+    /**
      * Use EventEngine::disableAutoPublish() to take control of event publishing yourself
      *
      * @var bool
@@ -719,6 +724,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     return $preProcessor;
                 }, $this->commandPreProcessors[$messageOrName->messageName()] ?? []);
 
+                $this->clearAggregateCache();
+
                 return CommandDispatch::exec(
                     $messageOrName,
                     $this->flavour,
@@ -781,6 +788,11 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             throw new InvalidArgumentException('Unknown aggregate type: ' . $aggregateType);
         }
 
+        if($cachedAggregate = $this->loadAggregateStateFromCache($aggregateType, $aggregateId, $expectedVersion)) {
+            $this->log->aggregateStateLoadedFromCache($aggregateType, $aggregateId, $expectedVersion);
+            return $cachedAggregate;
+        }
+
         $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
 
         $arRepository = new GenericAggregateRepository(
@@ -799,6 +811,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         }
 
         $this->log->aggregateStateLoaded($aggregate->aggregateType(), $aggregate->aggregateId(), $aggregate->version());
+
+        $this->cacheAggregateState($aggregateType, $aggregateId, $aggregate->version(), $aggregate->currentState());
 
         return $aggregate->currentState();
     }
@@ -958,6 +972,36 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     public function projectionInfo(): ProjectionInfoList
     {
         return ProjectionInfoList::fromDescriptions($this->compiledProjectionDescriptions);
+    }
+
+    public function cacheAggregateState(string $aggregateType, string $aggregateId, int $version, $aggregateState): void
+    {
+        $this->aggregateCache[$aggregateType][$aggregateId] = [
+            'version' => $version,
+            'state' => $aggregateState
+        ];
+    }
+    /**
+     * @param string $aggregateType
+     * @param string $aggregateId
+     * @return null|mixed Null is returned if no state is cached, otherwise the cached process state
+     */
+    public function loadAggregateStateFromCache(string $aggregateType, string $aggregateId, int $expectedVersion = null)
+    {
+        $cache = $this->aggregateCache[$aggregateType][$aggregateId] ?? null;
+        if(!$cache) {
+            return null;
+        }
+        if($expectedVersion) {
+            if($expectedVersion !== $cache['version']) {return null;
+            }
+        }
+        return $cache['state'];
+    }
+
+    public function clearAggregateCache(): void
+    {
+        $this->aggregateCache = [];
     }
 
     private function compileAggregateAndRoutingDescriptions(): void
