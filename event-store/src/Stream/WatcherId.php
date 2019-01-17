@@ -13,7 +13,7 @@ namespace EventEngine\EventStore\Stream;
 
 final class WatcherId
 {
-    private $watcherId;
+    private $watchrId;
 
     public static function fromString(string $watchrId): self
     {
@@ -22,12 +22,12 @@ final class WatcherId
 
     private function __construct(string $watchrId)
     {
-        $this->watcherId = $watchrId;
+        $this->watchrId = $watchrId;
     }
 
     public function toString(): string
     {
-        return $this->watcherId;
+        return $this->watchrId;
     }
 
     public function equals($other): bool
@@ -36,11 +36,11 @@ final class WatcherId
             return false;
         }
 
-        return $this->watcherId === $other->watcherId;
+        return $this->watchrId === $other->watchrId;
     }
 
     public function __toString(): string
     {
-        return $this->watcherId;
+        return $this->watchrId;
     }
 }

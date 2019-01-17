@@ -170,7 +170,7 @@ final class CommandProcessorDescription
             'processFunction' => $this->processFunction,
             'processStateCollection' => $this->processStateCollection,
             'eventRecorderMap' => $eventRecorderMap,
-            'streamName' => $this->eventEngine->writeModelStreamName()->toString(),
+            'streamName' => $this->eventEngine->writeModelStreamName(),
             'contextProvider' => $this->contextProvider,
         ];
     }

@@ -23,8 +23,6 @@ use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
 use EventEngine\Projecting\ProcessStateProjector;
 use EventEngine\Projecting\Projector;
 use EventEngine\Querying\Resolver;
@@ -86,7 +84,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         return $preProcessor->preProcess($command);
     }
 
-    public function getPidFromCommand(string $pidKey, Message $command): Pid
+    public function getPidFromCommand(string $pidKey, Message $command): string
     {
         $payload = $command->payload();
 
@@ -94,7 +92,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
             throw MissingPid::inCommand($command, $pidKey);
         }
 
-        return Pid::fromString($payload[$pidKey]);
+        return (string) $payload[$pidKey];
     }
 
     /**
@@ -115,7 +113,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callProcessFactory(ProcessType $processType, callable $processFunction, Message $command, $context = null): \Generator
+    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator
     {
         $events = $processFunction($command, $context);
 
@@ -135,7 +133,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callProcessFunction(ProcessType $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
+    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
     {
         $events = $processFunction($processState, $command, $context);
 
@@ -199,19 +197,19 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function convertProcessStateToArray(ProcessType $processType, $processState): array
+    public function convertProcessStateToArray(string $processType, $processState): array
     {
-        return $this->stateConverter->convertDataToArray($processType->toString(), $processState);
+        return $this->stateConverter->convertDataToArray($processType, $processState);
     }
 
-    public function canBuildProcessState(ProcessType $processType): bool
+    public function canBuildProcessState(string $processType): bool
     {
-        return $this->stateConverter->canConvertTypeToData($processType->toString());
+        return $this->stateConverter->canConvertTypeToData($processType);
     }
 
-    public function buildProcessState(ProcessType $processType, array $state)
+    public function buildProcessState(string $processType, array $state)
     {
-        return $this->stateConverter->convertArrayToData($processType->toString(), $state);
+        return $this->stateConverter->convertArrayToData($processType, $state);
     }
 
     public function callEventListener(callable $listener, Message $event): void
@@ -228,7 +226,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         return $resolver->resolve($query);
     }
 
-    private function mapToMessage($event, ProcessType $processType, Message $command): Message
+    private function mapToMessage($event, string $processType, Message $command): Message
     {
         if (! \is_array($event) || ! \array_key_exists(0, $event) || ! \array_key_exists(1, $event)
             || ! \is_string($event[0]) || ! \is_array($event[1])) {

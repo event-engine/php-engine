@@ -19,8 +19,6 @@ use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Persistence\ProcessStateStore;
 use EventEngine\Persistence\DeletableState;
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\PrototypingFlavour;
 
@@ -56,14 +54,14 @@ final class ProcessStateProjector implements Projector, FlavourAware, DocumentSt
      */
     private $flavour;
 
-    public static function processStateCollectionName(string $projectionVersion, ProcessType $processType): string
+    public static function processStateCollectionName(string $projectionVersion, string $processType): string
     {
         return self::generateCollectionName($projectionVersion, self::generateProjectionName($processType));
     }
 
-    public static function generateProjectionName(ProcessType $processType): string
+    public static function generateProjectionName(string $processType): string
     {
-        return $processType->toString() . '.Projection';
+        return $processType . '.Projection';
     }
 
     public static function generateCollectionName(string $projectionVersion, string $projectionName): string
@@ -121,15 +119,12 @@ final class ProcessStateProjector implements Projector, FlavourAware, DocumentSt
             return;
         }
 
-        $pid = Pid::fromString((string)$pid);
-        $processType = ProcessType::fromString((string)$processType);
-
         $processVersion = $event->metadata()[GenericEvent::META_PROCESS_VERSION] ?? 0;
 
-        $this->assertProjectionNameMatchesWithProcessType($projectionName, $processType);
+        $this->assertProjectionNameMatchesWithProcessType($projectionName, (string) $processType);
 
         try {
-            $processState = $this->stateStore->loadProcessState($processType, $pid);
+            $processState = $this->stateStore->loadProcessState((string) $processType, (string) $pid);
         } catch (ProcessNotFound $e) {
             return;
         }
@@ -143,7 +138,7 @@ final class ProcessStateProjector implements Projector, FlavourAware, DocumentSt
             return;
         }
 
-        $document = $this->flavour()->convertProcessStateToArray($processType, $processState);
+        $document = $this->flavour()->convertProcessStateToArray((string)$processType, $processState);
 
         if(!$this->storeStateOnly) {
             $document = [
@@ -173,7 +168,7 @@ final class ProcessStateProjector implements Projector, FlavourAware, DocumentSt
         }
     }
 
-    private function assertProjectionNameMatchesWithProcessType(string $projectionName, ProcessType $processType): void
+    private function assertProjectionNameMatchesWithProcessType(string $projectionName, string $processType): void
     {
         if ($projectionName !== self::generateProjectionName($processType)) {
             throw new \RuntimeException(\sprintf(

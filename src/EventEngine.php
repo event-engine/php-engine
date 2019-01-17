@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace EventEngine;
 
-use EventEngine\EventStore\Stream\Name;
 use EventEngine\Process\Exception\ProcessNotFound;
 use EventEngine\Process\FlavouredProcess;
 use EventEngine\Process\GenericProcessRepository;
@@ -36,8 +35,6 @@ use EventEngine\Messaging\MessageFactoryAware;
 use EventEngine\Messaging\MessageProducer;
 use EventEngine\Persistence\ProcessStateStore;
 use EventEngine\Persistence\Stream;
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
 use EventEngine\Projecting\ProcessStateProjector;
 use EventEngine\Projecting\CustomEventProjector;
 use EventEngine\Projecting\DocumentStoreIndexAware;
@@ -192,10 +189,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
      */
     private $schema;
 
-    /**
-     * @var Name
-     */
-    private $writeModelStreamName;
+    private $writeModelStreamName = 'event_stream';
 
     /**
      * @var EventStore
@@ -235,7 +229,6 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
     {
         $this->schema = $schema;
         $this->typeSchemaMap = new TypeSchemaMap();
-        $this->writeModelStreamName = Name::fromString('event_stream');
     }
 
     public static function fromCachedConfig(
@@ -300,7 +293,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         $self->inputTypes = array_map(function (array $typeSchema, string $typeName) use ($schema): ResponseTypeSchema {
             return $schema->buildResponseTypeSchemaFromArray($typeName, $typeSchema);
         }, $config['inputTypes'] ?? []);
-        $self->writeModelStreamName = Name::fromString($config['writeModelStreamName']);
+        $self->writeModelStreamName = $config['writeModelStreamName'];
 
         $self->flavour = $flavour;
         $self->eventStore = $eventStore;
@@ -357,7 +350,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
             'queryMap' => array_map($schemaToArray, $this->queryMap),
             'responseTypes' => array_map($schemaToArray, $this->responseTypes),
             'inputTypes' => array_map($schemaToArray, $this->inputTypes),
-            'writeModelStreamName' => $this->writeModelStreamName->toString(),
+            'writeModelStreamName' => $this->writeModelStreamName,
         ];
     }
 
@@ -367,7 +360,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         \call_user_func([$description, 'describe'], $this);
     }
 
-    public function setWriteModelStreamName(Name $streamName): self
+    public function setWriteModelStreamName(string $streamName): self
     {
         $this->assertNotInitialized(__METHOD__);
         $this->writeModelStreamName = $streamName;
@@ -559,8 +552,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
 
     public function watch(Stream $stream): ProjectionDescription
     {
-        if ($stream->streamName()->toString() === Stream::WRITE_MODEL_STREAM) {
-            $stream = $stream->withStreamName($this->writeModelStreamName->toString());
+        if ($stream->streamName() === Stream::WRITE_MODEL_STREAM) {
+            $stream = $stream->withStreamName($this->writeModelStreamName);
         }
         //ProjectionDescriptions register itself using EventMachine::registerProjection within ProjectionDescription::with call
         return new ProjectionDescription($stream, $this);
@@ -601,7 +594,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         return $this->schema;
     }
 
-    public function writeModelStreamName(): Name
+    public function writeModelStreamName(): string
     {
         return $this->writeModelStreamName;
     }
@@ -787,11 +780,11 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         return $this->dispatch($message);
     }
 
-    public function loadProcessState(ProcessType $processType, Pid $processId, int $expectedVersion = null)
+    public function loadProcessState(string $processType, string $processId, int $expectedVersion = null)
     {
         $this->assertBootstrapped(__METHOD__);
 
-        if (! \array_key_exists($processType->toString(), $this->processDescriptions)) {
+        if (! \array_key_exists($processType, $this->processDescriptions)) {
             throw new InvalidArgumentException('Unknown process type: ' . $processType);
         }
 
@@ -799,7 +792,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
             return $cachedProcess;
         }
 
-        $processDesc = $this->processDescriptions[$processType->toString()];
+        $processDesc = $this->processDescriptions[$processType];
 
         $arRepository = new GenericProcessRepository(
             $this->flavour,
@@ -816,7 +809,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
             throw ProcessNotFound::with($processType, $processId);
         }
 
-        $this->log->processStateLoaded($process->processType(), $process->pid(), $process->version());
+        $this->log->processStateLoaded($process->processType(), $process->processId(), $process->version());
 
         $this->cacheProcessState($processType, $processId, $process->version(), $process->currentState());
 
@@ -874,14 +867,14 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         return $projector;
     }
 
-    public function runAllProjections(Name $sourceStream, GenericEvent ...$events): void
+    public function runAllProjections(string $sourceStream, GenericEvent ...$events): void
     {
         foreach ($this->compiledProjectionDescriptions as $prj => $desc) {
             $this->runProjection($prj, $sourceStream, ...$events);
         }
     }
 
-    public function runProjection(string $projectionName, Name $sourceStream, GenericEvent ...$events): void
+    public function runProjection(string $projectionName, string $sourceStream, GenericEvent ...$events): void
     {
         $this->assertInitialized(__METHOD__);
 
@@ -980,23 +973,22 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         return ProjectionInfoList::fromDescriptions($this->compiledProjectionDescriptions);
     }
 
-    public function cacheProcessState(ProcessType $processType, Pid $pid, int $version, $processState): void
+    public function cacheProcessState(string $processType, string $pid, int $version, $processState): void
     {
-        $this->processCache[$processType->toString()][$pid->toString()] = [
+        $this->processCache[$processType][$pid] = [
             'version' => $version,
             'state' => $processState
         ];
     }
 
     /**
-     * @param ProcessType $processType
-     * @param Pid $pid
-     * @param int $expectedVersion
+     * @param string $processType
+     * @param string $pid
      * @return null|mixed Null is returned if no state is cached, otherwise the cached process state
      */
-    public function loadProcessStateFromCache(ProcessType $processType, Pid $pid, int $expectedVersion = null)
+    public function loadProcessStateFromCache(string $processType, string $pid, int $expectedVersion = null)
     {
-        $cache = $this->processCache[$processType->toString()][$pid->toString()] ?? null;
+        $cache = $this->processCache[$processType][$pid] ?? null;
 
         if(!$cache) {
             return null;
@@ -1032,7 +1024,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
                     'eventApplyMap' => $descArr['eventRecorderMap'],
                     'processStateCollection' => $descArr['processStateCollection'] ?? ProcessStateProjector::processStateCollectionName(
                             '0.1.0',
-                            ProcessType::fromString($descArr['processType'])
+                            $descArr['processType']
                         )
                 ];
             }

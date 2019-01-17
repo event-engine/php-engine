@@ -12,10 +12,7 @@ declare(strict_types=1);
 namespace EventEngine\Prooph\V7\EventStore;
 
 use EventEngine\EventStore\EventStore;
-use EventEngine\EventStore\Stream\Name;
 use EventEngine\Messaging\GenericEvent;
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
 use EventEngine\Prooph\V7\EventStore\Exception\NoTransactionalStore;
 use EventEngine\Util\MapIterator;
 use Prooph\Common\Messaging\DomainMessage;
@@ -46,71 +43,71 @@ final class ProophEventStore implements EventStore
     }
 
     /**
-     * @param Name $streamName
+     * @param string $streamName
      * @throws \Exception
      */
-    public function createStream(Name $streamName): void
+    public function createStream(string $streamName): void
     {
         if($this->manageTransaction) {
             $this->pes->transactional(function (ProophV7EventStore $eventStore) use ($streamName) {
-                $eventStore->create(new Stream(new StreamName($streamName->toString()), new \ArrayIterator([])));
+                $eventStore->create(new Stream(new StreamName($streamName), new \ArrayIterator([])));
             });
             return;
         }
 
-        $this->pes->create(new Stream(new StreamName($streamName->toString()), new \ArrayIterator([])));
+        $this->pes->create(new Stream(new StreamName($streamName), new \ArrayIterator([])));
     }
 
     /**
-     * @param Name $streamName
+     * @param string $streamName
      * @throws \Exception
      */
-    public function deleteStream(Name $streamName): void
+    public function deleteStream(string $streamName): void
     {
         if($this->manageTransaction) {
             $this->pes->transactional(function (ProophV7EventStore $eventStore) use ($streamName) {
-                $eventStore->delete(new StreamName($streamName->toString()));
+                $eventStore->delete(new StreamName($streamName));
             });
             return;
         }
 
-        $this->pes->delete(new StreamName($streamName->toString()));
+        $this->pes->delete(new StreamName($streamName));
     }
 
     /**
-     * @param Name $streamName
+     * @param string $streamName
      * @param GenericEvent ...$events
      * @throws \Exception
      */
-    public function appendTo(Name $streamName, GenericEvent ...$events): void
+    public function appendTo(string $streamName, GenericEvent ...$events): void
     {
         if($this->manageTransaction) {
             $this->pes->transactional(function (ProophV7EventStore $eventStore) use ($streamName, &$events) {
-                $eventStore->appendTo(new StreamName($streamName->toString()), new MapIterator(new \ArrayIterator($events), function (GenericEvent $event): DomainMessage {
+                $eventStore->appendTo(new StreamName($streamName), new MapIterator(new \ArrayIterator($events), function (GenericEvent $event): DomainMessage {
                     return GenericProophEvent::fromArray($event->toArray());
                 }));
             });
             return;
         }
 
-        $this->pes->appendTo(new StreamName($streamName->toString()), new MapIterator(new \ArrayIterator($events), function (GenericEvent $event): DomainMessage {
+        $this->pes->appendTo(new StreamName($streamName), new MapIterator(new \ArrayIterator($events), function (GenericEvent $event): DomainMessage {
             return GenericProophEvent::fromArray($event->toArray());
         }));
     }
 
     /**
-     * @param Name $streamName
-     * @param ProcessType $processType
-     * @param Pid $processId
+     * @param string $streamName
+     * @param string $processType
+     * @param string $processId
      * @param int $minVersion
      * @return \Iterator GenericEvent[]
      */
-    public function loadProcessEvents(Name $streamName, ProcessType $processType, Pid $processId, int $minVersion = 1): \Iterator
+    public function loadProcessEvents(string $streamName, string $processType, string $processId, int $minVersion = 1): \Iterator
     {
         $matcher = new MetadataMatcher();
 
-        $matcher->withMetadataMatch(GenericEvent::META_PROCESS_TYPE, Operator::EQUALS(), $processType->toString())
-            ->withMetadataMatch(GenericEvent::META_PROCESS_ID, Operator::EQUALS(), $processId->toString());
+        $matcher->withMetadataMatch(GenericEvent::META_PROCESS_TYPE, Operator::EQUALS(), $processType)
+            ->withMetadataMatch(GenericEvent::META_PROCESS_ID, Operator::EQUALS(), $processId);
 
         if($minVersion > 1) {
             $matcher->withMetadataMatch(GenericEvent::META_PROCESS_VERSION, Operator::GREATER_THAN_EQUALS(), $minVersion);
@@ -118,7 +115,7 @@ final class ProophEventStore implements EventStore
 
         return $this->prepareEventMapping(
             $this->pes->load(
-                new StreamName($streamName->toString()),
+                new StreamName($streamName),
                 1,
                 null,
                 $matcher
@@ -127,11 +124,11 @@ final class ProophEventStore implements EventStore
     }
 
     /**
-     * @param Name $streamName
+     * @param string $streamName
      * @param string $correlationId
      * @return \Iterator GenericEvent[]
      */
-    public function loadEventsByCorrelationId(Name $streamName, string $correlationId): \Iterator
+    public function loadEventsByCorrelationId(string $streamName, string $correlationId): \Iterator
     {
         $matcher = new MetadataMatcher();
 
@@ -139,7 +136,7 @@ final class ProophEventStore implements EventStore
 
         return $this->prepareEventMapping(
             $this->pes->load(
-                new StreamName($streamName->toString()),
+                new StreamName($streamName),
                 1,
                 null,
                 $matcher
@@ -148,11 +145,11 @@ final class ProophEventStore implements EventStore
     }
 
     /**
-     * @param Name $streamName
+     * @param string $streamName
      * @param string $causationId
      * @return \Iterator GenericEvent[]
      */
-    public function loadEventsByCausationId(Name $streamName, string $causationId): \Iterator
+    public function loadEventsByCausationId(string $streamName, string $causationId): \Iterator
     {
         $matcher = new MetadataMatcher();
 
@@ -160,7 +157,7 @@ final class ProophEventStore implements EventStore
 
         return $this->prepareEventMapping(
             $this->pes->load(
-                new StreamName($streamName->toString()),
+                new StreamName($streamName),
                 1,
                 null,
                 $matcher

@@ -14,8 +14,6 @@ namespace EventEngine\Logger;
 use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
 use EventEngine\Util\VariableType;
 use Psr\Log\LoggerInterface;
 
@@ -85,18 +83,18 @@ class SimpleMessageEngine implements LogEngine
         $this->logger->info(" Event {$event->messageName()} published on event queue");
     }
 
-    public function newProcessCreated(ProcessType $processType, Pid $processId, GenericEvent ...$events): void
+    public function newProcessCreated(string $processType, string $processId, GenericEvent ...$events): void
     {
         $this->logger->info("New aggregate of type $processType with id $processId created");
     }
 
 
-    public function existingProcessChanged(ProcessType $processType, Pid $processId, $processState, GenericEvent ...$events)
+    public function existingProcessChanged(string $processType, string $processId, $processState, GenericEvent ...$events)
     {
         $this->logger->info("Changed existing aggregate of type $processType with id $processId");
     }
 
-    public function processStateLoaded(ProcessType $processType, Pid $processId, int $processVersion)
+    public function processStateLoaded(string $processType, string $processId, int $processVersion)
     {
         $this->logger->info("Loaded aggregate state of type $processType with id $processId and version $processVersion");
     }

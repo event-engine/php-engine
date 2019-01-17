@@ -11,17 +11,14 @@ declare(strict_types=1);
 
 namespace EventEngine\Process\Exception;
 
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
-
 final class ProcessNotFound extends \RuntimeException implements EventEngineException
 {
-    public static function with(ProcessType $processType, Pid $pid): self
+    public static function with(string $processType, string $pid): self
     {
         return new self(\sprintf(
             'Process of type %s with pid %s not found.',
-            $processType->toString(),
-            $pid->toString()
+            $processType,
+            $pid
         ), 404);
     }
 }

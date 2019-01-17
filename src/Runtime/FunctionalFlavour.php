@@ -20,8 +20,6 @@ use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
 use EventEngine\Projecting\ProcessStateProjector;
 use EventEngine\Projecting\CustomEventProjector;
 use EventEngine\Querying\Resolver;
@@ -89,13 +87,13 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function getPidFromCommand(string $pidKey, Message $command): Pid
+    public function getPidFromCommand(string $pidKey, Message $command): string
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        return $this->port->getPidFromCommand($pidKey, $command->get(MessageBag::MESSAGE));
+        return $this->port->getProcessIdFromCommand($pidKey, $command->get(MessageBag::MESSAGE));
     }
 
     /**
@@ -113,7 +111,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callProcessFactory(ProcessType $processType, callable $processFunction, Message $command, $context = null): \Generator
+    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
@@ -139,7 +137,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callProcessFunction(ProcessType $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
+    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
@@ -259,23 +257,23 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     }
 
     /**
-     * @param ProcessType $processType
+     * @param string $processType
      * @param mixed $processState
      * @return array
      */
-    public function convertProcessStateToArray(ProcessType $processType, $processState): array
+    public function convertProcessStateToArray(string $processType, $processState): array
     {
-        return $this->dataConverter->convertDataToArray($processType->toString(), $processState);
+        return $this->dataConverter->convertDataToArray($processType, $processState);
     }
 
-    public function canBuildProcessState(ProcessType $processType): bool
+    public function canBuildProcessState(string $processType): bool
     {
-        return $this->dataConverter->canConvertTypeToData($processType->toString());
+        return $this->dataConverter->canConvertTypeToData($processType);
     }
 
-    public function buildProcessState(ProcessType $processType, array $state)
+    public function buildProcessState(string $processType, array $state)
     {
-        return $this->dataConverter->convertArrayToData($processType->toString(), $state);
+        return $this->dataConverter->convertArrayToData($processType, $state);
     }
 
     public function callEventListener(callable $listener, Message $event): void

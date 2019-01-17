@@ -13,7 +13,6 @@ namespace EventEngineExample\FunctionalFlavour;
 
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
-use EventEngine\Process\Pid;
 use EventEngine\Runtime\Functional\Port;
 use EventEngineExample\FunctionalFlavour\Api\Command;
 use EventEngineExample\FunctionalFlavour\Api\Event;
@@ -67,10 +66,10 @@ final class ExampleFunctionalPort implements Port
     /**
      * {@inheritdoc}
      */
-    public function getPidFromCommand(string $processIdPayloadKey, $command): Pid
+    public function getProcessIdFromCommand(string $processIdPayloadKey, $command): string
     {
         //Duck typing, do not do this in production but rather use your own interfaces
-        return Pid::fromString($command->{$processIdPayloadKey});
+        return $command->{$processIdPayloadKey};
     }
 
     /**

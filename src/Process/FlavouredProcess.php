@@ -19,12 +19,12 @@ use EventEngine\Runtime\Flavour;
 final class FlavouredProcess
 {
     /**
-     * @var Pid
+     * @var string
      */
-    private $pid;
+    private $processId;
 
     /**
-     * @var ProcessType
+     * @var string
      */
     private $processType;
 
@@ -63,35 +63,35 @@ final class FlavouredProcess
      * @throws RuntimeException
      */
     public static function reconstituteFromHistory(
-        Pid $pid,
-        ProcessType $processType,
+        string $processId,
+        string $processType,
         array $eventApplyMap,
         Flavour $flavour,
         \Iterator $historyEvents
     ): self {
-        $instance = new self($pid, $processType, $eventApplyMap, $flavour);
+        $instance = new self($processId, $processType, $eventApplyMap, $flavour);
         $instance->replay($historyEvents);
 
         return $instance;
     }
 
     public static function reconstituteFromProcessState(
-        Pid $pid,
-        ProcessType $processType,
+        string $processId,
+        string $processType,
         array $eventApplyMap,
         Flavour $flavour,
         int $version,
         $state
     ): self {
-        $self = new self($pid, $processType, $eventApplyMap, $flavour);
+        $self = new self($processId, $processType, $eventApplyMap, $flavour);
         $self->processState = $state;
         $self->version = $version;
         return $self;
     }
 
-    public function __construct(Pid  $processId, ProcessType $processType, array $eventApplyMap, Flavour $flavour)
+    public function __construct(string  $processId, string $processType, array $eventApplyMap, Flavour $flavour)
     {
-        $this->pid = $processId;
+        $this->processId = $processId;
         $this->processType = $processType;
         $this->eventApplyMap = $eventApplyMap;
         $this->flavour = $flavour;
@@ -111,8 +111,8 @@ final class FlavouredProcess
         $event = $event->withMetadata(\array_merge(
             $event->metadata(),
             [
-                GenericEvent::META_PROCESS_ID => $this->pid()->toString(),
-                GenericEvent::META_PROCESS_TYPE => $this->processType()->toString(),
+                GenericEvent::META_PROCESS_ID => $this->processId(),
+                GenericEvent::META_PROCESS_TYPE => $this->processType(),
                 GenericEvent::META_PROCESS_VERSION => $this->version()
             ]
         ));
@@ -127,9 +127,9 @@ final class FlavouredProcess
         return $this->processState;
     }
 
-    public function pid(): Pid
+    public function processId(): string
     {
-        return $this->pid;
+        return $this->processId;
     }
 
     public function version(): int
@@ -137,7 +137,7 @@ final class FlavouredProcess
         return $this->version;
     }
 
-    public function processType(): ProcessType
+    public function processType(): string
     {
         return $this->processType;
     }

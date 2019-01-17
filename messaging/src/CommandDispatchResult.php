@@ -11,8 +11,6 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
-use EventEngine\Process\Pid;
-
 final class CommandDispatchResult
 {
     /**
@@ -21,7 +19,7 @@ final class CommandDispatchResult
     private $dispatchedCommand;
 
     /**
-     * @var Pid
+     * @var string
      */
     private $pid;
 
@@ -30,7 +28,7 @@ final class CommandDispatchResult
      */
     private $recordedEvents;
 
-    public static function forCommandHandledByProcess(Message $dispatchedCommand, Pid $pid, Message ...$recordedEvents): self
+    public static function forCommandHandledByProcess(Message $dispatchedCommand, string $pid, Message ...$recordedEvents): self
     {
         return new self($dispatchedCommand, $pid, ...$recordedEvents);
     }
@@ -40,7 +38,7 @@ final class CommandDispatchResult
         return new self($dispatchedCommand);
     }
 
-    private function __construct(Message $dispatchedCommand, Pid $pid = null, Message ...$recordedEvents)
+    private function __construct(Message $dispatchedCommand, string $pid = null, Message ...$recordedEvents)
     {
         $this->dispatchedCommand = $dispatchedCommand;
         $this->pid = $pid;
@@ -58,7 +56,7 @@ final class CommandDispatchResult
     /**
      * @return string|null
      */
-    public function pid(): ?Pid
+    public function pid(): ?string
     {
         return $this->pid;
     }

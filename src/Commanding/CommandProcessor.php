@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace EventEngine\Commanding;
 
 use EventEngine\EventEngine;
-use EventEngine\EventStore\Stream\Name;
 use EventEngine\Process\ContextProvider;
 use EventEngine\Process\Exception\ProcessNotFound;
 use EventEngine\Process\FlavouredProcess;
@@ -25,7 +24,6 @@ use EventEngine\Logger\LogEngine;
 use EventEngine\Messaging\GenericCommand;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
-use EventEngine\Process\ProcessType;
 use EventEngine\Runtime\Flavour;
 use Psr\Log\LoggerInterface;
 
@@ -37,7 +35,7 @@ final class CommandProcessor
     private $commandName;
 
     /**
-     * @var ProcessType
+     * @var string
      */
     private $processType;
 
@@ -62,7 +60,7 @@ final class CommandProcessor
     private $eventApplyMap;
 
     /**
-     * @var Name
+     * @var string
      */
     private $streamName;
 
@@ -143,12 +141,12 @@ final class CommandProcessor
 
         return new self(
             $processorDesc['commandName'],
-            ProcessType::fromString($processorDesc['processType']),
+            $processorDesc['processType'],
             $processorDesc['createProcess'],
             $processorDesc['pidKey'],
             $processorDesc['processFunction'],
             $processDesc['eventApplyMap'],
-            Name::fromString($processorDesc['streamName']),
+            $processorDesc['streamName'],
             $flavour,
             $eventStore,
             $logEngine,
@@ -161,12 +159,12 @@ final class CommandProcessor
 
     private function __construct(
         string $commandName,
-        ProcessType $processType,
+        string $processType,
         bool $createProcess,
         string $pidKey,
         callable $processFunction,
         array $eventApplyMap,
-        Name $streamName,
+        string $streamName,
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $log,

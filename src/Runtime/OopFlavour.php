@@ -17,8 +17,6 @@ use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
-use EventEngine\Process\Pid;
-use EventEngine\Process\ProcessType;
 use EventEngine\Runtime\Oop\ProcessAndEventBag;
 use EventEngine\Runtime\Oop\Port;
 use EventEngine\Util\MapIterator;
@@ -60,7 +58,7 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callProcessFactory(ProcessType $processType, callable $processFunction, Message $command, $context = null): \Generator
+    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
@@ -85,7 +83,7 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callProcessFunction(ProcessType $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
+    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
@@ -151,7 +149,7 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function getPidFromCommand(string $pidKey, Message $command): Pid
+    public function getPidFromCommand(string $pidKey, Message $command): string
     {
         return $this->functionalFlavour->getPidFromCommand($pidKey, $command);
     }
@@ -203,7 +201,7 @@ final class OopFlavour implements Flavour, MessageFactoryAware
                 throw new RuntimeException('FunctionalFlavour is expected to return a ' . MessageBag::class);
             }
 
-            $process = $this->port->reconstituteProcess(ProcessType::fromString((string)$processType), [$customMessageInBag->get(MessageBag::MESSAGE)]);
+            $process = $this->port->reconstituteProcess((string) $processType, [$customMessageInBag->get(MessageBag::MESSAGE)]);
 
             $customMessageInBag = $customMessageInBag->withMessage(new ProcessAndEventBag($process, $customMessageInBag->get(MessageBag::MESSAGE)));
         }
@@ -222,17 +220,17 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function convertProcessStateToArray(ProcessType $processType, $processState): array
+    public function convertProcessStateToArray(string $processType, $processState): array
     {
         return $this->port->serializeProcess($processState);
     }
 
-    public function canBuildProcessState(ProcessType $processType): bool
+    public function canBuildProcessState(string $processType): bool
     {
         return true;
     }
 
-    public function buildProcessState(ProcessType $processType, array $state)
+    public function buildProcessState(string $processType, array $state)
     {
         return $this->port->reconstituteProcessFromStateArray($processType, $state);
     }
