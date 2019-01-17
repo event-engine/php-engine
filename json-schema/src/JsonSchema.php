@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\JsonSchema;
 
+use EventEngine\JsonSchema\Type\AnyType;
 use EventEngine\JsonSchema\Type\ArrayType;
 use EventEngine\JsonSchema\Type\BoolType;
 use EventEngine\JsonSchema\Type\EmailType;
@@ -20,7 +21,9 @@ use EventEngine\JsonSchema\Type\IntType;
 use EventEngine\JsonSchema\Type\ObjectType;
 use EventEngine\JsonSchema\Type\StringType;
 use EventEngine\JsonSchema\Type\TypeRef;
+use EventEngine\JsonSchema\Type\UnionType;
 use EventEngine\JsonSchema\Type\UuidType;
+use EventEngine\Schema\TypeSchema;
 
 final class JsonSchema
 {
@@ -128,6 +131,16 @@ final class JsonSchema
         }
 
         return new TypeRef($typeName);
+    }
+
+    public static function union(TypeSchema ...$types): UnionType
+    {
+        return new UnionType(...$types);
+    }
+
+    public static function any(): AnyType
+    {
+        return new AnyType();
     }
 
     public static function isArrayType(array $typeSchema): bool
