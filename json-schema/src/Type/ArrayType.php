@@ -13,7 +13,7 @@ namespace EventEngine\JsonSchema\Type;
 
 use EventEngine\JsonSchema\AnnotatedType;
 use EventEngine\JsonSchema\JsonSchema;
-use EventEngine\JsonSchema\Type;
+use EventEngine\Schema\TypeSchema;
 
 final class ArrayType implements AnnotatedType
 {
@@ -26,7 +26,7 @@ final class ArrayType implements AnnotatedType
     private $type = JsonSchema::TYPE_ARRAY;
 
     /**
-     * @var Type
+     * @var TypeSchema
      */
     private $itemSchema;
 
@@ -35,7 +35,7 @@ final class ArrayType implements AnnotatedType
      */
     private $validation;
 
-    public function __construct(Type $itemSchema, array $validation = null)
+    public function __construct(TypeSchema $itemSchema, array $validation = null)
     {
         $this->itemSchema = $itemSchema;
         $this->validation = $validation;
