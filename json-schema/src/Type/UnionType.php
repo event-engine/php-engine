@@ -11,14 +11,21 @@ declare(strict_types=1);
 
 namespace EventEngine\JsonSchema\Type;
 
+use EventEngine\JsonSchema\JsonSchema;
+use EventEngine\JsonSchema\Type;
 use EventEngine\Schema\TypeSchema;
 
-final class UnionType implements TypeSchema
+final class UnionType implements Type
 {
     /**
      * @var TypeSchema[]
      */
     private $types;
+
+    /**
+     * @var bool
+     */
+    private $nullable = false;
 
     public function __construct(TypeSchema ...$types)
     {
@@ -30,10 +37,23 @@ final class UnionType implements TypeSchema
      */
     public function toArray(): array
     {
-        return [
+        $schema = [
             'oneOf' => array_map(function (TypeSchema $typeSchema) {
                 return $typeSchema->toArray();
             }, $this->types)
         ];
+
+        if($this->nullable) {
+            $schema['oneOf'][] = ['type' => JsonSchema::TYPE_NULL];
+        }
+
+        return $schema;
+    }
+
+    public function asNullable(): Type
+    {
+        $cp = clone $this;
+        $cp->nullable = true;
+        return $cp;
     }
 }
