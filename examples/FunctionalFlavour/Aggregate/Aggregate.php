@@ -9,16 +9,14 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\FunctionalFlavour\Process;
+namespace EventEngineExample\FunctionalFlavour\Aggregate;
 
-use EventEngineExample\FunctionalFlavour\Util\ApplyPayload;
-
-class UserState
+final class Aggregate
 {
-    use ApplyPayload;
+    const USER = 'User';
 
-    public $userId;
-    public $username;
-    public $email;
-    public $failed;
+    private function __construct()
+    {
+        //static class only
+    }
 }

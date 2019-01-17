@@ -13,7 +13,7 @@ namespace EventEngine\Messaging;
 
 final class GenericCommand extends GenericSchemaMessage
 {
-    public const META_EXPECTED_PROCESS_VERSION = 'X-EventEngine-PROCV';
+    public const META_EXPECTED_AGGREGATE_VERSION = 'X-EventEngine-ARV';
 
     /**
      * Should be one of Message::TYPE_COMMAND, Message::TYPE_EVENT or Message::TYPE_QUERY

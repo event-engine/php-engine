@@ -37,11 +37,11 @@ interface LogEngine
 
     public function eventPublished(Message $event): void;
 
-    public function newProcessCreated(string $processType, string $processId, GenericEvent ...$events): void;
+    public function newAggregateCreated(string $aggregateType, string $aggregateId, GenericEvent ...$events): void;
 
-    public function existingProcessChanged(string $processType, string $processId, $oldProcessState, GenericEvent ...$events);
+    public function existingAggregateChanged(string $aggregateType, string $aggregateId, $oldAggregateState, GenericEvent ...$events);
 
-    public function processStateLoaded(string $processType, string $processId, int $processVersion);
+    public function aggregateStateLoaded(string $aggregateType, string $aggregateId, int $aggregateVersion);
 
     public function projectionHandledEvent(string $projectionName, GenericEvent $event);
 

@@ -66,10 +66,10 @@ final class ExampleFunctionalPort implements Port
     /**
      * {@inheritdoc}
      */
-    public function getProcessIdFromCommand(string $processIdPayloadKey, $command): string
+    public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, $command): string
     {
         //Duck typing, do not do this in production but rather use your own interfaces
-        return $command->{$processIdPayloadKey};
+        return $command->{$aggregateIdPayloadKey};
     }
 
     /**

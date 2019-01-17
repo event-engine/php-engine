@@ -35,11 +35,11 @@ interface Port
     public function decorateEvent($customEvent): MessageBag;
 
     /**
-     * @param string $processIdPayloadKey
+     * @param string $aggregateIdPayloadKey
      * @param mixed $command
      * @return string
      */
-    public function getProcessIdFromCommand(string $processIdPayloadKey, $command): string;
+    public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, $command): string;
 
     /**
      * @param mixed $customCommand

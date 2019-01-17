@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\OopFlavour\Process;
+namespace EventEngineExample\OopFlavour\Aggregate;
 
 use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
@@ -20,7 +20,7 @@ use EventEngineExample\FunctionalFlavour\Api\Event;
 /**
  * Class UserDescription
  *
- * @package EventEngineExample\Process
+ * @package EventEngineExample\Aggregate
  */
 final class UserDescription implements EventEngineDescription
 {
@@ -43,19 +43,19 @@ final class UserDescription implements EventEngineDescription
             ->handle([User::class, 'register'])
             ->recordThat(Event::USER_WAS_REGISTERED)
             // We pass a call hint. This is a No-Op callable
-            // because OOPFlavour does not use this callable
-            // see OOPFlavour::callApplyFirstEvent()
-            // and OOPFlavour::callApplySubsequentEvent()
-            ->apply([FlavourHint::class, 'useProcessInstance']);
+            // because OOPAggregateCallInterceptor does not use this callable
+            // see OOPAggregateCallInterceptor::callApplyFirstEvent()
+            // and OOPAggregateCallInterceptor::callApplySubsequentEvent()
+            ->apply([FlavourHint::class, 'useAggregate']);
     }
 
     private static function describeChangeUsername(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::CHANGE_USERNAME)
             ->withExisting(User::TYPE)
-            ->handle([FlavourHint::class, 'useProcessInstance'])
+            ->handle([FlavourHint::class, 'useAggregate'])
             ->recordThat(Event::USERNAME_WAS_CHANGED)
-            ->apply([FlavourHint::class, 'useProcessInstance']);
+            ->apply([FlavourHint::class, 'useAggregate']);
     }
 
     private function __construct()

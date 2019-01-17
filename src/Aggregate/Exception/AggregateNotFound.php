@@ -9,16 +9,16 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\Process\Exception;
+namespace EventEngine\Aggregate\Exception;
 
-final class ProcessNotFound extends \RuntimeException implements EventEngineException
+final class AggregateNotFound extends \RuntimeException implements EventEngineException
 {
-    public static function with(string $processType, string $pid): self
+    public static function with(string $aggregateType, string $aggregateId): self
     {
         return new self(\sprintf(
-            'Process of type %s with pid %s not found.',
-            $processType,
-            $pid
+            'Aggregate of type %s with id %s not found.',
+            $aggregateType,
+            $aggregateId
         ), 404);
     }
 }

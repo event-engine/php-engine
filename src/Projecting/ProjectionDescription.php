@@ -25,7 +25,7 @@ final class ProjectionDescription
     public const PROJECTION_VERSION = 'projection_version';
     public const SOURCE_STREAM = 'source_stream';
     public const PROJECTOR_SERVICE_ID = 'projector_service_id';
-    public const PROCESS_TYPE_FILTER = 'process_type_filter';
+    public const AGGREGATE_TYPE_FILTER = 'aggregate_type_filter';
     public const EVENTS_FILTER = 'events_filter';
     public const DOCUMENT_STORE_INDICES = 'document_store_indices';
     public const PROJECTOR_OPTIONS = 'projector_options';
@@ -48,7 +48,7 @@ final class ProjectionDescription
     /**
      * @var string|null
      */
-    private $processTypeFilter;
+    private $aggregateTypeFilter;
 
     /**
      * @var array|null
@@ -104,21 +104,21 @@ final class ProjectionDescription
         return $this;
     }
 
-    public function withProcessProjection(string $processType, string $projectionVersion = '0.1.0'): self
+    public function withAggregateProjection(string $aggregateType, string $projectionVersion = '0.1.0'): self
     {
-        return $this->with(ProcessStateProjector::generateProjectionName($processType), ProcessStateProjector::class, $projectionVersion)
-            ->filterProcessType($processType);
+        return $this->with(AggregateProjector::generateProjectionName($aggregateType), AggregateProjector::class, $projectionVersion)
+            ->filterAggregateType($aggregateType);
     }
 
-    public function filterProcessType(string $processType): self
+    public function filterAggregateType(string $aggregateType): self
     {
         $this->assertWithProjectionIsCalled(__METHOD__);
 
-        if (\mb_strlen($processType) === 0) {
-            throw new InvalidArgumentException('Process type filter must not be empty');
+        if (\mb_strlen($aggregateType) === 0) {
+            throw new InvalidArgumentException('Aggregate type filter must not be empty');
         }
 
-        $this->processTypeFilter = $processType;
+        $this->aggregateTypeFilter = $aggregateType;
 
         return $this;
     }
@@ -169,7 +169,7 @@ final class ProjectionDescription
             self::PROJECTION_VERSION => $this->projectionVersion,
             self::PROJECTOR_SERVICE_ID => $this->projectorServiceId,
             self::SOURCE_STREAM => $this->sourceStream->toArray(),
-            self::PROCESS_TYPE_FILTER => $this->processTypeFilter,
+            self::AGGREGATE_TYPE_FILTER => $this->aggregateTypeFilter,
             self::EVENTS_FILTER => $this->eventsFilter,
             self::DOCUMENT_STORE_INDICES => $this->documentStoreIndices,
             self::PROJECTOR_OPTIONS => $this->projectorOptions,

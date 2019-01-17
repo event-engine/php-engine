@@ -36,65 +36,65 @@ interface Flavour
     public function callCommandPreProcessor($preProcessor, Message $command);
 
     /**
-     * Invoked by Event Machine after CommandPreProcessor to load process in case it should exist
+     * Invoked by Event Machine after CommandPreProcessor to load aggregate in case it should exist
      *
-     * @param string $pidKey
+     * @param string $aggregateIdPayloadKey
      * @param Message $command
      * @return string
      */
-    public function getPidFromCommand(string $pidKey, Message $command): string;
+    public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, Message $command): string;
 
     /**
      * @param Message $command
      * @param mixed $contextProvider A callable or object pulled from app container
-     * @return mixed Context that gets passed as argument to corresponding process function
+     * @return mixed Context that gets passed as argument to corresponding aggregate function
      */
     public function callContextProvider($contextProvider, Message $command);
 
     /**
-     * A process factory usually starts the lifecycle of a process by producing the first event(s).
+     * An aggregate factory usually starts the lifecycle of an aggregate by producing the first event(s).
      *
-     * @param string $processType
-     * @param callable $processFunction
+     * @param string $aggregateType
+     * @param callable $aggregateFunction
      * @param Message $command
      * @param null|mixed $context
      * @return \Generator Message[] yield events
      */
-    public function callProcessFactory(string $processType, callable $processFunction, Message $command, $context = null): \Generator;
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator;
 
     /**
-     * Subsequent process functions receive current state of the process as an argument.
+     * Subsequent aggregate functions receive current state of the aggregate as an argument.
      *
-     * In case of the OopFlavour $processState is the process instance itself. Check implementation of the OopFlavour for details.
+     * In case of the OopFlavour $aggregateState is the aggregate instance itself. Check implementation of the OopFlavour for details.
      *
-     * @param string $processType
-     * @param callable $processFunction
-     * @param mixed $processState
+     * @param string $aggregateType
+     * @param callable $aggregateFunction
+     * @param mixed $aggregateState
      * @param Message $command
      * @param null|mixed $context
      * @return \Generator Message[] yield events
      */
-    public function callProcessFunction(string $processType, callable $processFunction, $processState, Message $command, $context = null): \Generator;
+    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator;
 
     /**
-     * First event apply function does not receive process state as an argument but should return the first version
-     * of process state derived from the first recorded event.
+     * First event apply function does not receive aggregate state as an argument but should return the first version
+     * of aggregate state derived from the first recorded event.
      *
      * @param callable $applyFunction
      * @param Message $event
-     * @return mixed New process state
+     * @return mixed New aggregate state
      */
     public function callApplyFirstEvent(callable $applyFunction, Message $event);
 
     /**
-     * All subsequent apply functions receive process state as an argument and should return a modified version of it.
+     * All subsequent apply functions receive aggregate state as an argument and should return a modified version of it.
      *
      * @param callable $applyFunction
-     * @param mixed $processState
+     * @param mixed $aggregateState
      * @param Message $event
      * @return mixed Modified aggregae state
      */
-    public function callApplySubsequentEvent(callable $applyFunction, $processState, Message $event);
+    public function callApplySubsequentEvent(callable $applyFunction, $aggregateState, Message $event);
 
     /**
      * Use this hook to convert a custom message decorated by a MessageBag into an Event Machine message (serialize payload)
@@ -118,14 +118,14 @@ interface Flavour
      * Use MessageBag::get(MessageBag::MESSAGE) in call-interceptions to access your type safe message.
      *
      * It might be important for a Flavour implementation to know that an event is loaded from event store and
-     * that it is the first event of a process history.
-     * In this case the flag $firstProcessEvent is TRUE.
+     * that it is the first event of an aggregate history.
+     * In this case the flag $firstAggregateEvent is TRUE.
      *
      * @param Message $message
-     * @param bool $processEvent
+     * @param bool $aggregateEvent
      * @return Message
      */
-    public function convertMessageReceivedFromNetwork(Message $message, $processEvent = false): Message;
+    public function convertMessageReceivedFromNetwork(Message $message, $aggregateEvent = false): Message;
 
     /**
      * @param Projector|CustomEventProjector $projector The projector instance
@@ -136,20 +136,20 @@ interface Flavour
     public function callProjector($projector, string $projectionVersion, string $projectionName, Message $event): void;
 
     /**
-     * @param string $processType
-     * @param mixed $processState
+     * @param string $aggregateType
+     * @param mixed $aggregateState
      * @return array
      */
-    public function convertProcessStateToArray(string $processType, $processState): array;
+    public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array;
 
-    public function canBuildProcessState(string $processType): bool;
+    public function canBuildAggregateState(string $aggregateType): bool;
 
     /**
-     * @param string $processType
+     * @param string $aggregateType
      * @param array $state
-     * @return mixed process state
+     * @return mixed aggregate state
      */
-    public function buildProcessState(string $processType, array $state);
+    public function buildAggregateState(string $aggregateType, array $state);
 
     public function callEventListener(callable $listener, Message $event): void;
 

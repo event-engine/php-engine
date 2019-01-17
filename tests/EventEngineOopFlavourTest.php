@@ -24,8 +24,8 @@ use EventEngineExample\FunctionalFlavour\ProcessManager\SendWelcomeEmail;
 use EventEngineExample\FunctionalFlavour\Projector\RegisteredUsersProjector;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUsersResolver;
-use EventEngineExample\OopFlavour\Process\User;
-use EventEngineExample\OopFlavour\Process\UserDescription;
+use EventEngineExample\OopFlavour\Aggregate\User;
+use EventEngineExample\OopFlavour\Aggregate\UserDescription;
 use EventEngineExample\OopFlavour\ExampleOopPort;
 
 class EventEngineOopFlavourTest extends EventEngineTestAbstract

@@ -14,50 +14,50 @@ namespace EventEngine\Runtime\Oop;
 interface Port
 {
     /**
-     * @param string $processType
-     * @param callable $processFactory
+     * @param string $aggregateType
+     * @param callable $aggregateFactory
      * @param $customCommand
      * @param null|mixed $context
-     * @return mixed Created process
+     * @return mixed Created aggregate
      */
-    public function callProcessFactory(string $processType, callable $processFactory, $customCommand, $context = null);
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, $context = null);
 
     /**
-     * @param mixed $process
+     * @param mixed $aggregate
      * @param mixed $customCommand
      * @param null|mixed $context
      */
-    public function callProcessWithCommand($process, $customCommand, $context = null): void;
+    public function callAggregateWithCommand($aggregate, $customCommand, $context = null): void;
 
     /**
-     * @param mixed $process
+     * @param mixed $aggregate
      * @return array of custom events
      */
-    public function popRecordedEvents($process): array;
+    public function popRecordedEvents($aggregate): array;
 
     /**
-     * @param mixed $process
+     * @param mixed $aggregate
      * @param mixed $customEvent
      */
-    public function applyEvent($process, $customEvent): void;
+    public function applyEvent($aggregate, $customEvent): void;
 
     /**
-     * @param mixed $process
+     * @param mixed $aggregate
      * @return array
      */
-    public function serializeProcess($process): array;
+    public function serializeAggregate($aggregate): array;
 
     /**
-     * @param string $processType
+     * @param string $aggregateType
      * @param iterable $events history
-     * @return mixed Process instance
+     * @return mixed Aggregate instance
      */
-    public function reconstituteProcess(string $processType, iterable $events);
+    public function reconstituteAggregate(string $aggregateType, iterable $events);
 
     /**
-     * @param string $processType
+     * @param string $aggregateType
      * @param array $state
-     * @return mixed Process instance
+     * @return mixed Aggregate instance
      */
-    public function reconstituteProcessFromStateArray(string $processType, array $state);
+    public function reconstituteAggregateFromStateArray(string $aggregateType, array $state);
 }

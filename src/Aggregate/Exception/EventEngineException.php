@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\Process\Exception;
+namespace EventEngine\Aggregate\Exception;
 
 interface EventEngineException
 {

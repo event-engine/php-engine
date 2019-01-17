@@ -14,7 +14,7 @@ namespace EventEngine\Persistence;
 /**
  * Interface DeletableState
  *
- * Process state can implement this interface to indicate that ProcessStateProjecter should delete the state in
+ * Aggregate state can implement this interface to indicate that AggregateProjector should delete the state in
  * the read model.
  *
  * @package EventEngine\Persistence

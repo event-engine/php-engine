@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\PrototypingFlavour\Process;
+namespace EventEngineExample\PrototypingFlavour\Aggregate;
 
 use EventEngine\Messaging\Message;
 use EventEngineExample\PrototypingFlavour\Messaging\Event;

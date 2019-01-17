@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\Process;
+namespace EventEngine\Aggregate;
 
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventStore\EventStore;
@@ -18,7 +18,7 @@ use EventEngine\Persistence\DeletableState;
 use EventEngine\Persistence\MultiModelStore;
 use EventEngine\Runtime\Flavour;
 
-final class GenericProcessRepository
+final class GenericAggregateRepository
 {
     /**
      * @var EventStore
@@ -38,7 +38,7 @@ final class GenericProcessRepository
     /**
      * @var string|null
      */
-    private $processStateCollection;
+    private $aggregateCollection;
 
     /**
      * @var Flavour
@@ -50,23 +50,23 @@ final class GenericProcessRepository
         EventStore $eventStore,
         string $streamName,
         DocumentStore $documentStore = null,
-        string $processStateCollection = null
+        string $aggregateCollection = null
     ) {
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
         $this->documentStore = $documentStore;
         $this->streamName = $streamName;
-        $this->processStateCollection = $processStateCollection;
+        $this->aggregateCollection = $aggregateCollection;
     }
 
     /**
-     * @param FlavouredProcess $processRoot
+     * @param FlavouredAggregateRoot $aggregateRoot
      * @return GenericEvent[]
      * @throws \Throwable
      */
-    public function saveProcess(FlavouredProcess $processRoot): array
+    public function saveAggregateRoot(FlavouredAggregateRoot $aggregateRoot): array
     {
-        $domainEvents = $processRoot->popRecordedEvents();
+        $domainEvents = $aggregateRoot->popRecordedEvents();
 
         if($this->eventStore instanceof MultiModelStore) {
             $this->eventStore->connection()->beginTransaction();
@@ -74,20 +74,20 @@ final class GenericProcessRepository
             try {
                 $this->eventStore->appendTo($this->streamName, ...$domainEvents);
 
-                $processState = $processRoot->currentState();
+                $aggregateState = $aggregateRoot->currentState();
 
-                if (is_object($processState) && $processState instanceof DeletableState && $processState->deleted()) {
+                if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
                     $this->eventStore->deleteDoc(
-                        $this->processStateCollection,
-                        (string) $processRoot->processId()
+                        $this->aggregateCollection,
+                        (string) $aggregateRoot->aggregateId()
                     );
                 } else {
                     $this->eventStore->upsertDoc(
-                        $this->processStateCollection,
-                        $processRoot->processId(),
+                        $this->aggregateCollection,
+                        $aggregateRoot->aggregateId(),
                         [
-                            'state' => $this->flavour->convertProcessStateToArray($processRoot->processType(), $processRoot->currentState()),
-                            'version' => $processRoot->version()
+                            'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $aggregateRoot->currentState()),
+                            'version' => $aggregateRoot->version()
                         ]
                     );
                 }
@@ -105,60 +105,60 @@ final class GenericProcessRepository
     }
 
     /**
-     * Returns null if no stream events can be found for process otherwise the reconstituted process
+     * Returns null if no stream events can be found for aggregate root otherwise the reconstituted aggregate root
      *
-     * @param string $processType
-     * @param string $pid
+     * @param string $aggregateType
+     * @param string $aggregateId
      * @param array $eventApplyMap
      * @param int|null $expectedVersion
-     * @return null|FlavouredProcess
+     * @return null|FlavouredAggregateRoot
      */
-    public function getProcess(string $processType, string $pid, array $eventApplyMap, int $expectedVersion = null)
+    public function getAggregateRoot(string $aggregateType, string $aggregateId, array $eventApplyMap, int $expectedVersion = null)
     {
         if(
-            $this->flavour->canBuildProcessState($processType)
-            && $this->processStateCollection
+            $this->flavour->canBuildAggregateState($aggregateType)
+            && $this->aggregateCollection
             && $documentStore = $this->getDocumentStore()) {
 
-            $processStateDoc = $documentStore->getDoc($this->processStateCollection, $pid);
+            $aggregateStateDoc = $documentStore->getDoc($this->aggregateCollection, $aggregateId);
 
-            if($processStateDoc) {
-                $processState = $this->flavour->buildProcessState($processType, $processStateDoc);
+            if($aggregateStateDoc) {
+                $aggregateState = $this->flavour->buildAggregateState($aggregateType, $aggregateStateDoc);
 
-                $process = FlavouredProcess::reconstituteFromProcessState(
-                    $pid,
-                    $processType,
+                $aggregate = FlavouredAggregateRoot::reconstituteFromAggregateState(
+                    $aggregateId,
+                    $aggregateType,
                     $eventApplyMap,
                     $this->flavour,
-                    (int)$processStateDoc['version'],
-                    $processState
+                    (int)$aggregateStateDoc['version'],
+                    $aggregateState
                 );
 
-                if($expectedVersion && $expectedVersion > $process->version()) {
-                    $newerEvents = $this->eventStore->loadProcessEvents(
+                if($expectedVersion && $expectedVersion > $aggregate->version()) {
+                    $newerEvents = $this->eventStore->loadAggregateEvents(
                         $this->streamName,
-                        $processType,
-                        $pid,
-                        $process->version() + 1
+                        $aggregateType,
+                        $aggregateId,
+                        $aggregate->version() + 1
                     );
 
-                    $process->replay($newerEvents);
+                    $aggregate->replay($newerEvents);
                 }
 
-                return $process;
+                return $aggregate;
             }
         }
 
 
-        $streamEvents = $this->eventStore->loadProcessEvents($this->streamName, $processType, $pid);
+        $streamEvents = $this->eventStore->loadAggregateEvents($this->streamName, $aggregateType, $aggregateId);
 
         if (! $streamEvents->valid()) {
             return null;
         }
 
-        return FlavouredProcess::reconstituteFromHistory(
-            $pid,
-            $processType,
+        return FlavouredAggregateRoot::reconstituteFromHistory(
+            $aggregateId,
+            $aggregateType,
             $eventApplyMap,
             $this->flavour,
             $streamEvents

@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\FunctionalFlavour\Process;
+namespace EventEngineExample\FunctionalFlavour\Aggregate;
 
 use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
@@ -24,19 +24,19 @@ use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
 /**
  * Class UserDescription
  *
- * Tell EventEngine how to handle commands with processes, which events are yielded by the handle methods
- * and how to apply the yielded events to the process state.
+ * Tell EventMachine how to handle commands with aggregates, which events are yielded by the handle methods
+ * and how to apply the yielded events to the aggregate state.
  *
  * Please note:
  * UserDescription uses closures. It is the fastest and most readable way of describing
- * process behaviour BUT closures cannot be serialized/cached.
+ * aggregate behaviour BUT closures cannot be serialized/cached.
  * So the closure style is useful for learning and prototyping but if you want to use Event Machine for
  * production, you should consider using a cacheable description like illustrated with CacheableUserDescription.
  * Also see EventMachine::cacheableConfig() which throws an exception if it detects usage of closure
  * The returned array can be used to call EventMachine::fromCachedConfig(). You can json_encode the config and store it
  * in a json file.
  *
- * @package EventEngineExample\Process
+ * @package EventEngineExample\Aggregate
  */
 final class UserDescription implements EventEngineDescription
 {
@@ -55,7 +55,7 @@ final class UserDescription implements EventEngineDescription
     private static function describeRegisterUser(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::REGISTER_USER)
-            ->withNew(Process::USER)
+            ->withNew(Aggregate::USER)
             ->identifiedBy(self::IDENTIFIER)
             // Note: Our custom command is passed to the function
             ->handle(function (RegisterUser $command) {
@@ -86,8 +86,8 @@ final class UserDescription implements EventEngineDescription
     private static function describeChangeUsername(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::CHANGE_USERNAME)
-            ->withExisting(Process::USER)
-            // This time we handle command with existing process, hence we get current user state injected
+            ->withExisting(Aggregate::USER)
+            // This time we handle command with existing aggregate, hence we get current user state injected
             ->handle(function (UserState $user, ChangeUsername $changeUsername) {
                 yield new UsernameChanged([
                     self::IDENTIFIER => $user->userId,

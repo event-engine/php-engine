@@ -97,20 +97,20 @@ final class ProophEventStore implements EventStore
 
     /**
      * @param string $streamName
-     * @param string $processType
-     * @param string $processId
+     * @param string $aggregateType
+     * @param string $aggregateId
      * @param int $minVersion
      * @return \Iterator GenericEvent[]
      */
-    public function loadProcessEvents(string $streamName, string $processType, string $processId, int $minVersion = 1): \Iterator
+    public function loadAggregateEvents(string $streamName, string $aggregateType, string $aggregateId, int $minVersion = 1): \Iterator
     {
         $matcher = new MetadataMatcher();
 
-        $matcher->withMetadataMatch(GenericEvent::META_PROCESS_TYPE, Operator::EQUALS(), $processType)
-            ->withMetadataMatch(GenericEvent::META_PROCESS_ID, Operator::EQUALS(), $processId);
+        $matcher->withMetadataMatch(GenericEvent::META_AGGREGATE_TYPE, Operator::EQUALS(), $aggregateType)
+            ->withMetadataMatch(GenericEvent::META_AGGREGATE_ID, Operator::EQUALS(), $aggregateId);
 
         if($minVersion > 1) {
-            $matcher->withMetadataMatch(GenericEvent::META_PROCESS_VERSION, Operator::GREATER_THAN_EQUALS(), $minVersion);
+            $matcher->withMetadataMatch(GenericEvent::META_AGGREGATE_VERSION, Operator::GREATER_THAN_EQUALS(), $minVersion);
         }
 
         return $this->prepareEventMapping(

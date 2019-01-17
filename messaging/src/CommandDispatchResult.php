@@ -21,16 +21,16 @@ final class CommandDispatchResult
     /**
      * @var string
      */
-    private $pid;
+    private $effectedAggregateId;
 
     /**
      * @var Message[]
      */
     private $recordedEvents;
 
-    public static function forCommandHandledByProcess(Message $dispatchedCommand, string $pid, Message ...$recordedEvents): self
+    public static function forCommandHandledByAggregate(Message $dispatchedCommand, string $effectedAggregateId, Message ...$recordedEvents): self
     {
-        return new self($dispatchedCommand, $pid, ...$recordedEvents);
+        return new self($dispatchedCommand, $effectedAggregateId, ...$recordedEvents);
     }
 
     public static function forCommandHandledByPreProcessor(Message $dispatchedCommand): self
@@ -38,10 +38,10 @@ final class CommandDispatchResult
         return new self($dispatchedCommand);
     }
 
-    private function __construct(Message $dispatchedCommand, string $pid = null, Message ...$recordedEvents)
+    private function __construct(Message $dispatchedCommand, string $effectedAggregateId = null, Message ...$recordedEvents)
     {
         $this->dispatchedCommand = $dispatchedCommand;
-        $this->pid = $pid;
+        $this->effectedAggregateId = $effectedAggregateId;
         $this->recordedEvents = $recordedEvents;
     }
 
@@ -56,9 +56,9 @@ final class CommandDispatchResult
     /**
      * @return string|null
      */
-    public function pid(): ?string
+    public function effectedAggregateId(): ?string
     {
-        return $this->pid;
+        return $this->effectedAggregateId;
     }
 
     /**

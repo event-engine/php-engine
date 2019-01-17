@@ -34,7 +34,7 @@ final class ProjectionInfo
     /**
      * @var string|null
      */
-    private $processTypeFilter;
+    private $aggregateTypeFilter;
 
     /**
      * @var string[]|null
@@ -68,17 +68,17 @@ final class ProjectionInfo
             $desc[ProjectionDescription::PROJECTION_NAME],
             $desc[ProjectionDescription::PROJECTION_VERSION],
             Stream::fromArray($desc[ProjectionDescription::SOURCE_STREAM]),
-            $desc[ProjectionDescription::PROCESS_TYPE_FILTER] ?? null,
+            $desc[ProjectionDescription::AGGREGATE_TYPE_FILTER] ?? null,
             $desc[ProjectionDescription::EVENTS_FILTER] ?? null
         );
     }
 
-    private function __construct(string $name, string $version, Stream $sourceStream, string $processTypeFilter = null, array $eventsFilter = null)
+    private function __construct(string $name, string $version, Stream $sourceStream, string $aggregateTypeFilter = null, array $eventsFilter = null)
     {
         $this->name = $name;
         $this->version = $version;
         $this->sourceStream = $sourceStream;
-        $this->processTypeFilter = $processTypeFilter;
+        $this->aggregateTypeFilter = $aggregateTypeFilter;
         $this->eventsFilter = $eventsFilter;
     }
 
@@ -109,9 +109,9 @@ final class ProjectionInfo
     /**
      * @return null|string
      */
-    public function processTypeFilter(): ?string
+    public function aggregateTypeFilter(): ?string
     {
-        return $this->processTypeFilter;
+        return $this->aggregateTypeFilter;
     }
 
     /**

@@ -9,15 +9,16 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\Process;
+namespace EventEngineExample\FunctionalFlavour\Aggregate;
 
-use EventEngine\Messaging\Message;
+use EventEngineExample\FunctionalFlavour\Util\ApplyPayload;
 
-interface ContextProvider
+class UserState
 {
-    /**
-     * @param Message $command
-     * @return mixed The context passed as last argument to process functions
-     */
-    public function provide(Message $command);
+    use ApplyPayload;
+
+    public $userId;
+    public $username;
+    public $email;
+    public $failed;
 }

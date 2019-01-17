@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\PrototypingFlavour\Process;
+namespace EventEngineExample\PrototypingFlavour\Aggregate;
 
 use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
@@ -19,10 +19,10 @@ use EventEngineExample\PrototypingFlavour\Messaging\Event;
 /**
  * Class CacheableUserDescription
  *
- * CacheableUserDescription illustrates an alternative way to describe process behaviour. Advantage of the shown style
+ * CacheableUserDescription illustrates an alternative way to describe aggregate behaviour. Advantage of the shown style
  * is that you can make use of EventMachine::compileCacheableConfig(). See note of UserDescription for more details.
  *
- * @package EventEngineExample\Process
+ * @package EventEngineExample\Aggregate
  */
 final class CacheableUserDescription implements EventEngineDescription
 {
@@ -42,7 +42,7 @@ final class CacheableUserDescription implements EventEngineDescription
     private static function describeRegisterUser(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::REGISTER_USER)
-            ->withNew(Process::USER)
+            ->withNew(Aggregate::USER)
             ->identifiedBy(self::IDENTIFIER)
             //Use callable array syntax, so that event machine config can be cached (not possible with closures)
             //A modern IDE like PHPStorm is able to resolve this reference so that it is found by usage/refactoring look ups
@@ -56,7 +56,7 @@ final class CacheableUserDescription implements EventEngineDescription
     private static function describeChangeUsername(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::CHANGE_USERNAME)
-            ->withExisting(Process::USER)
+            ->withExisting(Aggregate::USER)
             ->handle([CachableUserFunction::class, 'changeUsername'])
             ->recordThat(Event::USERNAME_WAS_CHANGED)
             ->apply([CachableUserFunction::class, 'whenUsernameWasChanged']);
@@ -65,7 +65,7 @@ final class CacheableUserDescription implements EventEngineDescription
     private static function describeDoNothing(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::DO_NOTHING)
-            ->withExisting(Process::USER)
+            ->withExisting(Aggregate::USER)
             ->handle([CachableUserFunction::class, 'doNothing'])
             ->orRecordThat(Event::USERNAME_WAS_CHANGED)
             ->apply([CachableUserFunction::class, 'whenUsernameWasChanged']);

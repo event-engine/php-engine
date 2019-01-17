@@ -9,14 +9,19 @@
 
 declare(strict_types=1);
 
-namespace EventEngineExample\FunctionalFlavour\Process;
+namespace EventEngine\Aggregate;
 
-final class Process
+use EventEngine\DocumentStore\Index;
+
+final class AggregateDocumentCollection
 {
-    const USER = 'User';
+    /**
+     * @var string
+     */
+    private $collectionName;
 
-    private function __construct()
-    {
-        //static class only
-    }
+    /**
+     * @var Index[]
+     */
+    private $indexes;
 }

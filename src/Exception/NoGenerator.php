@@ -15,11 +15,11 @@ use EventEngine\Messaging\Message;
 
 final class NoGenerator extends InvalidArgumentException
 {
-    public static function forProcessTypeAndCommand(string $processType, Message $command): self
+    public static function forAggregateTypeAndCommand(string $aggregateType, Message $command): self
     {
-        return new self('Expected processFunction to be of type Generator. ' .
+        return new self('Expected aggregateFunction to be of type Generator. ' .
             'Did you forget the yield keyword in your command handler?' .
-            "Tried to handle command {$command->messageName()} for process {$processType}"
+            "Tried to handle command {$command->messageName()} for aggregate {$aggregateType}"
         );
     }
 }

@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace EventEngine;
 
-use EventEngine\Process\Exception\ProcessNotFound;
-use EventEngine\Process\FlavouredProcess;
-use EventEngine\Process\GenericProcessRepository;
+use EventEngine\Aggregate\Exception\AggregateNotFound;
+use EventEngine\Aggregate\FlavouredAggregateRoot;
+use EventEngine\Aggregate\GenericAggregateRepository;
 use EventEngine\Commanding\CommandDispatch;
 use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\Commanding\CommandProcessorDescription;
@@ -33,9 +33,9 @@ use EventEngine\Messaging\MessageDispatcher;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
 use EventEngine\Messaging\MessageProducer;
-use EventEngine\Persistence\ProcessStateStore;
+use EventEngine\Persistence\AggregateStateStore;
 use EventEngine\Persistence\Stream;
-use EventEngine\Projecting\ProcessStateProjector;
+use EventEngine\Projecting\AggregateProjector;
 use EventEngine\Projecting\CustomEventProjector;
 use EventEngine\Projecting\DocumentStoreIndexAware;
 use EventEngine\Projecting\Exception\ProjectorFailed;
@@ -60,7 +60,7 @@ use EventEngine\Schema\TypeSchemaMap;
 use EventEngine\Util\VariableType;
 use Psr\Container\ContainerInterface;
 
-final class EventEngine implements MessageDispatcher, MessageProducer, ProcessStateStore
+final class EventEngine implements MessageDispatcher, MessageProducer, AggregateStateStore
 {
     public const ENV_PROD = 'prod';
     public const ENV_DEV = 'dev';
@@ -93,7 +93,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
     /**
      * @var array
      */
-    private $processDescriptions;
+    private $aggregateDescriptions;
 
     /**
      * Map of event message schemas indexed by event message name
@@ -250,8 +250,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
             throw new InvalidArgumentException('Missing key compiledCommandRouting in cached event engine config');
         }
 
-        if (! \array_key_exists('processDescriptions', $config)) {
-            throw new InvalidArgumentException('Missing key processDescriptions in cached event engine config');
+        if (! \array_key_exists('aggregateDescriptions', $config)) {
+            throw new InvalidArgumentException('Missing key aggregateDescriptions in cached event engine config');
         }
 
         if (! \array_key_exists('appVersion', $config)) {
@@ -277,7 +277,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         $self->commandMap = array_map($mapPayloadSchema, $config['commandMap']);
         $self->eventMap = array_map($mapPayloadSchema, $config['eventMap']);
         $self->compiledCommandRouting = $config['compiledCommandRouting'];
-        $self->processDescriptions = $config['processDescriptions'];
+        $self->aggregateDescriptions = $config['aggregateDescriptions'];
         $self->eventRouting = $config['eventRouting'] ?? [];
         $self->compiledProjectionDescriptions = $config['compiledProjectionDescriptions'] ?? [];
         $self->compiledQueryDescriptions = $config['compiledQueryDescriptions'];
@@ -325,7 +325,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         };
 
         \array_walk_recursive($this->compiledCommandRouting, $assertClosure);
-        \array_walk_recursive($this->processDescriptions, $assertClosure);
+        \array_walk_recursive($this->aggregateDescriptions, $assertClosure);
         \array_walk_recursive($this->eventRouting, $assertClosure);
         \array_walk_recursive($this->projectionMap, $assertClosure);
         \array_walk_recursive($this->compiledQueryDescriptions, $assertClosure);
@@ -338,7 +338,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
             'commandMap' => array_map($schemaToArray, $this->commandMap),
             'eventMap' => array_map($schemaToArray, $this->eventMap),
             'compiledCommandRouting' => $this->compiledCommandRouting,
-            'processDescriptions' => $this->processDescriptions,
+            'aggregateDescriptions' => $this->aggregateDescriptions,
             'eventRouting' => $this->eventRouting,
             'compiledProjectionDescriptions' => $this->compiledProjectionDescriptions,
             'compiledQueryDescriptions' => $this->compiledQueryDescriptions,
@@ -634,7 +634,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
     ): self {
         $this->assertNotInitialized(__METHOD__);
 
-        $this->compileProcessAndRoutingDescriptions();
+        $this->compileAggregateAndRoutingDescriptions();
         $this->compileProjectionDescriptions();
         $this->compileQueryDescriptions();
 
@@ -726,7 +726,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
                     $this->log,
                     $preProcessors,
                     $processorDesc,
-                    $this->processDescriptions,
+                    $this->aggregateDescriptions,
                     $this->autoPublishEnabled,
                     $this->autoProjectingEnabled,
                     $this->eventQueue ?? $this,
@@ -773,34 +773,34 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         return $this->dispatch($message);
     }
 
-    public function loadProcessState(string $processType, string $processId, int $expectedVersion = null)
+    public function loadAggregateState(string $aggregateType, string $aggregateId, int $expectedVersion = null)
     {
         $this->assertBootstrapped(__METHOD__);
 
-        if (! \array_key_exists($processType, $this->processDescriptions)) {
-            throw new InvalidArgumentException('Unknown process type: ' . $processType);
+        if (! \array_key_exists($aggregateType, $this->aggregateDescriptions)) {
+            throw new InvalidArgumentException('Unknown aggregate type: ' . $aggregateType);
         }
 
-        $processDesc = $this->processDescriptions[$processType];
+        $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
 
-        $arRepository = new GenericProcessRepository(
+        $arRepository = new GenericAggregateRepository(
             $this->flavour,
             $this->eventStore,
             $this->writeModelStreamName(),
             $this->documentStore,
-            $processDesc['processCollection'] ?? null
+            $aggregateDesc['aggregateCollection'] ?? null
         );
 
-        /** @var FlavouredProcess $process */
-        $process = $arRepository->getProcess($processType, $processId, $processDesc['eventApplyMap'], $expectedVersion);
+        /** @var FlavouredAggregateRoot $aggregate */
+        $aggregate = $arRepository->getAggregateRoot($aggregateType, $aggregateId, $aggregateDesc['eventApplyMap'], $expectedVersion);
 
-        if (! $process) {
-            throw ProcessNotFound::with($processType, $processId);
+        if (! $aggregate) {
+            throw AggregateNotFound::with($aggregateType, $aggregateId);
         }
 
-        $this->log->processStateLoaded($process->processType(), $process->processId(), $process->version());
+        $this->log->aggregateStateLoaded($aggregate->aggregateType(), $aggregate->aggregateId(), $aggregate->version());
 
-        return $process->currentState();
+        return $aggregate->currentState();
     }
 
     /**
@@ -809,9 +809,9 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
      */
     public function loadProjector(string $projectorServiceId, string $projectionName = '')
     {
-        if($projectorServiceId === ProcessStateProjector::class && $this->documentStore
+        if($projectorServiceId === AggregateProjector::class && $this->documentStore
             && !$this->container->has($projectorServiceId)) {
-            $projector = new ProcessStateProjector($this->documentStore, $this);
+            $projector = new AggregateProjector($this->documentStore, $this);
         } else {
             $projector = $this->container->get($projectorServiceId);
         }
@@ -960,23 +960,23 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         return ProjectionInfoList::fromDescriptions($this->compiledProjectionDescriptions);
     }
 
-    private function compileProcessAndRoutingDescriptions(): void
+    private function compileAggregateAndRoutingDescriptions(): void
     {
-        $processDescriptions = [];
+        $aggregateDescriptions = [];
 
         $this->compiledCommandRouting = [];
 
         foreach ($this->commandRouting as $commandName => $commandProcessorDesc) {
             $descArr = $commandProcessorDesc();
 
-            if ($descArr['createProcess']) {
-                $processDescriptions[$descArr['processType']] = [
-                    'processType' => $descArr['processType'],
-                    'pidKey' => $descArr['pidKey'],
+            if ($descArr['createAggregate']) {
+                $aggregateDescriptions[$descArr['aggregateType']] = [
+                    'aggregateType' => $descArr['aggregateType'],
+                    'aggregateIdentifier' => $descArr['aggregateIdentifier'],
                     'eventApplyMap' => $descArr['eventRecorderMap'],
-                    'processStateCollection' => $descArr['processStateCollection'] ?? ProcessStateProjector::processStateCollectionName(
+                    'aggregateCollection' => $descArr['aggregateCollection'] ?? AggregateProjector::aggregateCollectionName(
                             '0.1.0',
-                            $descArr['processType']
+                            $descArr['aggregateType']
                         )
                 ];
             }
@@ -985,19 +985,19 @@ final class EventEngine implements MessageDispatcher, MessageProducer, ProcessSt
         }
 
         foreach ($this->compiledCommandRouting as $commandName => &$descArr) {
-            $processDesc = $processDescriptions[$descArr['processType']] ?? null;
+            $aggregateDesc = $aggregateDescriptions[$descArr['aggregateType']] ?? null;
 
-            if (null === $processDesc) {
-                throw new RuntimeException('Missing process function that creates the process of type: ' . $descArr['processType']);
+            if (null === $aggregateDesc) {
+                throw new RuntimeException('Missing aggregate handle method that creates the aggregate of type: ' . $descArr['aggregateType']);
             }
 
-            $descArr['pidKey'] = $processDesc['pidKey'];
+            $descArr['aggregateIdentifier'] = $aggregateDesc['aggregateIdentifier'];
 
-            $processDesc['eventApplyMap'] = \array_merge($processDesc['eventApplyMap'], $descArr['eventRecorderMap']);
-            $processDescriptions[$descArr['processType']] = $processDesc;
+            $aggregateDesc['eventApplyMap'] = \array_merge($aggregateDesc['eventApplyMap'], $descArr['eventRecorderMap']);
+            $aggregateDescriptions[$descArr['aggregateType']] = $aggregateDesc;
         }
 
-        $this->processDescriptions = $processDescriptions;
+        $this->aggregateDescriptions = $aggregateDescriptions;
     }
 
     private function compileProjectionDescriptions(): void

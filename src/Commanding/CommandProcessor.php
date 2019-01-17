@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace EventEngine\Commanding;
 
-use EventEngine\Process\ContextProvider;
-use EventEngine\Process\Exception\ProcessNotFound;
-use EventEngine\Process\FlavouredProcess;
-use EventEngine\Process\GenericProcessRepository;
+use EventEngine\Aggregate\ContextProvider;
+use EventEngine\Aggregate\Exception\AggregateNotFound;
+use EventEngine\Aggregate\FlavouredAggregateRoot;
+use EventEngine\Aggregate\GenericAggregateRepository;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\InvalidArgumentException;
@@ -36,17 +36,17 @@ final class CommandProcessor
     /**
      * @var string
      */
-    private $processType;
+    private $aggregateType;
 
     /**
      * @var string
      */
-    private $pidKey;
+    private $aggregateIdentifier;
 
     /**
      * @var bool
      */
-    private $createProcess;
+    private $createAggregate;
 
     /**
      * @var EventStore
@@ -66,12 +66,12 @@ final class CommandProcessor
     /**
      * @var callable
      */
-    private $processFunction;
+    private $aggregateFunction;
 
     /**
      * @var string|null
      */
-    private $processStateCollection;
+    private $aggregateCollection;
 
     /**
      * @var Flavour
@@ -95,37 +95,37 @@ final class CommandProcessor
 
     public static function fromDescriptionArraysAndDependencies(
         array &$processorDesc,
-        array &$processDescriptions,
+        array &$aggregateDescriptions,
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $logEngine,
         DocumentStore $documentStore = null,
         ContextProvider $contextProvider = null
     ): self {
-        $processDesc = $processDescriptions[$processorDesc['processType'] ?? ''] ?? [];
+        $aggregateDesc = $aggregateDescriptions[$processorDesc['aggregateType'] ?? ''] ?? [];
 
-        if (! isset($processDesc['eventApplyMap'])) {
-            throw new RuntimeException('Missing eventApplyMap for process type: ' . $processorDesc['processType'] ?? '');
+        if (! isset($aggregateDesc['eventApplyMap'])) {
+            throw new RuntimeException('Missing eventApplyMap for aggregate type: ' . $processorDesc['aggregateType'] ?? '');
         }
 
         if (! \array_key_exists('commandName', $processorDesc)) {
             throw new InvalidArgumentException('Missing key commandName in commandProcessorDescription');
         }
 
-        if (! \array_key_exists('createProcess', $processorDesc)) {
-            throw new InvalidArgumentException('Missing key createProcess in commandProcessorDescription');
+        if (! \array_key_exists('createAggregate', $processorDesc)) {
+            throw new InvalidArgumentException('Missing key createAggregate in commandProcessorDescription');
         }
 
-        if (! \array_key_exists('processType', $processorDesc)) {
-            throw new InvalidArgumentException('Missing key processType in commandProcessorDescription');
+        if (! \array_key_exists('aggregateType', $processorDesc)) {
+            throw new InvalidArgumentException('Missing key aggregateType in commandProcessorDescription');
         }
 
-        if (! \array_key_exists('pidKey', $processorDesc)) {
-            throw new InvalidArgumentException('Missing key pidKey in commandProcessorDescription');
+        if (! \array_key_exists('aggregateIdentifier', $processorDesc)) {
+            throw new InvalidArgumentException('Missing key aggregateIdentifier in commandProcessorDescription');
         }
 
-        if (! \array_key_exists('processFunction', $processorDesc)) {
-            throw new InvalidArgumentException('Missing key processFunction in commandProcessorDescription');
+        if (! \array_key_exists('aggregateFunction', $processorDesc)) {
+            throw new InvalidArgumentException('Missing key aggregateFunction in commandProcessorDescription');
         }
 
         if (! \array_key_exists('streamName', $processorDesc)) {
@@ -134,27 +134,27 @@ final class CommandProcessor
 
         return new self(
             $processorDesc['commandName'],
-            $processorDesc['processType'],
-            $processorDesc['createProcess'],
-            $processorDesc['pidKey'],
-            $processorDesc['processFunction'],
-            $processDesc['eventApplyMap'],
+            $processorDesc['aggregateType'],
+            $processorDesc['createAggregate'],
+            $processorDesc['aggregateIdentifier'],
+            $processorDesc['aggregateFunction'],
+            $aggregateDesc['eventApplyMap'],
             $processorDesc['streamName'],
             $flavour,
             $eventStore,
             $logEngine,
             $contextProvider,
             $documentStore,
-            $processDesc['processStateCollection'] ?? null
+            $aggregateDesc['aggregateCollection'] ?? null
         );
     }
 
     private function __construct(
         string $commandName,
-        string $processType,
-        bool $createProcess,
-        string $pidKey,
-        callable $processFunction,
+        string $aggregateType,
+        bool $createAggregate,
+        string $aggregateIdentifier,
+        callable $aggregateFunction,
         array $eventApplyMap,
         string $streamName,
         Flavour $flavour,
@@ -162,13 +162,13 @@ final class CommandProcessor
         LogEngine $log,
         ContextProvider $contextProvider = null,
         DocumentStore $documentStore = null,
-        string $processStateCollection = null
+        string $aggregateCollection = null
     ) {
         $this->commandName = $commandName;
-        $this->processType = $processType;
-        $this->pidKey = $pidKey;
-        $this->createProcess = $createProcess;
-        $this->processFunction = $processFunction;
+        $this->aggregateType = $aggregateType;
+        $this->aggregateIdentifier = $aggregateIdentifier;
+        $this->createAggregate = $createAggregate;
+        $this->aggregateFunction = $aggregateFunction;
         $this->eventApplyMap = $eventApplyMap;
         $this->streamName = $streamName;
         $this->flavour = $flavour;
@@ -176,7 +176,7 @@ final class CommandProcessor
         $this->log = $log;
         $this->documentStore = $documentStore;
         $this->contextProvider = $contextProvider;
-        $this->processStateCollection = $processStateCollection;
+        $this->aggregateCollection = $aggregateCollection;
     }
 
     /**
@@ -192,25 +192,25 @@ final class CommandProcessor
                 . $command->messageName() . ' received.');
         }
 
-        $pid = $this->flavour->getPidFromCommand($this->pidKey, $command);
-        $procRepository = $this->getProcessRepository();
+        $arId = $this->flavour->getAggregateIdFromCommand($this->aggregateIdentifier, $command);
+        $arRepository = $this->getAggregateRepository();
 
-        $process = null;
-        $processState = null;
+        $aggregate = null;
+        $aggregateState = null;
         $context = null;
-        $expectedVersion = $command->metadata()[GenericCommand::META_EXPECTED_PROCESS_VERSION] ?? null;
+        $expectedVersion = $command->metadata()[GenericCommand::META_EXPECTED_AGGREGATE_VERSION] ?? null;
 
-        if ($this->createProcess) {
-            $process = new FlavouredProcess($pid, $this->processType, $this->eventApplyMap, $this->flavour);
+        if ($this->createAggregate) {
+            $aggregate = new FlavouredAggregateRoot($arId, $this->aggregateType, $this->eventApplyMap, $this->flavour);
         } else {
-            /** @var FlavouredProcess $process */
-            $process = $procRepository->getProcess($this->processType, $pid, $this->eventApplyMap, $expectedVersion);
+            /** @var FlavouredAggregateRoot $aggregate */
+            $aggregate = $arRepository->getAggregateRoot($this->aggregateType, $arId, $this->eventApplyMap, $expectedVersion);
 
-            if (! $process) {
-                throw ProcessNotFound::with($this->processType, $pid);
+            if (! $aggregate) {
+                throw AggregateNotFound::with($this->aggregateType, $arId);
             }
 
-            $processState = $process->currentState();
+            $aggregateState = $aggregate->currentState();
         }
 
         if ($this->contextProvider) {
@@ -218,40 +218,40 @@ final class CommandProcessor
             $this->log->contextProviderCalled($this->contextProvider, $command, $context);
         }
 
-        $arFunc = $this->processFunction;
+        $arFunc = $this->aggregateFunction;
 
-        if ($this->createProcess) {
-            $events = $this->flavour->callProcessFactory($this->processType, $arFunc, $command, $context);
+        if ($this->createAggregate) {
+            $events = $this->flavour->callAggregateFactory($this->aggregateType, $arFunc, $command, $context);
         } else {
-            $events = $this->flavour->callProcessFunction($this->processType, $arFunc, $processState, $command, $context);
+            $events = $this->flavour->callSubsequentAggregateFunction($this->aggregateType, $arFunc, $aggregateState, $command, $context);
         }
 
         foreach ($events as $event) {
             if (! $event) {
                 continue;
             }
-            $process->recordThat($event);
+            $aggregate->recordThat($event);
         }
 
-        $events = $procRepository->saveProcess($process);
+        $events = $arRepository->saveAggregateRoot($aggregate);
 
-        if($this->createProcess) {
-            $this->log->newProcessCreated($this->processType, $pid, ...$events);
+        if($this->createAggregate) {
+            $this->log->newAggregateCreated($this->aggregateType, $arId, ...$events);
         } else {
-            $this->log->existingProcessChanged($this->processType, $pid, $processState, ...$events);
+            $this->log->existingAggregateChanged($this->aggregateType, $arId, $aggregateState, ...$events);
         }
 
         return $events;
     }
 
-    private function getProcessRepository(): GenericProcessRepository
+    private function getAggregateRepository(): GenericAggregateRepository
     {
-        return new GenericProcessRepository(
+        return new GenericAggregateRepository(
             $this->flavour,
             $this->eventStore,
             $this->streamName,
             $this->documentStore,
-            $this->processStateCollection
+            $this->aggregateCollection
         );
     }
 }

@@ -9,19 +9,12 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\Process;
+namespace EventEngineExample\PrototypingFlavour\Aggregate;
 
-use EventEngine\DocumentStore\Index;
-
-final class ProcessStateCollection
+class UserState
 {
-    /**
-     * @var string
-     */
-    private $collectionName;
-
-    /**
-     * @var Index[]
-     */
-    private $indexes;
+    public $userId;
+    public $username;
+    public $email;
+    public $failed;
 }

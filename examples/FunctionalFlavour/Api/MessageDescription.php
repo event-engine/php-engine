@@ -19,13 +19,13 @@ use EventEngine\JsonSchema\Type\StringType;
 use EventEngine\JsonSchema\Type\UuidType;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUsersResolver;
-use EventEngineExample\PrototypingFlavour\Process\UserDescription;
+use EventEngineExample\PrototypingFlavour\Aggregate\UserDescription;
 
 /**
  * You're free to organize EventMachineDescriptions in the way that best fits your personal preferences
  *
  * We decided to describe all messages of the bounded context in a centralized MessageDescription.
- * Another idea would be to register messages within an process description.
+ * Another idea would be to register messages within an aggregate description.
  *
  * You only need to follow one rule:
  * Messages need be registered BEFORE they are referenced by handling or listing descriptions
