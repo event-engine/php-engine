@@ -12,7 +12,10 @@ declare(strict_types=1);
 namespace EventEngine\JsonSchema;
 
 use EventEngine\JsonSchema\Exception\InvalidArgumentException;
+use EventEngine\JsonSchema\Type\AnyType;
+use EventEngine\JsonSchema\Type\ArrayType;
 use EventEngine\JsonSchema\Type\ObjectType;
+use EventEngine\JsonSchema\Type\UnionType;
 use EventEngine\Schema\InputTypeSchema;
 use EventEngine\Schema\MessageBox\CommandMap;
 use EventEngine\Schema\MessageBox\EventMap;
@@ -39,9 +42,17 @@ final class JustinRainbowJsonSchema implements Schema
 
     public function assertPayloadSchema(string $messageName, PayloadSchema $payloadSchema): void
     {
-        if(!$payloadSchema instanceof ObjectType && !$payloadSchema instanceof JsonSchemaArray) {
+        if(!$payloadSchema instanceof ObjectType && !$payloadSchema instanceof ArrayType
+            && !$payloadSchema instanceof UnionType && !$payloadSchema instanceof AnyType
+            && !$payloadSchema instanceof JsonSchemaArray) {
             throw new InvalidArgumentException(
-                "Payload schema for $messageName should be an " . ObjectType::class . ". Got " . VariableType::determine($payloadSchema)
+                "Payload schema for $messageName should be one of " . implode(", ", [
+                    ObjectType::class,
+                    ArrayType::class,
+                    UnionType::class,
+                    AnyType::class,
+                    JsonSchemaArray::class
+                ]) . ". Got " . VariableType::determine($payloadSchema)
             );
         }
     }
