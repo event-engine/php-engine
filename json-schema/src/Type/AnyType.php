@@ -15,7 +15,7 @@ use EventEngine\JsonSchema\AnnotatedType;
 use EventEngine\JsonSchema\Type;
 use EventEngine\Schema\PayloadSchema;
 
-final class AnyType implements AnnotatedType, Type, PayloadSchema
+final class AnyType implements AnnotatedType, PayloadSchema
 {
     use HasAnnotations;
     /**

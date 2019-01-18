@@ -11,9 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\JsonSchema;
 
-use EventEngine\Schema\TypeSchema;
-
-interface AnnotatedType extends TypeSchema
+interface AnnotatedType extends Type
 {
     public function entitled(string $title);
 
