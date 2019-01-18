@@ -15,6 +15,11 @@ use EventEngine\Runtime\OopFlavour;
 
 final class FlavourHint
 {
+    public static function __callStatic($name, $arguments)
+    {
+        throw new \BadMethodCallException(__CLASS__  . "::$name should never be called. Check that EventEngine uses " . OopFlavour::class);
+    }
+    
     public static function useAggregate()
     {
         throw new \BadMethodCallException(__METHOD__  . ' should never be called. Check that EventEngine uses ' . OopFlavour::class);
