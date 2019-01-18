@@ -13,9 +13,10 @@ namespace EventEngine\JsonSchema\Type;
 
 use EventEngine\JsonSchema\AnnotatedType;
 use EventEngine\JsonSchema\JsonSchema;
+use EventEngine\Schema\PayloadSchema;
 use EventEngine\Schema\TypeSchema;
 
-final class ArrayType implements AnnotatedType
+final class ArrayType implements AnnotatedType, PayloadSchema
 {
     use NullableType,
         HasAnnotations;

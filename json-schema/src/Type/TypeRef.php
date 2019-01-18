@@ -13,8 +13,9 @@ namespace EventEngine\JsonSchema\Type;
 
 use EventEngine\JsonSchema\JsonSchema;
 use EventEngine\JsonSchema\Type;
+use EventEngine\Schema\PayloadSchema;
 
-class TypeRef implements Type
+class TypeRef implements Type, PayloadSchema
 {
     /**
      * @var string

@@ -19,7 +19,7 @@ final class FlavourHint
     {
         throw new \BadMethodCallException(__CLASS__  . "::$name should never be called. Check that EventEngine uses " . OopFlavour::class);
     }
-    
+
     public static function useAggregate()
     {
         throw new \BadMethodCallException(__METHOD__  . ' should never be called. Check that EventEngine uses ' . OopFlavour::class);

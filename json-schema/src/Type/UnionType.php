@@ -13,9 +13,10 @@ namespace EventEngine\JsonSchema\Type;
 
 use EventEngine\JsonSchema\JsonSchema;
 use EventEngine\JsonSchema\Type;
+use EventEngine\Schema\PayloadSchema;
 use EventEngine\Schema\TypeSchema;
 
-final class UnionType implements Type
+final class UnionType implements Type, PayloadSchema
 {
     /**
      * @var TypeSchema[]
