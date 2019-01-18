@@ -25,7 +25,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function emergency($message, array $context = array())
     {
-        echo "[Emergency] $message";
+        echo "[Emergency] $message\n";
     }
 
     /**
@@ -41,7 +41,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function alert($message, array $context = array())
     {
-        echo "[Alert] $message";
+        echo "[Alert] $message\n";
     }
 
     /**
@@ -56,7 +56,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function critical($message, array $context = array())
     {
-        echo "[Critical] $message";
+        echo "[Critical] $message\n";
     }
 
     /**
@@ -70,7 +70,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function error($message, array $context = array())
     {
-        echo "[Error] $message";
+        echo "[Error] $message\n";
     }
 
     /**
@@ -86,7 +86,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function warning($message, array $context = array())
     {
-        echo "[Warning] $message";
+        echo "[Warning] $message\n";
     }
 
     /**
@@ -99,7 +99,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function notice($message, array $context = array())
     {
-        echo "[Notice] $message";
+        echo "[Notice] $message\n";
     }
 
     /**
@@ -114,7 +114,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function info($message, array $context = array())
     {
-        echo "[Info] $message";
+        echo "[Info] $message\n";
     }
 
     /**
@@ -127,7 +127,7 @@ final class EchoLogger implements LoggerInterface
      */
     public function debug($message, array $context = array())
     {
-        echo "[Debug] $message";
+        echo "[Debug] $message\n";
     }
 
     /**
@@ -141,6 +141,6 @@ final class EchoLogger implements LoggerInterface
      */
     public function log($level, $message, array $context = array())
     {
-        echo "[$level] $message";
+        echo "[$level] $message\n";
     }
 }
