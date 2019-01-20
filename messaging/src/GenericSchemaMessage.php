@@ -245,17 +245,17 @@ abstract class GenericSchemaMessage implements Message
         if(!is_array($payload)) {
             throw new RuntimeException('payload must be an array');
         }
-        self::assertSubPayload($payload);
+        self::assertSubLevel($payload, 'Payload');
     }
 
     /**
      * @param mixed $payload
      */
-    private static function assertSubPayload($payload): void
+    private static function assertSubLevel($payload, string $messagePart): void
     {
         if (\is_array($payload)) {
             foreach ($payload as $subPayload) {
-                self::assertSubPayload($subPayload);
+                self::assertSubLevel($subPayload, $messagePart);
             }
 
             return;
@@ -265,7 +265,7 @@ abstract class GenericSchemaMessage implements Message
             return;
         }
 
-        throw new RuntimeException('payload must only contain arrays and scalar values');
+        throw new RuntimeException("$messagePart must only contain arrays and scalar values");
     }
 
     public static function assertMetadata($metadata): void
@@ -279,9 +279,7 @@ abstract class GenericSchemaMessage implements Message
                 throw new RuntimeException('A metadata key must be non empty string');
             }
 
-            if(!is_scalar($value) && $value !== null) {
-                throw new RuntimeException('A metadata value must have a scalar type. Got ' . \gettype($value) . ' for ' . $key);
-            }
+            self::assertSubLevel($value, 'Metadata');
         }
     }
 

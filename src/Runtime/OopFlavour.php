@@ -17,7 +17,6 @@ use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
-use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Oop\AggregateAndEventBag;
 use EventEngine\Runtime\Oop\Port;
 use EventEngine\Util\MapIterator;
