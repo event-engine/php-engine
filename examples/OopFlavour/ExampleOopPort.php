@@ -86,9 +86,10 @@ final class ExampleOopPort implements Port
     /**
      * @param string $aggregateType
      * @param array $state
+     * @param int $version
      * @return mixed Aggregate instance
      */
-    public function reconstituteAggregateFromStateArray(string $aggregateType, array $state)
+    public function reconstituteAggregateFromStateArray(string $aggregateType, array $state, int $version)
     {
         switch ($aggregateType) {
             case User::TYPE:

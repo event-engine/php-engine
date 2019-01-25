@@ -149,7 +149,7 @@ interface Flavour
      * @param array $state
      * @return mixed aggregate state
      */
-    public function buildAggregateState(string $aggregateType, array $state);
+    public function buildAggregateState(string $aggregateType, array $state, int $version);
 
     public function callEventListener(callable $listener, Message $event): void;
 

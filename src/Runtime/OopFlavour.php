@@ -237,9 +237,9 @@ final class OopFlavour implements Flavour, MessageFactoryAware
         return true;
     }
 
-    public function buildAggregateState(string $aggregateType, array $state)
+    public function buildAggregateState(string $aggregateType, array $state, int $version)
     {
-        return $this->port->reconstituteAggregateFromStateArray($aggregateType, $state);
+        return $this->port->reconstituteAggregateFromStateArray($aggregateType, $state, $version);
     }
 
     public function setMessageFactory(MessageFactory $messageFactory): void

@@ -207,7 +207,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         return $this->stateConverter->canConvertTypeToData($aggregateType);
     }
 
-    public function buildAggregateState(string $aggregateType, array $state)
+    public function buildAggregateState(string $aggregateType, array $state, int $version)
     {
         return $this->stateConverter->convertArrayToData($aggregateType, $state);
     }
