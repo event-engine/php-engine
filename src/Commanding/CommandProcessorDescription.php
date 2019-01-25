@@ -48,6 +48,11 @@ final class CommandProcessorDescription
     private $aggregateCollection;
 
     /**
+     * @var string|null
+     */
+    private $aggregateStream;
+
+    /**
      * @var callable
      */
     private $aggregateFunction;
@@ -96,10 +101,29 @@ final class CommandProcessorDescription
         return $this;
     }
 
+    public function storeEventsIn(string $streamName): self
+    {
+        if (null === $this->aggregateType) {
+            throw new BadMethodCallException('You should not call '.__METHOD__.' before calling the withNew Aggregate method.');
+        }
+
+        if(!$this->createAggregate) {
+            throw new BadMethodCallException(__METHOD__ . ' should only be called when registering a new aggregate: withNew()');
+        }
+
+        $this->aggregateStream = $streamName;
+
+        return $this;
+    }
+
     public function storeStateIn(string $aggregateCollection): self
     {
         if (null === $this->aggregateType) {
-            throw new BadMethodCallException('You should not call storeStateIn before calling one of the with* Aggregate methods.');
+            throw new BadMethodCallException('You should not call '.__METHOD__.' before calling the withNew Aggregate method.');
+        }
+
+        if(!$this->createAggregate) {
+            throw new BadMethodCallException(__METHOD__ . ' should only be called when registering a new aggregate: withNew()');
         }
 
         $this->aggregateCollection = $aggregateCollection;
@@ -170,7 +194,7 @@ final class CommandProcessorDescription
             'aggregateFunction' => $this->aggregateFunction,
             'aggregateCollection' => $this->aggregateCollection,
             'eventRecorderMap' => $eventRecorderMap,
-            'streamName' => $this->eventEngine->writeModelStreamName(),
+            'streamName' => $this->aggregateStream ?? $this->eventEngine->writeModelStreamName(),
             'contextProvider' => $this->contextProvider,
         ];
     }

@@ -798,7 +798,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $arRepository = new GenericAggregateRepository(
             $this->flavour,
             $this->eventStore,
-            $this->writeModelStreamName(),
+            $aggregateDesc['aggregateStream'],
             $this->documentStore,
             $aggregateDesc['aggregateCollection'] ?? null
         );
@@ -1018,6 +1018,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     'aggregateType' => $descArr['aggregateType'],
                     'aggregateIdentifier' => $descArr['aggregateIdentifier'],
                     'eventApplyMap' => $descArr['eventRecorderMap'],
+                    'aggregateStream' => $descArr['streamName'],
                     'aggregateCollection' => $descArr['aggregateCollection'] ?? AggregateProjector::aggregateCollectionName(
                             '0.1.0',
                             $descArr['aggregateType']
