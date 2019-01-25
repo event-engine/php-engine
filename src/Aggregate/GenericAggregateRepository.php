@@ -123,7 +123,7 @@ final class GenericAggregateRepository
             $aggregateStateDoc = $documentStore->getDoc($this->aggregateCollection, $aggregateId);
 
             if($aggregateStateDoc) {
-                $aggregateState = $this->flavour->buildAggregateState($aggregateType, $aggregateStateDoc);
+                $aggregateState = $this->flavour->buildAggregateState($aggregateType, $aggregateStateDoc['state']);
 
                 $aggregate = FlavouredAggregateRoot::reconstituteFromAggregateState(
                     $aggregateId,
