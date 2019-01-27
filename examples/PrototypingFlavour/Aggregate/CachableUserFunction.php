@@ -62,6 +62,22 @@ final class CachableUserFunction
         return $user;
     }
 
+    public static function changeEmail(UserState $user, Message $changeEmail)
+    {
+        yield [Event::EMAIL_WAS_CHANGED, [
+            CacheableUserDescription::IDENTIFIER_ALIAS => $user->userId,
+            'oldMail' => $user->email,
+            'newMail' => $changeEmail->get(UserDescription::EMAIL),
+        ]];
+    }
+
+    public static function whenEmailWasChanged(UserState $user, Message $emailWasChanged)
+    {
+        $user->email = $emailWasChanged->get('newMail');
+
+        return $user;
+    }
+
     public static function doNothing(UserState $user, Message $doNothing)
     {
         yield null;

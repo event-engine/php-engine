@@ -15,6 +15,7 @@ final class Command
 {
     const REGISTER_USER = 'RegisterUser';
     const CHANGE_USERNAME = 'ChangeUsername';
+    const CHANGE_EMAIL = 'ChangeEmail';
     const DO_NOTHING = 'DoNothing';
 
     private function __construct()

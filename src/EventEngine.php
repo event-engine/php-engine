@@ -1036,7 +1036,9 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                 throw new RuntimeException('Missing aggregate handle method that creates the aggregate of type: ' . $descArr['aggregateType']);
             }
 
-            $descArr['aggregateIdentifier'] = $aggregateDesc['aggregateIdentifier'];
+            if(null === $descArr['aggregateIdentifier']) {
+                $descArr['aggregateIdentifier'] = $aggregateDesc['aggregateIdentifier'];
+            }
 
             $aggregateDesc['eventApplyMap'] = \array_merge($aggregateDesc['eventApplyMap'], $descArr['eventRecorderMap']);
             $aggregateDescriptions[$descArr['aggregateType']] = $aggregateDesc;

@@ -14,6 +14,7 @@ namespace EventEngineExample\OopFlavour;
 use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Runtime\Oop\Port;
 use EventEngine\Util\VariableType;
+use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
 use EventEngineExample\OopFlavour\Aggregate\User;
 
@@ -36,6 +37,10 @@ final class ExampleOopPort implements Port
             case ChangeUsername::class:
                 /** @var User $aggregate */
                 $aggregate->changeName($customCommand);
+                break;
+            case ChangeEmail::class:
+                /** @var User $aggregate */
+                $aggregate->changeEmail($customCommand);
                 break;
             default:
                 throw new InvalidArgumentException('Unknown command: ' . VariableType::determine($customCommand));

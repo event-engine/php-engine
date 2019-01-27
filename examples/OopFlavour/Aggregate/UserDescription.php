@@ -25,6 +25,7 @@ use EventEngineExample\FunctionalFlavour\Api\Event;
 final class UserDescription implements EventEngineDescription
 {
     public const IDENTIFIER = 'userId';
+    public const IDENTIFIER_ALIAS = 'user_id';
     public const USERNAME = 'username';
     public const EMAIL = 'email';
 
@@ -32,6 +33,7 @@ final class UserDescription implements EventEngineDescription
     {
         self::describeRegisterUser($eventEngine);
         self::describeChangeUsername($eventEngine);
+        self::describeChangeEmail($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -55,6 +57,16 @@ final class UserDescription implements EventEngineDescription
             ->withExisting(User::TYPE)
             ->handle([FlavourHint::class, 'useAggregate'])
             ->recordThat(Event::USERNAME_WAS_CHANGED)
+            ->apply([FlavourHint::class, 'useAggregate']);
+    }
+
+    private static function describeChangeEmail(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CHANGE_EMAIL)
+            ->withExisting(User::TYPE)
+            ->identifiedBy(self::IDENTIFIER_ALIAS)
+            ->handle([FlavourHint::class, 'useAggregate'])
+            ->recordThat(Event::EMAIL_WAS_CHANGED)
             ->apply([FlavourHint::class, 'useAggregate']);
     }
 

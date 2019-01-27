@@ -15,8 +15,10 @@ use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
 use EventEngineExample\FunctionalFlavour\Api\Command;
 use EventEngineExample\FunctionalFlavour\Api\Event;
+use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
 use EventEngineExample\FunctionalFlavour\Command\RegisterUser;
+use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
@@ -41,6 +43,7 @@ use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
 final class UserDescription implements EventEngineDescription
 {
     public const IDENTIFIER = 'userId';
+    public const IDENTIFIER_ALIAS = 'user_id';
     public const USERNAME = 'username';
     public const EMAIL = 'email';
 
@@ -50,6 +53,7 @@ final class UserDescription implements EventEngineDescription
     {
         self::describeRegisterUser($eventEngine);
         self::describeChangeUsername($eventEngine);
+        self::describeChangeEmail($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -99,6 +103,26 @@ final class UserDescription implements EventEngineDescription
             // Same here, UsernameChanged is NOT the first event, so current user state is passed
             ->apply(function (UserState $user, UsernameChanged $event) {
                 $user->username = $event->newName;
+
+                return $user;
+            });
+    }
+
+    private static function describeChangeEmail(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CHANGE_EMAIL)
+            ->withExisting(Aggregate::USER)
+            ->identifiedBy(self::IDENTIFIER_ALIAS)
+            ->handle(function (UserState $user, ChangeEmail $changeEmail) {
+                yield new EmailChanged([
+                    UserDescription::IDENTIFIER_ALIAS => $user->userId,
+                    'oldMail' => $user->email,
+                    'newMail' => $changeEmail->email,
+                ]);
+            })
+            ->recordThat(Event::EMAIL_WAS_CHANGED)
+            ->apply(function (UserState $user, EmailChanged $emailWasChanged) {
+                $user->email = $emailWasChanged->newMail;
 
                 return $user;
             });

@@ -39,6 +39,7 @@ use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
 use EventEngine\Runtime\Flavour;
 use EventEngineExample\FunctionalFlavour\Api\Query;
+use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 use EventEngineExample\PrototypingFlavour\Aggregate\Aggregate;
@@ -357,6 +358,46 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
+    public function it_uses_aggregate_identifier_alias_if_specified()
+    {
+        $publishedEvents = [];
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+        });
+
+        $this->eventEngine->on(Event::EMAIL_WAS_CHANGED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+        });
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $userId = Uuid::uuid4()->toString();
+
+        $firstResult = $this->eventEngine->dispatch(Command::REGISTER_USER, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::USERNAME => 'Alex',
+            UserDescription::EMAIL => 'contact@prooph.de',
+        ]);
+
+        $secondResult = $this->eventEngine->dispatch(Command::CHANGE_EMAIL, [
+            UserDescription::IDENTIFIER_ALIAS => $userId,
+            UserDescription::EMAIL => 'j.doe@example.com',
+        ]);
+
+        $recordedEvents = array_merge($firstResult->recordedEvents(), $secondResult->recordedEvents());
+
+        self::assertCount(2, $recordedEvents);
+        self::assertCount(2, $publishedEvents);
+        /** @var GenericEvent $event */
+        $event = $recordedEvents[1];
+        self::assertEquals(Event::EMAIL_WAS_CHANGED, $event->messageName());
+    }
+
+    /**
+     * @test
+     */
     public function it_uses_event_queue()
     {
         $producedEvents = [];
@@ -491,6 +532,10 @@ abstract class EventEngineTestAbstract extends BasicTestCase
                         UserDescription::IDENTIFIER => $userId,
                         UserDescription::USERNAME => $username,
                     ])->toArray(),
+                    Command::CHANGE_EMAIL => JsonSchema::object([
+                        UserDescription::IDENTIFIER_ALIAS => $userId,
+                        UserDescription::EMAIL => JsonSchema::email(),
+                    ])->toArray(),
                     Command::DO_NOTHING => JsonSchema::object([
                         UserDescription::IDENTIFIER => $userId,
                     ])->toArray(),
@@ -501,6 +546,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
                         UserDescription::IDENTIFIER => $userId,
                         'oldName' => $username,
                         'newName' => $username,
+                    ])->toArray(),
+                    Event::EMAIL_WAS_CHANGED => JsonSchema::object([
+                        UserDescription::IDENTIFIER_ALIAS => $userId,
+                        'oldMail' => JsonSchema::email(),
+                        'newMail' => JsonSchema::email(),
                     ])->toArray(),
                     Event::USER_REGISTRATION_FAILED => JsonSchema::object([
                         UserDescription::IDENTIFIER => $userId,
@@ -874,6 +924,12 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             case UsernameChanged::class:
                 return $flavour->prepareNetworkTransmission(new MessageBag(
                     Event::USERNAME_WAS_CHANGED,
+                    Message::TYPE_EVENT,
+                    $event
+                ));
+            case EmailChanged::class:
+                return $flavour->prepareNetworkTransmission(new MessageBag(
+                    Event::EMAIL_WAS_CHANGED,
                     Message::TYPE_EVENT,
                     $event
                 ));

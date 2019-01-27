@@ -38,9 +38,9 @@ final class CommandProcessorDescription
     private $aggregateType;
 
     /**
-     * @var string
+     * @var string|null
      */
-    private $aggregateIdentifier = 'id';
+    private $aggregateIdentifier;
 
     /**
      * @var string|null
@@ -184,6 +184,10 @@ final class CommandProcessorDescription
 
         foreach ($this->eventRecorderMap as $eventName => $desc) {
             $eventRecorderMap[$eventName] = $desc()['apply'];
+        }
+
+        if($this->createAggregate && !$this->aggregateIdentifier) {
+            $this->aggregateIdentifier = 'id';
         }
 
         return [

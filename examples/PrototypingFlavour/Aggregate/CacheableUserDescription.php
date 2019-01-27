@@ -27,6 +27,7 @@ use EventEngineExample\PrototypingFlavour\Messaging\Event;
 final class CacheableUserDescription implements EventEngineDescription
 {
     const IDENTIFIER = 'userId';
+    const IDENTIFIER_ALIAS = 'user_id';
     const USERNAME = 'username';
     const EMAIL = 'email';
 
@@ -37,6 +38,7 @@ final class CacheableUserDescription implements EventEngineDescription
         self::describeRegisterUser($eventEngine);
         self::describeChangeUsername($eventEngine);
         self::describeDoNothing($eventEngine);
+        self::describeChangeEmail($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -60,6 +62,16 @@ final class CacheableUserDescription implements EventEngineDescription
             ->handle([CachableUserFunction::class, 'changeUsername'])
             ->recordThat(Event::USERNAME_WAS_CHANGED)
             ->apply([CachableUserFunction::class, 'whenUsernameWasChanged']);
+    }
+
+    private static function describeChangeEmail(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CHANGE_EMAIL)
+            ->withExisting(Aggregate::USER)
+            ->identifiedBy(CacheableUserDescription::IDENTIFIER_ALIAS)
+            ->handle([CachableUserFunction::class, 'changeEmail'])
+            ->recordThat(Event::EMAIL_WAS_CHANGED)
+            ->apply([CachableUserFunction::class, 'whenEmailWasChanged']);
     }
 
     private static function describeDoNothing(EventEngine $eventEngine): void

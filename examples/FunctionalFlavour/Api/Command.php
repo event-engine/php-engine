@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngineExample\FunctionalFlavour\Api;
 
+use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
 use EventEngineExample\FunctionalFlavour\Command\RegisterUser;
 
@@ -18,11 +19,13 @@ final class Command
 {
     const REGISTER_USER = 'RegisterUser';
     const CHANGE_USERNAME = 'ChangeUsername';
+    const CHANGE_EMAIL = 'ChangeEmail';
     const DO_NOTHING = 'DoNothing';
 
     const CLASS_MAP = [
         self::REGISTER_USER => RegisterUser::class,
         self::CHANGE_USERNAME => ChangeUsername::class,
+        self::CHANGE_EMAIL => ChangeEmail::class,
     ];
 
     public static function canCreate(string $commandName): bool

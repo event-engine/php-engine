@@ -60,12 +60,22 @@ final class MessageDescription implements EventEngineDescription
             UserDescription::IDENTIFIER => $userId,
             UserDescription::USERNAME => $username,
         ]));
+        $eventEngine->registerCommand(Command::CHANGE_EMAIL, JsonSchema::object([
+            UserDescription::IDENTIFIER_ALIAS => $userId,
+            UserDescription::EMAIL => JsonSchema::email(),
+        ]));
+
 
         $eventEngine->registerEvent(Event::USER_WAS_REGISTERED, $userDataSchema);
         $eventEngine->registerEvent(Event::USERNAME_WAS_CHANGED, JsonSchema::object([
             UserDescription::IDENTIFIER => $userId,
             'oldName' => $username,
             'newName' => $username,
+        ]));
+        $eventEngine->registerEvent(Event::EMAIL_WAS_CHANGED, JsonSchema::object([
+            UserDescription::IDENTIFIER_ALIAS => $userId,
+            'oldMail' => JsonSchema::email(),
+            'newMail' => JsonSchema::email(),
         ]));
 
         $eventEngine->registerEvent(Event::USER_REGISTRATION_FAILED, JsonSchema::object([

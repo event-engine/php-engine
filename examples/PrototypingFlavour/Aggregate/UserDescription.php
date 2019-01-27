@@ -37,6 +37,7 @@ use EventEngineExample\PrototypingFlavour\Messaging\Event;
 final class UserDescription implements EventEngineDescription
 {
     const IDENTIFIER = 'userId';
+    const IDENTIFIER_ALIAS = 'user_id';
     const USERNAME = 'username';
     const EMAIL = 'email';
 
@@ -46,6 +47,7 @@ final class UserDescription implements EventEngineDescription
     {
         self::describeRegisterUser($eventEngine);
         self::describeChangeUsername($eventEngine);
+        self::describeChangeEmail($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -90,6 +92,26 @@ final class UserDescription implements EventEngineDescription
             // Same here, UsernameWasChanged is NOT the first event, so current user state is injected
             ->apply(function (UserState $user, Message $usernameWasChanged) {
                 $user->username = $usernameWasChanged->payload()['newName'];
+
+                return $user;
+            });
+    }
+
+    private static function describeChangeEmail(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CHANGE_EMAIL)
+            ->withExisting(Aggregate::USER)
+            ->identifiedBy(UserDescription::IDENTIFIER_ALIAS)
+            ->handle(function (UserState $user, Message $changeEmail) {
+                yield [Event::EMAIL_WAS_CHANGED, [
+                    UserDescription::IDENTIFIER_ALIAS => $user->userId,
+                    'oldMail' => $user->email,
+                    'newMail' => $changeEmail->get(UserDescription::EMAIL),
+                ]];
+            })
+            ->recordThat(Event::EMAIL_WAS_CHANGED)
+            ->apply(function (UserState $user, Message $emailWasChanged) {
+                $user->email = $emailWasChanged->get('newMail');
 
                 return $user;
             });

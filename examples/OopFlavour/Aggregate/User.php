@@ -12,8 +12,10 @@ declare(strict_types=1);
 namespace EventEngineExample\OopFlavour\Aggregate;
 
 use EventEngine\Exception\RuntimeException;
+use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
 use EventEngineExample\FunctionalFlavour\Command\RegisterUser;
+use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
@@ -84,6 +86,15 @@ final class User
         ]));
     }
 
+    public function changeEmail(ChangeEmail $command): void
+    {
+        $this->recordThat(new EmailChanged([
+            'user_id' => $this->userId,
+            'oldMail' => $this->email,
+            'newMail' => $command->email,
+        ]));
+    }
+
     public function popRecordedEvents(): array
     {
         $events = $this->recordedEvents;
@@ -109,6 +120,10 @@ final class User
             case UsernameChanged::class:
                 /** @var UsernameChanged $event */
                 $this->username = $event->newName;
+                break;
+            case EmailChanged::class:
+                /** @var EmailChanged $event */
+                $this->email = $event->newMail;
                 break;
             default:
                 throw new RuntimeException('Unknown event: ' . \get_class($event));
