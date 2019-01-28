@@ -283,12 +283,12 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $self->compiledProjectionDescriptions = $config['compiledProjectionDescriptions'] ?? [];
         $self->compiledQueryDescriptions = $config['compiledQueryDescriptions'];
         $self->queryMap = array_map($mapPayloadSchema, $config['queryMap'] ?? []);
-        $self->responseTypes = array_map(function (array $typeSchema, string $typeName) use ($schema): ResponseTypeSchema {
+        $self->responseTypes = array_map(function (string $typeName, array $typeSchema) use ($schema): ResponseTypeSchema {
             return $schema->buildResponseTypeSchemaFromArray($typeName, $typeSchema);
-        }, $config['responseTypes'] ?? []);
-        $self->inputTypes = array_map(function (array $typeSchema, string $typeName) use ($schema): ResponseTypeSchema {
+        }, array_keys($config['responseTypes'] ?? []), $config['responseTypes'] ?? []);
+        $self->inputTypes = array_map(function (string $typeName, array $typeSchema) use ($schema): ResponseTypeSchema {
             return $schema->buildResponseTypeSchemaFromArray($typeName, $typeSchema);
-        }, $config['inputTypes'] ?? []);
+        }, array_keys($config['inputTypes'] ?? []), $config['inputTypes'] ?? []);
         $self->writeModelStreamName = $config['writeModelStreamName'];
 
         $self->flavour = $flavour;
