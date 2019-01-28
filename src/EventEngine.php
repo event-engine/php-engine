@@ -347,6 +347,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             'responseTypes' => array_map($schemaToArray, $this->responseTypes),
             'inputTypes' => array_map($schemaToArray, $this->inputTypes),
             'writeModelStreamName' => $this->writeModelStreamName,
+            'autoPublish' => $this->autoPublishEnabled,
+            'autoProjecting' => $this->autoProjectingEnabled,
         ];
     }
 
