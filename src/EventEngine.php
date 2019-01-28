@@ -259,10 +259,6 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             throw new InvalidArgumentException('Missing key aggregateDescriptions in cached event engine config');
         }
 
-        if (! \array_key_exists('appVersion', $config)) {
-            throw new InvalidArgumentException('Missing key appVersion in cached event engine config');
-        }
-
         if (! \array_key_exists('writeModelStreamName', $config)) {
             throw new InvalidArgumentException('Missing key writeModelStreamName in cached event engine config');
         }
