@@ -60,6 +60,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
     abstract protected function getFlavour(): Flavour;
 
+    abstract protected function getFlavourWithUserMetadataProvider(): Flavour;
+
     abstract protected function getRegisteredUsersProjector(DocumentStore $documentStore);
 
     abstract protected function getUserRegisteredListener(MessageDispatcher $messageDispatcher);
@@ -936,6 +938,47 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             Aggregate::USER,
             $userId
         )));
+    }
+
+    /**
+     * @test
+     */
+    public function it_stores_aggregate_metadata_if_flavour_can_provide_it()
+    {
+        $this->flavour = $this->getFlavourWithUserMetadataProvider();
+
+        $this->eventStore = InMemoryMultiModelStore::fromConnection($this->inMemoryConnection);
+
+        $this->eventStore->addCollection($this->getAggregateCollectionName(Aggregate::USER));
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $userId = Uuid::uuid4()->toString();
+
+        $registerUser = $this->eventEngine->messageFactory()->createMessageFromArray(
+            Command::REGISTER_USER,
+            ['payload' => [
+                UserDescription::IDENTIFIER => $userId,
+                UserDescription::USERNAME => 'Alex',
+                UserDescription::EMAIL => 'contact@prooph.de',
+            ]]
+        );
+
+        $result = $this->eventEngine->dispatch($registerUser);
+
+        $userState = $this->eventStore->getDoc(
+            $this->getAggregateCollectionName(Aggregate::USER),
+            $userId
+        );
+
+        $this->assertNotNull($userState);
+
+        $this->assertArrayHasKey('metadata', $userState);
+
+        $this->assertEquals([
+            'version' => 1
+        ], $userState['metadata']);
     }
 
     private function assertUserWasRegistered(

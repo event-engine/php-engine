@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Runtime;
 
+use EventEngine\Aggregate\MetadataProvider;
 use EventEngine\Exception\RuntimeException;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
@@ -230,6 +231,20 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array
     {
         return $this->port->serializeAggregate($aggregateState);
+    }
+
+    public function canProvideAggregateMetadata(string $aggregateType): bool
+    {
+        return $this->port instanceof MetadataProvider;
+    }
+
+    public function provideAggregateMetadata(string $aggregateType, int $version, $aggregateState): array
+    {
+        if($this->port instanceof MetadataProvider) {
+            return $this->port->provideAggregateMetadata($aggregateType, $version, $aggregateState);
+        }
+
+        return [];
     }
 
     public function canBuildAggregateState(string $aggregateType): bool

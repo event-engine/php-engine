@@ -82,13 +82,20 @@ final class GenericAggregateRepository
                         (string) $aggregateRoot->aggregateId()
                     );
                 } else {
+                    $currentState = $aggregateRoot->currentState();
+                    $doc = [
+                        'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $currentState),
+                        'version' => $aggregateRoot->version()
+                    ];
+
+                    if($this->flavour->canProvideAggregateMetadata($aggregateRoot->aggregateType())) {
+                        $doc['metadata'] = $this->flavour->provideAggregateMetadata($aggregateRoot->aggregateType(), $aggregateRoot->version(), $currentState);
+                    }
+
                     $this->eventStore->upsertDoc(
                         $this->aggregateCollection,
                         $aggregateRoot->aggregateId(),
-                        [
-                            'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $aggregateRoot->currentState()),
-                            'version' => $aggregateRoot->version()
-                        ]
+                        $doc
                     );
                 }
 

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Runtime;
 
+use EventEngine\Aggregate\MetadataProvider;
 use EventEngine\Data\DataConverter;
 use EventEngine\Data\ImmutableRecordDataConverter;
 use EventEngine\Exception\NoGenerator;
@@ -57,7 +58,12 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
      */
     private $dataConverter;
 
-    public function __construct(Port $port, DataConverter $dataConverter = null)
+    /**
+     * @var MetadataProvider
+     */
+    private $aggregateMetadataProvider;
+
+    public function __construct(Port $port, DataConverter $dataConverter = null, MetadataProvider $metadataProvider = null)
     {
         $this->port = $port;
 
@@ -66,6 +72,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
         }
 
         $this->dataConverter = $dataConverter;
+        $this->aggregateMetadataProvider = $metadataProvider;
     }
 
     public function setMessageFactory(MessageFactory $messageFactory): void
@@ -277,6 +284,20 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array
     {
         return $this->dataConverter->convertDataToArray($aggregateType, $aggregateState);
+    }
+
+    public function canProvideAggregateMetadata(string $aggregateType): bool
+    {
+        return $this->aggregateMetadataProvider !== null;
+    }
+
+    public function provideAggregateMetadata(string $aggregateType, int $version, $aggregateState): array
+    {
+        if($this->aggregateMetadataProvider) {
+            return $this->aggregateMetadataProvider->provideAggregateMetadata($aggregateType, $version, $aggregateState);
+        }
+
+        return [];
     }
 
     public function canBuildAggregateState(string $aggregateType): bool

@@ -145,6 +145,10 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
                 'state' => $document,
                 'version' => $aggregateVersion
             ];
+
+            if($this->flavour()->canProvideAggregateMetadata((string)$aggregateType)) {
+                $document['metadata'] = $this->flavour()->provideAggregateMetadata((string)$aggregateType, $aggregateVersion, $aggregateState);
+            }
         }
 
         $this->documentStore->upsertDoc(

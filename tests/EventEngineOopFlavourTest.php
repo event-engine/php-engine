@@ -30,6 +30,7 @@ use EventEngineExample\FunctionalFlavour\Resolver\GetUsersResolver;
 use EventEngineExample\OopFlavour\Aggregate\User;
 use EventEngineExample\OopFlavour\Aggregate\UserDescription;
 use EventEngineExample\OopFlavour\ExampleOopPort;
+use EventEngineExample\OopFlavour\ExampleOopPortWithUserMetadataProvider;
 
 class EventEngineOopFlavourTest extends EventEngineTestAbstract
 {
@@ -43,6 +44,14 @@ class EventEngineOopFlavourTest extends EventEngineTestAbstract
     {
         return new OopFlavour(
             new ExampleOopPort(),
+            new FunctionalFlavour(new ExampleFunctionalPort())
+        );
+    }
+
+    protected function getFlavourWithUserMetadataProvider(): Flavour
+    {
+        return new OopFlavour(
+            new ExampleOopPortWithUserMetadataProvider(),
             new FunctionalFlavour(new ExampleFunctionalPort())
         );
     }

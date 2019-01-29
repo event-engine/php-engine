@@ -23,6 +23,7 @@ use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\PrototypingFlavour;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserDescription;
+use EventEngineExample\PrototypingFlavour\Aggregate\UserMetadataProvider;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserState;
 use EventEngineExample\PrototypingFlavour\Messaging\CommandWithCustomHandler;
 use EventEngineExample\PrototypingFlavour\Messaging\MessageDescription;
@@ -44,6 +45,11 @@ class EventEnginePrototypingFlavourTest extends EventEngineTestAbstract
     protected function getFlavour(): Flavour
     {
         return new PrototypingFlavour();
+    }
+
+    protected function getFlavourWithUserMetadataProvider(): Flavour
+    {
+        return new PrototypingFlavour(null, new UserMetadataProvider());
     }
 
     protected function getChangeUsernamePreProcessor(MessageFactory $messageFactory, AggregateStateStore $stateStore)

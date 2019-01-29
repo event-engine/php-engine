@@ -28,6 +28,7 @@ use EventEngineExample\FunctionalFlavour\ProcessManager\SendWelcomeEmail;
 use EventEngineExample\FunctionalFlavour\Projector\RegisteredUsersProjector;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUsersResolver;
+use EventEngineExample\PrototypingFlavour\Aggregate\UserMetadataProvider;
 
 class EventEngineFunctionalFlavourTest extends EventEngineTestAbstract
 {
@@ -40,6 +41,11 @@ class EventEngineFunctionalFlavourTest extends EventEngineTestAbstract
     protected function getFlavour(): Flavour
     {
         return new FunctionalFlavour(new ExampleFunctionalPort());
+    }
+
+    protected function getFlavourWithUserMetadataProvider(): Flavour
+    {
+        return new FunctionalFlavour(new ExampleFunctionalPort(), null, new UserMetadataProvider());
     }
 
     protected function getChangeUsernamePreProcessor(MessageFactory $messageFactory, AggregateStateStore $stateStore)

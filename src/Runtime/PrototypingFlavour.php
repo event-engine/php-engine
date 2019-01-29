@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace EventEngine\Runtime;
 
 use EventEngine\Aggregate\ContextProvider;
+use EventEngine\Aggregate\MetadataProvider;
 use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\Data\DataConverter;
 use EventEngine\Data\ImmutableRecordDataConverter;
@@ -55,13 +56,19 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
      */
     private $stateConverter;
 
-    public function __construct(DataConverter $dataConverter = null)
+    /**
+     * @var MetadataProvider
+     */
+    private $aggregateMetadataProvider;
+
+    public function __construct(DataConverter $dataConverter = null, MetadataProvider $metadataProvider = null)
     {
         if (null === $dataConverter) {
             $dataConverter = new ImmutableRecordDataConverter();
         }
 
         $this->stateConverter = $dataConverter;
+        $this->aggregateMetadataProvider = $metadataProvider;
     }
 
     public function setMessageFactory(MessageFactory $messageFactory): void
@@ -200,6 +207,20 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array
     {
         return $this->stateConverter->convertDataToArray($aggregateType, $aggregateState);
+    }
+
+    public function canProvideAggregateMetadata(string $aggregateType): bool
+    {
+        return $this->aggregateMetadataProvider !== null;
+    }
+
+    public function provideAggregateMetadata(string $aggregateType, int $version, $aggregateState): array
+    {
+        if($this->aggregateMetadataProvider) {
+            return $this->aggregateMetadataProvider->provideAggregateMetadata($aggregateType, $version, $aggregateState);
+        }
+
+        return [];
     }
 
     public function canBuildAggregateState(string $aggregateType): bool

@@ -142,6 +142,10 @@ interface Flavour
      */
     public function convertAggregateStateToArray(string $aggregateType, $aggregateState): array;
 
+    public function canProvideAggregateMetadata(string $aggregateType): bool;
+
+    public function provideAggregateMetadata(string $aggregateType, int $version, $aggregateState): array;
+
     public function canBuildAggregateState(string $aggregateType): bool;
 
     /**
