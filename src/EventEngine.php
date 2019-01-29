@@ -1026,17 +1026,55 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         foreach ($this->commandRouting as $commandName => $commandProcessorDesc) {
             $descArr = $commandProcessorDesc();
 
+            //Some procedural PHP array handling/hacking. Modify with care!
             if ($descArr['createAggregate']) {
-                $aggregateDescriptions[$descArr['aggregateType']] = [
-                    'aggregateType' => $descArr['aggregateType'],
-                    'aggregateIdentifier' => $descArr['aggregateIdentifier'],
-                    'eventApplyMap' => $descArr['eventRecorderMap'],
-                    'aggregateStream' => $descArr['streamName'],
-                    'aggregateCollection' => $descArr['aggregateCollection'] ?? AggregateProjector::aggregateCollectionName(
-                            '0.1.0',
-                            $descArr['aggregateType']
-                        )
-                ];
+                //If multiple aggregate factories are described for the same AggregateType, we try to help the dev to avoid bugs
+                if(array_key_exists($descArr['aggregateType'], $aggregateDescriptions)) {
+                    $aggregateDesc = $aggregateDescriptions[$descArr['aggregateType']];
+
+                    //Check that target stream is either the default, defined once or always the same.
+                    if($descArr['streamName'] && $aggregateDesc['aggregateStream'] !== $descArr['streamName']) {
+                        if($aggregateDesc['aggregateStream'] === $this->writeModelStreamName()) {
+                            $aggregateDescriptions[$descArr['aggregateType']]['aggregateStream'] = $descArr['streamName'];
+                        } else {
+                            throw new RuntimeException(sprintf(
+                                "Two aggregate factory descriptions define different stream names %s and %s for %s",
+                                $aggregateDesc['aggregateStream'],
+                                $descArr['streamName'],
+                                $descArr['aggregateType']
+                            ));
+                        }
+                    }
+
+                    //Check that target state collection is either the default, defined once or always the same.
+                    if($descArr['aggregateCollection'] && $aggregateDesc['aggregateCollection'] !== $descArr['aggregateCollection']) {
+                        if($aggregateDesc['aggregateCollection'] === AggregateProjector::aggregateCollectionName(
+                                '0.1.0',
+                                $descArr['aggregateType']
+                            )) {
+                            $aggregateDescriptions[$descArr['aggregateType']]['aggregateCollection'] = $descArr['aggregateCollection'];
+                        } else {
+                            throw new RuntimeException(sprintf(
+                                "Two aggregate factory descriptions define different aggregate collections %s and %s for %s",
+                                $aggregateDesc['aggregateCollection'],
+                                $descArr['aggregateCollection'],
+                                $descArr['aggregateType']
+                            ));
+                        }
+                    }
+                } else {
+                    //Take aggregate description from first aggregate factory description
+                    $aggregateDescriptions[$descArr['aggregateType']] = [
+                        'aggregateType' => $descArr['aggregateType'],
+                        'aggregateIdentifier' => $descArr['aggregateIdentifier'] ?? 'id',
+                        'eventApplyMap' => $descArr['eventRecorderMap'],
+                        'aggregateStream' => $descArr['streamName'] ?? $this->writeModelStreamName(),
+                        'aggregateCollection' => $descArr['aggregateCollection'] ?? AggregateProjector::aggregateCollectionName(
+                                '0.1.0',
+                                $descArr['aggregateType']
+                            )
+                    ];
+                }
             }
 
             $this->compiledCommandRouting[$commandName] = $descArr;
@@ -1050,9 +1088,15 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             }
 
             if(null === $descArr['aggregateIdentifier']) {
+                //Aggregate identifier can be different for each command, but if no one is set the default identifier of the aggregate description is used
                 $descArr['aggregateIdentifier'] = $aggregateDesc['aggregateIdentifier'];
             }
 
+            if(null === $descArr['streamName']) {
+                $descArr['streamName'] = $aggregateDesc['aggregateStream'];
+            }
+
+            //Build complete event apply map. Duplicate apply descriptions are overridden due to event name being the array key in both lists.
             $aggregateDesc['eventApplyMap'] = \array_merge($aggregateDesc['eventApplyMap'], $descArr['eventRecorderMap']);
             $aggregateDescriptions[$descArr['aggregateType']] = $aggregateDesc;
         }

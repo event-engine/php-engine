@@ -186,10 +186,6 @@ final class CommandProcessorDescription
             $eventRecorderMap[$eventName] = $desc()['apply'];
         }
 
-        if($this->createAggregate && !$this->aggregateIdentifier) {
-            $this->aggregateIdentifier = 'id';
-        }
-
         return [
             'commandName' => $this->commandName,
             'createAggregate' => $this->createAggregate,
@@ -198,7 +194,7 @@ final class CommandProcessorDescription
             'aggregateFunction' => $this->aggregateFunction,
             'aggregateCollection' => $this->aggregateCollection,
             'eventRecorderMap' => $eventRecorderMap,
-            'streamName' => $this->aggregateStream ?? $this->eventEngine->writeModelStreamName(),
+            'streamName' => $this->aggregateStream,
             'contextProvider' => $this->contextProvider,
         ];
     }
