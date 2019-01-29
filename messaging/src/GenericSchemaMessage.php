@@ -275,10 +275,6 @@ abstract class GenericSchemaMessage implements Message
         }
 
         foreach ($metadata as $key => $value) {
-            if(\mb_strlen($key, 'utf8') < 1) {
-                throw new RuntimeException('A metadata key must be non empty string');
-            }
-
             self::assertSubLevel($value, 'Metadata');
         }
     }
