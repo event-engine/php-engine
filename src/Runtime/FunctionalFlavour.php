@@ -15,6 +15,7 @@ use EventEngine\Data\DataConverter;
 use EventEngine\Data\ImmutableRecordDataConverter;
 use EventEngine\Exception\NoGenerator;
 use EventEngine\Exception\RuntimeException;
+use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
@@ -81,7 +82,19 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        return $command->withMessage($this->port->callCommandPreProcessor($command->get(MessageBag::MESSAGE), $preProcessor));
+        $customCommand = $command->get(MessageBag::MESSAGE);
+
+        $modifiedCmd = $this->port->callCommandPreProcessor($customCommand, $preProcessor);
+
+        if($modifiedCmd instanceof CommandDispatchResult) {
+            return $modifiedCmd;
+        }
+
+        if($customCommand !== $modifiedCmd) {
+            return $this->port->decorateCommand($modifiedCmd);
+        }
+
+        return $command;
     }
 
     /**

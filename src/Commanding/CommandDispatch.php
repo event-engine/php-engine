@@ -30,7 +30,6 @@ final class CommandDispatch
      * @param Flavour $flavour
      * @param EventStore $eventStore
      * @param LoggerInterface $log
-     * @param array $preProcessors
      * @param array $processorDescription
      * @param array $aggregateDescriptions
      * @param MessageProducer $eventQueue
@@ -44,7 +43,6 @@ final class CommandDispatch
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $log,
-        array &$preProcessors,
         array &$processorDescription,
         array &$aggregateDescriptions,
         bool $autoPublish,
@@ -54,18 +52,6 @@ final class CommandDispatch
         DocumentStore $documentStore = null,
         ContextProvider $contextProvider = null): CommandDispatchResult
     {
-        foreach ($preProcessors as $preProcessor) {
-            $orgCommand = $command;
-            $command = $flavour->callCommandPreProcessor($preProcessor, $command);
-
-            if($command instanceof CommandDispatchResult) {
-                $log->preProcessorReturnedDispatchResult($preProcessor, $orgCommand, $command);
-                return $command;
-            } else {
-                $log->preProcessorCalled($preProcessor, $orgCommand, $command);
-            }
-        }
-
         if(empty($processorDescription)) {
             throw new RuntimeException("No routing information found for command {$command->messageName()}");
         }

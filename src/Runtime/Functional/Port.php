@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Runtime\Functional;
 
+use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 
@@ -29,6 +30,12 @@ interface Port
     public function serializePayload($customMessage): array;
 
     /**
+     * @param mixed $customCommand
+     * @return MessageBag
+     */
+    public function decorateCommand($customCommand): MessageBag;
+
+    /**
      * @param mixed $customEvent
      * @return MessageBag
      */
@@ -44,7 +51,7 @@ interface Port
     /**
      * @param mixed $customCommand
      * @param mixed $preProcessor Custom preprocessor
-     * @return mixed Custom message
+     * @return mixed|CommandDispatchResult Custom message or CommandDispatchResult
      */
     public function callCommandPreProcessor($customCommand, $preProcessor);
 

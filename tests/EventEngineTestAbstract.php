@@ -29,8 +29,10 @@ use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageDispatcher;
+use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
 use EventEngine\Messaging\MessageProducer;
+use EventEngine\Persistence\AggregateStateStore;
 use EventEngine\Persistence\InMemoryConnection;
 use EventEngine\Persistence\Stream;
 use EventEngine\Projecting\AggregateProjector;
@@ -61,6 +63,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     abstract protected function getRegisteredUsersProjector(DocumentStore $documentStore);
 
     abstract protected function getUserRegisteredListener(MessageDispatcher $messageDispatcher);
+
+    abstract protected function getChangeUsernamePreProcessor(MessageFactory $messageFactory, AggregateStateStore $stateStore);
 
     abstract protected function getUserResolver(array $cachedUserState);
 
@@ -119,6 +123,19 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->appContainer = null;
         $this->inMemoryConnection = null;
         $this->flavour = null;
+    }
+
+    protected function setUpChangeUsernamePreProcessor(): void
+    {
+        $factory = function () {
+            return $this->getChangeUsernamePreProcessor($this->eventEngine->messageFactory(), $this->eventEngine);
+        };
+
+        $this->appContainer->get('change_username_preprocessor')->will(function ($args) use ($factory) {
+            return $factory();
+        });
+
+        $this->eventEngine->preProcess(Command::CHANGE_USERNAME, 'change_username_preprocessor');
     }
 
     protected function setUpAggregateProjector(
@@ -478,6 +495,48 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $userState = $this->eventEngine->loadAggregateState(Aggregate::USER, $userId);
 
         $this->assertLoadedUserState($userState);
+    }
+
+    /**
+     * @test
+     */
+    public function it_can_reroute_a_command()
+    {
+        $publishedEvents = [];
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+        });
+
+        $this->setUpChangeUsernamePreProcessor();
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $userId = Uuid::uuid4()->toString();
+
+        $changeUsername = $this->eventEngine->messageFactory()->createMessageFromArray(
+            Command::CHANGE_USERNAME,
+            [
+                'payload' => [
+                    UserDescription::IDENTIFIER => $userId,
+                    UserDescription::USERNAME => 'Alex',
+                ],
+                'metadata' => [
+                    'auth' => [UserDescription::EMAIL => 'contact@prooph.de',]
+                ]
+            ]
+        );
+
+        $result = $this->eventEngine->dispatch($changeUsername);
+
+        $recordedEvents = $result->recordedEvents();
+
+        self::assertCount(1, $recordedEvents);
+        self::assertCount(1, $publishedEvents);
+        /** @var GenericEvent $event */
+        $event = $recordedEvents[0];
+
+        $this->assertEquals(Event::USER_WAS_REGISTERED, $event->messageName());
     }
 
     /**

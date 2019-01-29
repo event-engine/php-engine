@@ -14,6 +14,8 @@ namespace EventEngineTest;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\EventEngine;
 use EventEngine\Messaging\MessageDispatcher;
+use EventEngine\Messaging\MessageFactory;
+use EventEngine\Persistence\AggregateStateStore;
 use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\FunctionalFlavour;
@@ -21,6 +23,7 @@ use EventEngineExample\FunctionalFlavour\Aggregate\UserDescription;
 use EventEngineExample\FunctionalFlavour\Aggregate\UserState;
 use EventEngineExample\FunctionalFlavour\Api\MessageDescription;
 use EventEngineExample\FunctionalFlavour\ExampleFunctionalPort;
+use EventEngineExample\FunctionalFlavour\PreProcessor\RegisterUserIfNotExists;
 use EventEngineExample\FunctionalFlavour\ProcessManager\SendWelcomeEmail;
 use EventEngineExample\FunctionalFlavour\Projector\RegisteredUsersProjector;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
@@ -37,6 +40,11 @@ class EventEngineFunctionalFlavourTest extends EventEngineTestAbstract
     protected function getFlavour(): Flavour
     {
         return new FunctionalFlavour(new ExampleFunctionalPort());
+    }
+
+    protected function getChangeUsernamePreProcessor(MessageFactory $messageFactory, AggregateStateStore $stateStore)
+    {
+        return new RegisterUserIfNotExists($messageFactory, $stateStore);
     }
 
     protected function getRegisteredUsersProjector(DocumentStore $documentStore)

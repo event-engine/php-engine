@@ -26,6 +26,7 @@ use EventEngine\Exception\BadMethodCallException;
 use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Exception\RuntimeException;
 use EventEngine\Logger\LogEngine;
+use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\GenericSchemaMessageFactory;
 use EventEngine\Messaging\Message;
@@ -715,15 +716,27 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         switch ($messageOrName->messageType()) {
             case Message::TYPE_COMMAND:
                 $processorDesc = $this->compiledCommandRouting[$messageOrName->messageName()] ?? [];
+                $command = $messageOrName;
 
-                $container = $this->container;
-
-                $preProcessors = array_map(function ($preProcessor) use ($container) {
+                foreach ($this->commandPreProcessors[$messageOrName->messageName()] ?? [] as $preProcessor) {
                     if (\is_string($preProcessor)) {
                         $preProcessor = $this->container->get($preProcessor);
                     }
-                    return $preProcessor;
-                }, $this->commandPreProcessors[$messageOrName->messageName()] ?? []);
+
+                    $command = $this->flavour->callCommandPreProcessor($preProcessor, $command);
+
+                    if($command instanceof CommandDispatchResult) {
+                        $this->log->preProcessorReturnedDispatchResult($preProcessor, $messageOrName, $command);
+                        return $command;
+                    } else {
+                        $this->log->preProcessorCalled($preProcessor, $messageOrName, $command);
+                    }
+                }
+
+                //Preprocessor has rerouted command
+                if($command->messageName() !== $messageOrName->messageName()) {
+                    return $this->dispatch($command);
+                }
 
                 $this->clearAggregateCache();
 
@@ -732,7 +745,6 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $this->flavour,
                     $this->eventStore,
                     $this->log,
-                    $preProcessors,
                     $processorDesc,
                     $this->aggregateDescriptions,
                     $this->autoPublishEnabled,

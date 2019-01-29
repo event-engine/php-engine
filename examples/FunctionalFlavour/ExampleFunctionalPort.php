@@ -33,7 +33,7 @@ final class ExampleFunctionalPort implements Port
                     return $message;
                 }
 
-                return Command::createFromNameAndPayload($message->messageName(), $message->payload());
+                return Command::createFromNameAndPayload($message->messageName(), $message->payload(), $message->metadata());
             case Message::TYPE_EVENT:
                 return Event::createFromNameAndPayload($message->messageName(), $message->payload());
             case Message::TYPE_QUERY:
@@ -49,6 +49,15 @@ final class ExampleFunctionalPort implements Port
         //Since, we use objects with public properties as custom messages, casting to array is enough
         //In a production setting, you should use your own immutable messages and a serializer
         return (array) $customMessage;
+    }
+
+    public function decorateCommand($customCommand): MessageBag
+    {
+        return new MessageBag(
+            Command::nameOf($customCommand),
+            MessageBag::TYPE_COMMAND,
+            $customCommand
+        );
     }
 
     /**

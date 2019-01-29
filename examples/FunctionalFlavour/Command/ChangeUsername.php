@@ -26,4 +26,6 @@ final class ChangeUsername
      * @var string
      */
     public $username;
+
+    public $metadata = [];
 }
