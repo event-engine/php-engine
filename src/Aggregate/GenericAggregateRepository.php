@@ -68,6 +68,10 @@ final class GenericAggregateRepository
     {
         $domainEvents = $aggregateRoot->popRecordedEvents();
 
+        if(count($domainEvents) === 0) {
+            return $domainEvents;
+        }
+
         if($this->eventStore instanceof MultiModelStore) {
             $this->eventStore->connection()->beginTransaction();
 
