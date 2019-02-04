@@ -15,7 +15,7 @@ use EventEngine\Schema\Exception\RuntimeException;
 
 final class QueryMap
 {
-    private $queries;
+    private $queries = [];
 
     public static function fromEventEngineMapAndQueryDescriptions(array $map, array $descriptions): self
     {

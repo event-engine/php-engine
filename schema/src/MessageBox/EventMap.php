@@ -13,7 +13,7 @@ namespace EventEngine\Schema\MessageBox;
 
 final class EventMap
 {
-    private $events;
+    private $events = [];
 
     public static function fromEventEngineMap(array $map): self
     {

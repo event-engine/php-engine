@@ -15,7 +15,7 @@ use EventEngine\Schema\PayloadSchema;
 
 final class CommandMap
 {
-    private $commands;
+    private $commands = [];
 
     public static function fromEventEngineMap(array $map): self
     {
