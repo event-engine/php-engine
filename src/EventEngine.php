@@ -279,6 +279,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $self->commandMap = array_map($mapPayloadSchema, $config['commandMap']);
         $self->eventMap = array_map($mapPayloadSchema, $config['eventMap']);
         $self->compiledCommandRouting = $config['compiledCommandRouting'];
+        $self->commandPreProcessors = $config['commandPreProcessors'] ?? [];
         $self->aggregateDescriptions = $config['aggregateDescriptions'];
         $self->eventRouting = $config['eventRouting'] ?? [];
         $self->compiledProjectionDescriptions = $config['compiledProjectionDescriptions'] ?? [];
@@ -343,6 +344,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             'commandMap' => array_map($schemaToArray, $this->commandMap),
             'eventMap' => array_map($schemaToArray, $this->eventMap),
             'compiledCommandRouting' => $this->compiledCommandRouting,
+            'commandPreProcessors' => $this->commandPreProcessors,
             'aggregateDescriptions' => $this->aggregateDescriptions,
             'eventRouting' => $this->eventRouting,
             'compiledProjectionDescriptions' => $this->compiledProjectionDescriptions,
