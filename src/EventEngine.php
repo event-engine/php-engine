@@ -696,12 +696,12 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      * {@inheritdoc}
      * @throws \Throwable
      */
-    public function dispatch($messageOrName, array $payload = [])
+    public function dispatch($messageOrName, array $payload = [], array $metadata = [])
     {
         $this->assertBootstrapped(__METHOD__);
 
         if (\is_string($messageOrName)) {
-            $messageOrName = $this->messageFactory()->createMessageFromArray($messageOrName, ['payload' => $payload]);
+            $messageOrName = $this->messageFactory()->createMessageFromArray($messageOrName, ['payload' => $payload, 'metadata' => $metadata]);
         } else {
             $messageOrName = $this->flavour->convertMessageReceivedFromNetwork($messageOrName);
         }

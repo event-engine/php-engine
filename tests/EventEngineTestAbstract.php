@@ -336,6 +336,35 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
+    public function it_creates_message_on_dispatch_if_name_payload_and_metadata_is_given()
+    {
+        $publishedEvents = [];
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+        });
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $userId = Uuid::uuid4()->toString();
+
+        $result = $this->eventEngine->dispatch(Command::REGISTER_USER, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::USERNAME => 'Alex',
+            UserDescription::EMAIL => 'contact@prooph.de',
+        ], [
+            'meta' => 'test'
+        ]);
+
+        $dispatchedCommand = $result->dispatchedCommand();
+
+        $this->assertEquals('test', $dispatchedCommand->metadata()['meta']);
+    }
+
+    /**
+     * @test
+     */
     public function it_can_handle_command_for_existing_aggregate()
     {
 
