@@ -212,7 +212,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
         if ($message instanceof MessageBag && $message->hasMessage()) {
             $payload = $this->port->serializePayload($message->get(MessageBag::MESSAGE));
 
-            return $this->messageFactory->setPayloadFor($message, $payload);
+            return $message->withValidatedPayload($payload);
         }
 
         return $message;

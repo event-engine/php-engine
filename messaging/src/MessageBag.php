@@ -221,6 +221,11 @@ final class MessageBag implements Message
     {
         $assertion->assertPayload($this->messageName, $payload, $payloadSchema, $typeSchemaMap);
 
+        return self::withValidatedPayload($payload);
+    }
+
+    public function withValidatedPayload(array $payload): Message
+    {
         $copy = clone $this;
         $copy->message = null;
         $copy->replacedPayload = true;
