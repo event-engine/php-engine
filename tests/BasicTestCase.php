@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace EventEngineTest;
 
 use EventEngine\JsonSchema\JsonSchema;
-use EventEngine\JsonSchema\JustinRainbowJsonSchema;
 use EventEngine\Messaging\GenericCommand;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\MessageFactory;
@@ -23,11 +22,6 @@ use Prophecy\Argument;
 class BasicTestCase extends TestCase
 {
     /**
-     * @var Schema
-     */
-    private $schema;
-
-    /**
      * @var MessageFactory
      */
     private $commandMessageFactory;
@@ -36,15 +30,6 @@ class BasicTestCase extends TestCase
      * @var MessageFactory
      */
     private $eventMessageFactory;
-
-    protected function getSchema(): Schema
-    {
-        if (null === $this->schema) {
-            $this->schema = new JustinRainbowJsonSchema();
-        }
-
-        return $this->schema;
-    }
 
     protected function getMockedCommandMessageFactory(): MessageFactory
     {

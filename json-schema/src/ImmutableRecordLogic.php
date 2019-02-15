@@ -111,7 +111,7 @@ trait ImmutableRecordLogic
                     if (\array_key_exists($key, $arrayPropItemTypeMap) && ! self::isScalarType($arrayPropItemTypeMap[$key])) {
                         if ($isNullable && $this->{$key}() === null) {
                             $nativeData[$key] = null;
-                            continue;
+                            continue 2;
                         }
 
                         $nativeData[$key] = \array_map(function ($item) use ($key, &$arrayPropItemTypeMap) {
@@ -124,7 +124,7 @@ trait ImmutableRecordLogic
                 default:
                     if ($isNullable && $this->{$key}() === null) {
                         $nativeData[$key] = null;
-                        continue;
+                        continue 2;
                     }
                     $nativeData[$key] = $this->voTypeToNative($this->{$key}(), $key, $type);
             }

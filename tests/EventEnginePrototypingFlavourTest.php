@@ -34,7 +34,7 @@ use EventEngineExample\PrototypingFlavour\Resolver\GetUserResolver;
 use EventEngineExample\PrototypingFlavour\Resolver\GetUsersResolver;
 use Prophecy\Argument;
 
-class EventEnginePrototypingFlavourTest extends EventEngineTestAbstract
+abstract class EventEnginePrototypingFlavourTest extends EventEngineTestAbstract
 {
     protected function loadEventMachineDescriptions(EventEngine $eventEngine)
     {

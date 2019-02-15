@@ -12,10 +12,14 @@ declare(strict_types=1);
 namespace EventEngine\JsonSchema;
 
 use EventEngine\JsonSchema\Exception\InvalidArgumentException;
-use JsonSchema\Validator;
+use Opis\JsonSchema\Schema as OpisSchema;
+use Opis\JsonSchema\Validator;
 
-final class JustinRainbowJsonSchema extends AbstractJsonSchema
+class OpisJsonSchema extends AbstractJsonSchema
 {
+    /**
+     * @var Validator
+     */
     private static $jsonValidator;
 
     public function assert(string $objectName, array $data, array $jsonSchema)
@@ -24,26 +28,32 @@ final class JustinRainbowJsonSchema extends AbstractJsonSchema
             $data = new \stdClass();
         }
 
+        if (empty($jsonSchema['properties'])) {
+            // properties must be an object
+            unset($jsonSchema['properties']);
+        }
+
         $enforcedObjectData = \json_decode(\json_encode($data));
-        $jsonSchema = \json_decode(\json_encode($jsonSchema));
 
-        $this->jsonValidator()->validate($enforcedObjectData, $jsonSchema);
+        $result = $this->jsonValidator()->schemaValidation($enforcedObjectData, OpisSchema::fromJsonString(\json_encode($jsonSchema)));
 
-        if (! $this->jsonValidator()->isValid()) {
-            $errors = $this->jsonValidator()->getErrors();
+        if (! $result->isValid()) {
+            $errors = [];
 
-            $this->jsonValidator()->reset();
+            foreach ($result->getErrors() as $error) {
+                $errors[] = \sprintf('[%s] %s', $error->keyword(), \json_encode($error->keywordArgs(), JSON_PRETTY_PRINT));
 
-            foreach ($errors as $i => $error) {
-                $errors[$i] = \sprintf("[%s] %s\n", $error['property'], $error['message']);
+                if ($error->subErrorsCount()) {
+                    foreach ($error->subErrors() as $subError) {
+                        $errors[] = \sprintf("[%s] %s\n", $subError->keyword(), \json_encode($subError->keywordArgs(), JSON_PRETTY_PRINT));
+                    }
+                }
             }
 
             throw new InvalidArgumentException(
                 "Validation of $objectName failed: " . \implode("\n", $errors)
             );
         }
-
-        $this->jsonValidator()->reset();
     }
 
     private function jsonValidator(): Validator
