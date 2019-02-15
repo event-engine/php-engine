@@ -40,6 +40,7 @@ use EventEngine\Prooph\V7\EventStore\InMemoryEventStore;
 use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
 use EventEngine\Runtime\Flavour;
+use EventEngine\Schema\Schema;
 use EventEngineExample\FunctionalFlavour\Api\Query;
 use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
@@ -74,6 +75,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
     abstract protected function assertLoadedUserState($userState): void;
 
+    abstract protected function getSchemaInstance(): Schema;
+
     /**
      * @var EventEngine
      */
@@ -103,7 +106,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
     protected function setUp()
     {
-        $this->eventEngine = new EventEngine(new JustinRainbowJsonSchema());
+        $this->eventEngine = new EventEngine($this->getSchemaInstance());
 
         $this->loadEventMachineDescriptions($this->eventEngine);
 
@@ -817,7 +820,9 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->eventEngine->messageFactory()->createMessageFromArray('Guest', ['payload' => $guest]);
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of IdentifiedVisitor payload failed: \[email\] The property email is required/');
+        $this->expectExceptionMessageRegExp('/Validation of IdentifiedVisitor payload failed:');
+        $this->expectExceptionMessageRegExp('/\[email\]/');
+        $this->expectExceptionMessageRegExp('/required/');
 
         $this->eventEngine->messageFactory()->createMessageFromArray('IdentifiedVisitor', ['payload' => $guest]);
     }
@@ -841,7 +846,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->bootstrapEventEngine();
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of ball payload failed: \[color\] Does not have a value in the enumeration \["red","blue","yellow"\]/');
+        $this->expectExceptionMessageRegExp('/Validation of ball payload failed:/');
+        $this->expectExceptionMessageRegExp('/\[color\]/');
+        $this->expectExceptionMessageRegExp('/"red"/');
+        $this->expectExceptionMessageRegExp('/"blue"/');
+        $this->expectExceptionMessageRegExp('/"yellow"/');
 
         $this->eventEngine->messageFactory()->createMessageFromArray('ball', ['payload' => ['color' => 'green']]);
     }
@@ -868,7 +877,10 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         ];
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of AddIdentity payload failed: \[identity.password\] Integer value found, but a string is required/');
+        $this->expectExceptionMessageRegExp('/Validation of AddIdentity payload failed:/');
+        $this->expectExceptionMessageRegExp('/\[identity.password\] Integer value found, but a string is required/');
+        $this->expectExceptionMessageRegExp('/integer/');
+        $this->expectExceptionMessageRegExp('/string/');
 
         $this->eventEngine->messageFactory()->createMessageFromArray('AddIdentity', ['payload' => $userIdentityData]);
     }

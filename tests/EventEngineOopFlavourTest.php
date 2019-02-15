@@ -1,12 +1,11 @@
 <?php
 /**
- * This file is part of the proophsoftware/event-machine.
- * (c) 2017-2018 prooph software GmbH <contact@prooph.de>
+ * This file is part of event-engine/php-engine.
+ * (c) 2018-2019 prooph software GmbH <contact@prooph.de>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 declare(strict_types=1);
 
 namespace EventEngineTest;
@@ -16,7 +15,6 @@ use EventEngine\EventEngine;
 use EventEngine\Messaging\MessageDispatcher;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Persistence\AggregateStateStore;
-use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\FunctionalFlavour;
 use EventEngine\Runtime\OopFlavour;
@@ -32,7 +30,7 @@ use EventEngineExample\OopFlavour\Aggregate\UserDescription;
 use EventEngineExample\OopFlavour\ExampleOopPort;
 use EventEngineExample\OopFlavour\ExampleOopPortWithUserMetadataProvider;
 
-class EventEngineOopFlavourTest extends EventEngineTestAbstract
+abstract class EventEngineOopFlavourTest extends EventEngineTestAbstract
 {
     protected function loadEventMachineDescriptions(EventEngine $eventMachine)
     {

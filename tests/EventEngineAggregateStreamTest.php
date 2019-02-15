@@ -14,7 +14,6 @@ namespace EventEngineTest;
 use EventEngine\EventEngine;
 use EventEngine\EventStore\EventStore;
 use EventEngine\JsonSchema\JsonSchema;
-use EventEngine\JsonSchema\JustinRainbowJsonSchema;
 use EventEngine\Logger\DevNull;
 use EventEngine\Logger\SimpleMessageEngine;
 use EventEngine\Messaging\Message;
@@ -22,10 +21,11 @@ use EventEngine\Persistence\InMemoryConnection;
 use EventEngine\Prooph\V7\EventStore\InMemoryEventStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
 use EventEngine\Runtime\PrototypingFlavour;
+use EventEngine\Schema\Schema;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 
-class EventEngineAggregateStreamTest extends BasicTestCase
+abstract class EventEngineAggregateStreamTest extends BasicTestCase
 {
     private const AR_USER = 'User';
     private const CMD_REGISTER_USER = 'RegisterUser';
@@ -48,11 +48,13 @@ class EventEngineAggregateStreamTest extends BasicTestCase
      */
     private $eventStore;
 
+    abstract protected function getSchemaInstance(): Schema;
+
     protected function setUp()
     {
         parent::setUp();
 
-        $this->eventEngine = new EventEngine(new JustinRainbowJsonSchema());
+        $this->eventEngine = new EventEngine($this->getSchemaInstance());
 
         $this->eventEngine->registerCommand(self::CMD_REGISTER_USER, JsonSchema::object([
             'id' => JsonSchema::uuid(),

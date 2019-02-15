@@ -16,7 +16,6 @@ use EventEngine\EventEngine;
 use EventEngine\Messaging\MessageDispatcher;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Persistence\AggregateStateStore;
-use EventEngine\Querying\Resolver;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\FunctionalFlavour;
 use EventEngineExample\FunctionalFlavour\Aggregate\UserDescription;
@@ -30,7 +29,7 @@ use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUsersResolver;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserMetadataProvider;
 
-class EventEngineFunctionalFlavourTest extends EventEngineTestAbstract
+abstract class EventEngineFunctionalFlavourTest extends EventEngineTestAbstract
 {
     protected function loadEventMachineDescriptions(EventEngine $eventEngine)
     {

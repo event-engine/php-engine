@@ -107,13 +107,16 @@ class ObjectType implements AnnotatedType, PayloadSchema, InputTypeSchema
             'type' => $this->type,
             'required' => $this->requiredProps,
             'additionalProperties' => $this->allowAdditionalProps,
-            'properties' => \array_map(function (Type $type) {
-                return $type->toArray();
-            }, $this->properties),
         ];
 
+        if (!empty($this->properties)) {
+            $schema['properties'] = \array_map(function (Type $type) {
+                return $type->toArray();
+            }, $this->properties);
+        }
+
         if (\count($allOf)) {
-            $schema['allOf'] = $allOf;
+            $schema['allOf'] = array_values($allOf);
         }
 
         return \array_merge($schema, $this->annotations());
