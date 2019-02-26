@@ -41,4 +41,19 @@ final class ProjectionInfoList
     {
         return $this->projections;
     }
+
+    /**
+     * @param string $projectionName
+     * @return ProjectionInfo
+     */
+    public function projection(string $projectionName): ?ProjectionInfo
+    {
+        foreach ($this->projections as $projectionInfo) {
+            if ($projectionInfo->name() === $projectionName) {
+                return $projectionInfo;
+            }
+        }
+        return null;
+    }
+
 }

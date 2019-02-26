@@ -72,7 +72,7 @@ final class GenericAggregateRepository
             return $domainEvents;
         }
 
-        if($this->eventStore instanceof MultiModelStore) {
+        if($this->eventStore instanceof MultiModelStore && $this->aggregateCollection) {
             $this->eventStore->connection()->beginTransaction();
 
             try {
@@ -124,13 +124,17 @@ final class GenericAggregateRepository
      * @param int|null $expectedVersion
      * @return null|FlavouredAggregateRoot
      */
-    public function getAggregateRoot(string $aggregateType, string $aggregateId, array $eventApplyMap, int $expectedVersion = null)
-    {
-        if(
-            $this->flavour->canBuildAggregateState($aggregateType)
-            && $this->aggregateCollection
-            && $documentStore = $this->getDocumentStore()) {
-
+    public function getAggregateRoot(
+        string $aggregateType,
+        string $aggregateId,
+        array $eventApplyMap,
+        int $expectedVersion = null
+    ): ?FlavouredAggregateRoot {
+        if (
+            $this->aggregateCollection
+            && $this->flavour->canBuildAggregateState($aggregateType)
+            && $documentStore = $this->getDocumentStore()
+        ) {
             $aggregateStateDoc = $documentStore->getDoc($this->aggregateCollection, $aggregateId);
 
             if($aggregateStateDoc) {
@@ -159,7 +163,6 @@ final class GenericAggregateRepository
                 return $aggregate;
             }
         }
-
 
         $streamEvents = $this->eventStore->loadAggregateEvents($this->streamName, $aggregateType, $aggregateId);
 
