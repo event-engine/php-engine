@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace EventEngineTest;
 
+use EventEngine\DocumentStore\DocumentStore;
+use EventEngine\DocumentStore\InMemoryDocumentStore;
 use EventEngine\EventEngine;
 use EventEngine\EventStore\EventStore;
 use EventEngine\JsonSchema\JsonSchema;
@@ -48,6 +50,11 @@ abstract class EventEngineAggregateStreamTest extends BasicTestCase
      */
     private $eventStore;
 
+    /**
+     * @var DocumentStore
+     */
+    private $documentStore;
+
     abstract protected function getSchemaInstance(): Schema;
 
     protected function setUp()
@@ -79,6 +86,7 @@ abstract class EventEngineAggregateStreamTest extends BasicTestCase
 
         $this->inMemoryConnection = new InMemoryConnection();
 
+        $this->documentStore = new InMemoryDocumentStore($this->inMemoryConnection);
         $this->eventStore = new ProophEventStore(new InMemoryEventStore($this->inMemoryConnection), true);
 
         $this->eventStore->createStream(self::AGGREGATE_STREAM);
@@ -87,7 +95,8 @@ abstract class EventEngineAggregateStreamTest extends BasicTestCase
             new PrototypingFlavour(),
             $this->eventStore,
             new SimpleMessageEngine(new DevNull()),
-            $this->prophesize(ContainerInterface::class)->reveal()
+            $this->prophesize(ContainerInterface::class)->reveal(),
+            $this->documentStore
         );
 
         $this->eventEngine->bootstrap(EventEngine::ENV_TEST, true);
@@ -112,5 +121,34 @@ abstract class EventEngineAggregateStreamTest extends BasicTestCase
         $user = $this->eventEngine->loadAggregateState(self::AR_USER, $userId);
 
         $this->assertEquals($name, $user['name']);
+    }
+
+    /**
+     * @test
+     */
+    public function it_can_rebuild_aggregate_state(): void
+    {
+        $userId = Uuid::uuid4()->toString();
+        $name = 'John';
+
+        $collectionName = 'User_Projection_0_1_0';
+
+        $this->documentStore->addCollection($collectionName);
+
+        $this->eventEngine->dispatch(self::CMD_REGISTER_USER, [
+            'id' => $userId,
+            'name' => $name,
+        ]);
+
+        $userState = $this->eventEngine->loadAggregateState(self::AR_USER, $userId);
+        $this->eventEngine->clearAggregateCache();
+
+        // ensure empty document store collection
+        $this->documentStore->deleteDoc($collectionName, $userId);
+
+        $this->eventEngine->rebuildAggregateState(self::AR_USER, $userId);
+        $userStateRebuild = $this->eventEngine->loadAggregateState(self::AR_USER, $userId);
+
+        $this->assertSame($userState, $userStateRebuild);
     }
 }

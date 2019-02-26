@@ -24,6 +24,8 @@ use EventEngine\DocumentStore\MultiFieldIndex;
 use EventEngine\EventStore\EventStore;
 use EventEngine\Exception\BadMethodCallException;
 use EventEngine\Exception\InvalidArgumentException;
+use EventEngine\Exception\MissingAggregateCollection;
+use EventEngine\Exception\NoDocumentStore;
 use EventEngine\Exception\RuntimeException;
 use EventEngine\Logger\LogEngine;
 use EventEngine\Messaging\CommandDispatchResult;
@@ -35,6 +37,8 @@ use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
 use EventEngine\Messaging\MessageProducer;
 use EventEngine\Persistence\AggregateStateStore;
+use EventEngine\Persistence\DeletableState;
+use EventEngine\Persistence\MultiModelStore;
 use EventEngine\Persistence\Stream;
 use EventEngine\Projecting\AggregateProjector;
 use EventEngine\Projecting\CustomEventProjector;
@@ -795,6 +799,65 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $this->dispatch($message);
     }
 
+    /**
+     * Loads all events from aggregate and saves the aggregate state. No cache is used.
+     *
+     * @param string $aggregateType
+     * @param string $aggregateId
+     */
+    public function rebuildAggregateState(string $aggregateType, string $aggregateId): void
+    {
+        if (null === $this->documentStore && !$this->eventStore instanceof MultiModelStore) {
+            throw NoDocumentStore::forAggregate($aggregateType, $aggregateId);
+        }
+        $aggregateCollection = $this->aggregateDescriptions[$aggregateType]['aggregateCollection'] ?? null;
+
+        if (null === $aggregateCollection) {
+            throw MissingAggregateCollection::forAggregate($aggregateType);
+        }
+        $aggregateRoot = $this->loadAggregateRoot($aggregateType, $aggregateId);
+
+        $aggregateState = $aggregateRoot->currentState();
+
+        if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
+            if ($this->eventStore instanceof MultiModelStore) {
+                $this->eventStore->deleteDoc(
+                    $aggregateCollection,
+                    (string)$aggregateRoot->aggregateId()
+                );
+            } else {
+                $this->documentStore->deleteDoc(
+                    $aggregateCollection,
+                    (string)$aggregateRoot->aggregateId()
+                );
+            }
+            return;
+        }
+
+        $doc = [
+            'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $aggregateState),
+            'version' => $aggregateRoot->version()
+        ];
+
+        if($this->flavour->canProvideAggregateMetadata($aggregateRoot->aggregateType())) {
+            $doc['metadata'] = $this->flavour->provideAggregateMetadata($aggregateRoot->aggregateType(), $aggregateRoot->version(), $aggregateState);
+        }
+
+        if ($this->eventStore instanceof MultiModelStore) {
+            $this->eventStore->upsertDoc(
+                $aggregateCollection,
+                $aggregateRoot->aggregateId(),
+                $doc
+            );
+        } else {
+            $this->documentStore->upsertDoc(
+                $aggregateCollection,
+                $aggregateRoot->aggregateId(),
+                $doc
+            );
+        }
+    }
+
     public function loadAggregateState(string $aggregateType, string $aggregateId, int $expectedVersion = null)
     {
         $this->assertBootstrapped(__METHOD__);
@@ -807,7 +870,15 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             $this->log->aggregateStateLoadedFromCache($aggregateType, $aggregateId, $expectedVersion);
             return $cachedAggregate;
         }
+        $aggregate = $this->loadAggregateRoot($aggregateType, $aggregateId, $expectedVersion);
 
+        $this->cacheAggregateState($aggregateType, $aggregateId, $aggregate->version(), $aggregate->currentState());
+
+        return $aggregate->currentState();
+    }
+
+    private function loadAggregateRoot(string $aggregateType, string $aggregateId, int $expectedVersion = null)
+    {
         $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
 
         $arRepository = new GenericAggregateRepository(
@@ -824,12 +895,9 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         if (! $aggregate) {
             throw AggregateNotFound::with($aggregateType, $aggregateId);
         }
-
         $this->log->aggregateStateLoaded($aggregate->aggregateType(), $aggregate->aggregateId(), $aggregate->version());
 
-        $this->cacheAggregateState($aggregateType, $aggregateId, $aggregate->version(), $aggregate->currentState());
-
-        return $aggregate->currentState();
+        return $aggregate;
     }
 
     /**
@@ -915,7 +983,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                         $projectionName,
                         $this->compiledProjectionDescriptions[$projectionName][ProjectionDescription::PROJECTOR_SERVICE_ID] ?? 'Unknown',
                         $error
-                        );
+                    );
                 }
             }
         }
@@ -996,20 +1064,21 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             'state' => $aggregateState
         ];
     }
+
     /**
      * @param string $aggregateType
      * @param string $aggregateId
+     * @param int|null $expectedVersion
      * @return null|mixed Null is returned if no state is cached, otherwise the cached process state
      */
     public function loadAggregateStateFromCache(string $aggregateType, string $aggregateId, int $expectedVersion = null)
     {
         $cache = $this->aggregateCache[$aggregateType][$aggregateId] ?? null;
-        if(!$cache) {
+        if (!$cache) {
             return null;
         }
-        if($expectedVersion) {
-            if($expectedVersion !== $cache['version']) {return null;
-            }
+        if ($expectedVersion && $expectedVersion !== $cache['version']) {
+            return null;
         }
         return $cache['state'];
     }

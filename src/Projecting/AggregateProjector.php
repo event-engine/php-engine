@@ -66,7 +66,7 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
 
     public static function generateCollectionName(string $projectionVersion, string $projectionName): string
     {
-        return \str_replace('.', '_', $projectionName.'_'.$projectionVersion);
+        return \str_replace('.', '_', $projectionName . '_' . $projectionVersion);
     }
 
     public function __construct(DocumentStore $documentStore, AggregateStateStore $stateStore, $storeStateOnly = false)
@@ -131,7 +131,7 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
 
         if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
             $this->documentStore->deleteDoc(
-                $this->generateCollectionName($appVersion, $projectionName),
+                self::generateCollectionName($appVersion, $projectionName),
                 (string) $aggregateId
             );
 
@@ -152,7 +152,7 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
         }
 
         $this->documentStore->upsertDoc(
-            $this->generateCollectionName($appVersion, $projectionName),
+            self::generateCollectionName($appVersion, $projectionName),
             (string) $aggregateId,
             $document
         );
@@ -160,8 +160,8 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
 
     public function prepareForRun(string $appVersion, string $projectionName): void
     {
-        if (! $this->documentStore->hasCollection($this->generateCollectionName($appVersion, $projectionName))) {
-            $this->documentStore->addCollection($this->generateCollectionName($appVersion, $projectionName), ...$this->indices);
+        if (! $this->documentStore->hasCollection(self::generateCollectionName($appVersion, $projectionName))) {
+            $this->documentStore->addCollection(self::generateCollectionName($appVersion, $projectionName), ...$this->indices);
         }
     }
 
