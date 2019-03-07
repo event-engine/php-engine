@@ -332,6 +332,10 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             }
         };
 
+        if ($this->initialized === false) {
+            $this->compile();
+        }
+
         \array_walk_recursive($this->compiledCommandRouting, $assertClosure);
         \array_walk_recursive($this->aggregateDescriptions, $assertClosure);
         \array_walk_recursive($this->eventRouting, $assertClosure);
@@ -645,9 +649,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     ): self {
         $this->assertNotInitialized(__METHOD__);
 
-        $this->compileAggregateAndRoutingDescriptions();
-        $this->compileProjectionDescriptions();
-        $this->compileQueryDescriptions();
+        $this->compile();
 
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
@@ -1185,6 +1187,13 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         foreach ($this->queryDescriptions as $name => $description) {
             $this->compiledQueryDescriptions[$name] = $description();
         }
+    }
+
+    private function compile(): void
+    {
+        $this->compileAggregateAndRoutingDescriptions();
+        $this->compileProjectionDescriptions();
+        $this->compileQueryDescriptions();
     }
 
     private function assertNotInitialized(string $method)

@@ -41,6 +41,7 @@ use EventEngine\Prooph\V7\EventStore\InMemoryMultiModelStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
 use EventEngine\Runtime\Flavour;
 use EventEngine\Schema\Schema;
+use EventEngineExample\FunctionalFlavour\Api\MessageDescription;
 use EventEngineExample\FunctionalFlavour\Api\Query;
 use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
@@ -1020,6 +1021,34 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->assertEquals([
             'version' => 1
         ], $userState['metadata']);
+    }
+
+    /**
+     * @test
+     */
+    public function it_compiles_config_cache_without_initialize(): void
+    {
+        $eventEngine = new EventEngine($this->getSchemaInstance());
+        $eventEngine->load(MessageDescription::class);
+
+        $cacheableConfig = $eventEngine->compileCacheableConfig();
+
+        $this->assertCount(14, $cacheableConfig, 'Cache config contains other keys');
+
+        $this->assertArrayHasKey('aggregateDescriptions', $cacheableConfig);
+        $this->assertArrayHasKey('autoProjecting', $cacheableConfig);
+        $this->assertArrayHasKey('autoPublish', $cacheableConfig);
+        $this->assertArrayHasKey('commandMap', $cacheableConfig);
+        $this->assertArrayHasKey('commandPreProcessors', $cacheableConfig);
+        $this->assertArrayHasKey('compiledCommandRouting', $cacheableConfig);
+        $this->assertArrayHasKey('compiledProjectionDescriptions', $cacheableConfig);
+        $this->assertArrayHasKey('compiledQueryDescriptions', $cacheableConfig);
+        $this->assertArrayHasKey('eventMap', $cacheableConfig);
+        $this->assertArrayHasKey('eventRouting', $cacheableConfig);
+        $this->assertArrayHasKey('inputTypes', $cacheableConfig);
+        $this->assertArrayHasKey('queryMap', $cacheableConfig);
+        $this->assertArrayHasKey('responseTypes', $cacheableConfig);
+        $this->assertArrayHasKey('writeModelStreamName', $cacheableConfig);
     }
 
     private function assertUserWasRegistered(
