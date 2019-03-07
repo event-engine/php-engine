@@ -326,8 +326,6 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
     public function compileCacheableConfig(): array
     {
-        $this->assertInitialized(__METHOD__);
-
         $assertClosure = function ($val) {
             if ($val instanceof \Closure) {
                 throw new RuntimeException('At least one EventEngineDescription contains a Closure and is therefor not cacheable!');
