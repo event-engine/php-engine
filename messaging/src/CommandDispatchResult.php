@@ -38,6 +38,11 @@ final class CommandDispatchResult
         return new self($dispatchedCommand);
     }
 
+    public static function forCommandHandledByController(Message $dispatedCommand): self
+    {
+        return new self($dispatedCommand);
+    }
+
     private function __construct(Message $dispatchedCommand, string $effectedAggregateId = null, Message ...$recordedEvents)
     {
         $this->dispatchedCommand = $dispatchedCommand;

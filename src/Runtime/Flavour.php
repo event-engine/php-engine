@@ -29,11 +29,18 @@ use EventEngine\Querying\Resolver;
 interface Flavour
 {
     /**
-     * @param Message $command
      * @param mixed $preProcessor A callable or object pulled from app container
+     * @param Message $command
      * @return Message|CommandDispatchResult
      */
     public function callCommandPreProcessor($preProcessor, Message $command);
+
+    /**
+     * @param mixed $controller A callable or object pulled from app container
+     * @param Message $command
+     * @return Message[]|array[]|CommandDispatchResult
+     */
+    public function callCommandController($controller, Message $command);
 
     /**
      * Invoked by Event Machine after CommandPreProcessor to load aggregate in case it should exist

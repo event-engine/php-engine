@@ -17,6 +17,7 @@ use EventEngine\Aggregate\GenericAggregateRepository;
 use EventEngine\Commanding\CommandDispatch;
 use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\Commanding\CommandProcessorDescription;
+use EventEngine\Commanding\ControllerDispatch;
 use EventEngine\Data\ImmutableRecord;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\DocumentStore\FieldIndex;
@@ -63,6 +64,7 @@ use EventEngine\Schema\ResponseTypeSchema;
 use EventEngine\Schema\Schema;
 use EventEngine\Schema\TypeSchema;
 use EventEngine\Schema\TypeSchemaMap;
+use EventEngine\Util\MessageTuple;
 use EventEngine\Util\VariableType;
 use Psr\Container\ContainerInterface;
 
@@ -85,6 +87,13 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      * @var string[]
      */
     private $commandPreProcessors = [];
+
+    /**
+     * Map of command names and corresponding list of controllers given as container service ids or callable
+     *
+     * @var string[]|callable[]
+     */
+    private $commandControllers = [];
 
     /**
      * @var array
@@ -285,6 +294,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $self->eventMap = array_map($mapPayloadSchema, $config['eventMap']);
         $self->compiledCommandRouting = $config['compiledCommandRouting'];
         $self->commandPreProcessors = $config['commandPreProcessors'] ?? [];
+        $self->commandControllers = $config['commandControllers'] ?? [];
         $self->aggregateDescriptions = $config['aggregateDescriptions'];
         $self->eventRouting = $config['eventRouting'] ?? [];
         $self->compiledProjectionDescriptions = $config['compiledProjectionDescriptions'] ?? [];
@@ -342,6 +352,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         \array_walk_recursive($this->eventRouting, $assertClosure);
         \array_walk_recursive($this->projectionMap, $assertClosure);
         \array_walk_recursive($this->compiledQueryDescriptions, $assertClosure);
+        \array_walk_recursive($this->commandControllers, $assertClosure);
 
         $schemaToArray = function (TypeSchema $typeSchema): array  {
             return $typeSchema->toArray();
@@ -352,6 +363,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             'eventMap' => array_map($schemaToArray, $this->eventMap),
             'compiledCommandRouting' => $this->compiledCommandRouting,
             'commandPreProcessors' => $this->commandPreProcessors,
+            'commandControllers' => $this->commandControllers,
             'aggregateDescriptions' => $this->aggregateDescriptions,
             'eventRouting' => $this->eventRouting,
             'compiledProjectionDescriptions' => $this->compiledProjectionDescriptions,
@@ -527,11 +539,42 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $this;
     }
 
+    public function passToController(string $commandName, $controller): self
+    {
+        $this->assertNotInitialized(__METHOD__);
+
+        $this->assertNotInitialized(__METHOD__);
+
+        if (! $this->isKnownCommand($commandName)) {
+            throw new InvalidArgumentException("Controller attached to unknown command $commandName. You should register the command first");
+        }
+
+        if (! \is_string($controller) && ! \is_callable($controller)) {
+            throw new InvalidArgumentException('Controller should either be a service id given as string or callable. Got '
+                . VariableType::determine($controller));
+        }
+
+        if (\array_key_exists($commandName, $this->commandRouting)) {
+            throw new \BadMethodCallException('Method process was already called for the same command: ' . $commandName);
+        }
+
+        if (\array_key_exists($commandName, $this->commandControllers)) {
+            throw new \BadMethodCallException('Method passToController was already called for the same command: ' . $commandName);
+        }
+
+        $this->commandControllers[$commandName] = $controller;
+        return $this;
+    }
+
     public function process(string $commandName): CommandProcessorDescription
     {
         $this->assertNotInitialized(__METHOD__);
         if (\array_key_exists($commandName, $this->commandRouting)) {
             throw new \BadMethodCallException('Method process was called twice for the same command: ' . $commandName);
+        }
+
+        if (\array_key_exists($commandName, $this->commandControllers)) {
+            throw new \BadMethodCallException('Method passToController was already called for the same command: ' . $commandName);
         }
 
         if (! \array_key_exists($commandName, $this->commandMap)) {
@@ -722,7 +765,6 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         switch ($messageOrName->messageType()) {
             case Message::TYPE_COMMAND:
-                $processorDesc = $this->compiledCommandRouting[$messageOrName->messageName()] ?? [];
                 $command = $messageOrName;
 
                 foreach ($this->commandPreProcessors[$messageOrName->messageName()] ?? [] as $preProcessor) {
@@ -745,7 +787,23 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     return $this->dispatch($command);
                 }
 
+                if($controller = $this->commandControllers[$command->messageName()] ?? null) {
+                    if(is_string($controller)) {
+                        $controller = $this->container->get($controller);
+                    }
+
+                    return ControllerDispatch::exec(
+                        $messageOrName,
+                        $this->flavour,
+                        $this->log,
+                        $this,
+                        $controller
+                    );
+                }
+
                 $this->clearAggregateCache();
+
+                $processorDesc = $this->compiledCommandRouting[$messageOrName->messageName()] ?? [];
 
                 return CommandDispatch::exec(
                     $messageOrName,
@@ -775,18 +833,26 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $result = $this->flavour->callEventListener($listener, $messageOrName);
                     $this->log->eventListenerCalled($listener, $messageOrName);
 
-                    if($result && is_object($result) && $result instanceof Message) {
-                        $dispatchResults->push($this->dispatch($result));
+                    if(!$result) {
+                        continue;
                     }
 
-                    if($result && is_array($result) && count($result) > 1 && count($result) <= 3) {
-                        [$commandName, $payload] = $result;
-
-                        if(is_string($commandName) && is_array($payload) && $this->isKnownCommand($commandName)) {
-                            $metadata = $result[2] ?? [];
-                            $dispatchResults->push($this->dispatch($commandName, $payload, $metadata));
-                        }
+                    if(\is_object($result) && $result instanceof Message) {
+                        $dispatchResults = $dispatchResults->push($this->dispatch($result));
+                        continue;
                     }
+
+                    if (\is_array($result)) {
+                        [$commandName, $payload, $metadata] = MessageTuple::normalize($result);
+
+                        $dispatchResults = $dispatchResults->push($this->dispatch($commandName, $payload, $metadata));
+                        continue;
+                    }
+
+                    throw new RuntimeException(
+                        "Event listener " . Util\VariableType::determine($listener) . " returned a command, but Event Engine is unable to handle it. The command is either unknown or has the wrong format. Got "
+                        . Util\VariableType::determine($result)
+                    );
                 }
 
                 return $dispatchResults;
@@ -838,12 +904,12 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
             if ($this->eventStore instanceof MultiModelStore) {
                 $this->eventStore->deleteDoc(
-                    $aggregateCollection,
+                    (string)$aggregateCollection,
                     (string)$aggregateRoot->aggregateId()
                 );
             } else {
                 $this->documentStore->deleteDoc(
-                    $aggregateCollection,
+                    (string)$aggregateCollection,
                     (string)$aggregateRoot->aggregateId()
                 );
             }
@@ -861,13 +927,13 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         if ($this->eventStore instanceof MultiModelStore) {
             $this->eventStore->upsertDoc(
-                $aggregateCollection,
-                $aggregateRoot->aggregateId(),
+                (string)$aggregateCollection,
+                (string)$aggregateRoot->aggregateId(),
                 $doc
             );
         } else {
             $this->documentStore->upsertDoc(
-                $aggregateCollection,
+                (string)$aggregateCollection,
                 $aggregateRoot->aggregateId(),
                 $doc
             );

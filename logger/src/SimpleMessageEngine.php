@@ -78,6 +78,12 @@ class SimpleMessageEngine implements LogEngine
         $this->logger->info("Called context provider " . VariableType::determine($contextProvider) . " with command {$command->messageName()}");
     }
 
+    public function commandControllerCalled($controller, Message $command, $result)
+    {
+        $this->logger->info("Called command controller " . VariableType::determine($controller) . " with command {$command->messageName()}. Result is: "
+            . VariableType::convertCommandDispatchResultOrMessageArrayToString($result));
+    }
+
     public function eventPublished(Message $event): void
     {
         $this->logger->info(" Event {$event->messageName()} published on event queue");

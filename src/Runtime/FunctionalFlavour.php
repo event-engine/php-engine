@@ -105,6 +105,34 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     }
 
     /**
+     * @inheritdoc
+     */
+    public function callCommandController($controller, Message $command)
+    {
+        if (! $command instanceof MessageBag) {
+            throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
+        }
+
+        $customCommand = $command->get(MessageBag::MESSAGE);
+
+        $result = $this->port->callCommandController($customCommand, $controller);
+
+        if($result instanceof CommandDispatchResult) {
+            return $result;
+        }
+
+        if(null === $result) {
+            return CommandDispatchResult::forCommandHandledByController($command);
+        }
+
+        if(!is_array($result)) {
+            throw new RuntimeException("Functional Port returned invalid result from controller for command: {$command->messageName()}. It should either return NULL or an array of custom commands to be dispatched");
+        }
+
+        return $result;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, Message $command): string

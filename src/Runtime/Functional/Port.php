@@ -56,6 +56,15 @@ interface Port
     public function callCommandPreProcessor($customCommand, $preProcessor);
 
     /**
+     * Commands returned by the controller are dispatched automatically
+     *
+     * @param mixed $customCommand
+     * @param mixed $controller
+     * @return mixed[]|null Array of custom commands or null to indicate that no further action is required
+     */
+    public function callCommandController($customCommand, $controller);
+
+    /**
      * @param mixed $customCommand
      * @param mixed $contextProvider
      * @return mixed

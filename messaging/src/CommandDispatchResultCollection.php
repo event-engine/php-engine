@@ -11,6 +11,9 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
+use EventEngine\Exception\RuntimeException;
+use EventEngine\Util\VariableType;
+
 final class CommandDispatchResultCollection
 {
     /**
@@ -23,13 +26,36 @@ final class CommandDispatchResultCollection
         $this->results = $results;
     }
 
-    public function toIterator(): iterable
+    public function toArray(): iterable
     {
         return $this->results;
     }
 
-    public function push(CommandDispatchResult $result): void
+    /**
+     * @param CommandDispatchResult|CommandDispatchResultCollection $result
+     * @return CommandDispatchResultCollection
+     */
+    public function push($result): CommandDispatchResultCollection
     {
-        $this->results[] = $result;
+        $copy = clone $this;
+
+        if($result instanceof CommandDispatchResult) {
+            $copy->results[] = $result;
+            return $copy;
+        }
+
+        if($result instanceof CommandDispatchResultCollection) {
+            foreach ($result->toArray() as $item) {
+                $copy->results[] = $item;
+            }
+
+            return $copy;
+        }
+
+        if(null === $result) {
+            return $copy;
+        }
+
+        throw new RuntimeException("Cannot push result to " . __CLASS__ . ". Got wrong type: " . VariableType::determine($result));
     }
 }

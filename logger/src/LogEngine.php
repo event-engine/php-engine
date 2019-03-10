@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Logger;
 
+use EventEngine\Commanding\CommandController;
 use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
@@ -35,6 +36,14 @@ interface LogEngine
 
     public function contextProviderCalled($contextProvider, Message $command, $returnedContext);
 
+    /**
+     * @param callable|CommandController|mixed $controller
+     * @param Message $command
+     * @param CommandDispatchResult|Message[]|array[] $result
+     * @return void
+     */
+    public function commandControllerCalled($controller, Message $command, $result);
+
     public function eventPublished(Message $event): void;
 
     public function newAggregateCreated(string $aggregateType, string $aggregateId, GenericEvent ...$events): void;
@@ -50,6 +59,4 @@ interface LogEngine
     public function projectionSetUp(string $projectionName);
 
     public function projectionDeleted(string $projectionName);
-
-
 }

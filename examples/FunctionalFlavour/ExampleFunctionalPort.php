@@ -107,4 +107,13 @@ final class ExampleFunctionalPort implements Port
         //Duck typing, do not do this in production but rather use your own interfaces
         return $resolver->resolve($customQuery);
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function callCommandController($customCommand, $controller)
+    {
+        //Duck typing, do not do this in production but rather use your own interfaces
+        return $controller($customCommand);
+    }
 }

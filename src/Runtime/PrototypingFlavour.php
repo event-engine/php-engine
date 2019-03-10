@@ -13,6 +13,7 @@ namespace EventEngine\Runtime;
 
 use EventEngine\Aggregate\ContextProvider;
 use EventEngine\Aggregate\MetadataProvider;
+use EventEngine\Commanding\CommandController;
 use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\Data\DataConverter;
 use EventEngine\Data\ImmutableRecordDataConverter;
@@ -89,6 +90,21 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         }
 
         return $preProcessor->preProcess($command);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function callCommandController($controller, Message $command)
+    {
+        if (!is_callable($controller) && ! $controller instanceof CommandController) {
+            throw new RuntimeException(
+                'By default a CommandController should be a callable or implement the interface: '
+                . CommandController::class . '. Got ' . VariableType::determine($controller)
+            );
+        }
+
+        return is_callable($controller) ? $controller($command) : $controller->process($command);
     }
 
     public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, Message $command): string

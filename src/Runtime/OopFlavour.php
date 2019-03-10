@@ -155,6 +155,14 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     }
 
     /**
+     * @inheritdoc
+     */
+    public function callCommandController($controller, Message $command)
+    {
+        return $this->functionalFlavour->callCommandController($controller, $command);
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getAggregateIdFromCommand(string $aggregateIdPayloadKey, Message $command): string

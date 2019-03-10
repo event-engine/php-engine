@@ -27,6 +27,7 @@ use EventEngine\Logger\DevNull;
 use EventEngine\Logger\LogEngine;
 use EventEngine\Logger\SimpleMessageEngine;
 use EventEngine\Messaging\CommandDispatchResult;
+use EventEngine\Messaging\CommandDispatchResultCollection;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
@@ -858,6 +859,82 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
+    public function it_dispatches_command_to_controller_and_passes_result_collection_back()
+    {
+        $doNothingController = function ($doNothingCmd) {
+            return CommandDispatchResult::forCommandHandledByController($doNothingCmd);
+        };
+
+        $this->eventEngine->passToController(Command::DO_NOTHING, $doNothingController);
+
+        $userId = Uuid::uuid4()->toString();
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $doNothing = $this->eventEngine->messageFactory()->createMessageFromArray(
+            Command::DO_NOTHING,
+            ['payload' => [
+                UserDescription::IDENTIFIER => $userId,
+            ]]
+        );
+
+        $result = $this->eventEngine->dispatch($doNothing);
+
+        $this->assertInstanceOf(CommandDispatchResultCollection::class, $result);
+
+        $this->assertSame($doNothing->messageName(), $result->toArray()[0]->dispatchedCommand()->messageName());
+    }
+
+    /**
+     * @test
+     */
+    public function it_dispatches_commands_returned_by_controller()
+    {
+        $firstDispatch = true;
+        $dispatchCount = 0;
+        $userId = Uuid::uuid4()->toString();
+
+        $doNothingController = function ($doNothingCmd) use (&$firstDispatch, &$dispatchCount, $userId) {
+            if($firstDispatch) {
+                $firstDispatch = false;
+                $dispatchCount++;
+                //On first dispatch we tell Event Engine to dispatch 3 follow up commands, which are all routed again to this controller
+                return [
+                    [Command::DO_NOTHING, [UserDescription::IDENTIFIER => $userId]],
+                    [Command::DO_NOTHING, [UserDescription::IDENTIFIER => $userId]],
+                    [Command::DO_NOTHING, [UserDescription::IDENTIFIER => $userId]],
+                ];
+            }
+
+            $dispatchCount++;
+            return CommandDispatchResult::forCommandHandledByController($doNothingCmd);
+        };
+
+        $this->eventEngine->passToController(Command::DO_NOTHING, $doNothingController);
+
+
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $doNothing = $this->eventEngine->messageFactory()->createMessageFromArray(
+            Command::DO_NOTHING,
+            ['payload' => [
+                UserDescription::IDENTIFIER => $userId,
+            ]]
+        );
+
+        $result = $this->eventEngine->dispatch($doNothing);
+
+        $this->assertInstanceOf(CommandDispatchResultCollection::class, $result);
+
+        $this->assertSame(4, $dispatchCount);
+    }
+
+    /**
+     * @test
+     */
     public function it_passes_registered_types_to_json_schema_assertion()
     {
         $this->eventEngine->registerType('UserState', JsonSchema::object([
@@ -1095,13 +1172,14 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
         $cacheableConfig = $eventEngine->compileCacheableConfig();
 
-        $this->assertCount(14, $cacheableConfig, 'Cache config contains other keys');
+        $this->assertCount(15, $cacheableConfig, 'Cache config contains other keys');
 
         $this->assertArrayHasKey('aggregateDescriptions', $cacheableConfig);
         $this->assertArrayHasKey('autoProjecting', $cacheableConfig);
         $this->assertArrayHasKey('autoPublish', $cacheableConfig);
         $this->assertArrayHasKey('commandMap', $cacheableConfig);
         $this->assertArrayHasKey('commandPreProcessors', $cacheableConfig);
+        $this->assertArrayHasKey('commandControllers', $cacheableConfig);
         $this->assertArrayHasKey('compiledCommandRouting', $cacheableConfig);
         $this->assertArrayHasKey('compiledProjectionDescriptions', $cacheableConfig);
         $this->assertArrayHasKey('compiledQueryDescriptions', $cacheableConfig);
