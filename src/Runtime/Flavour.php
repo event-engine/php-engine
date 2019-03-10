@@ -155,7 +155,16 @@ interface Flavour
      */
     public function buildAggregateState(string $aggregateType, array $state, int $version);
 
-    public function callEventListener(callable $listener, Message $event): void;
+    /**
+     * A listener can return a command that should be dispatched next
+     *
+     * The command can be of type Message or the tuple shortcut: [command_name, payload, optional_metadata]
+     *
+     * @param callable $listener
+     * @param Message $event
+     * @return null|array|Message
+     */
+    public function callEventListener(callable $listener, Message $event);
 
     public function callQueryResolver($resolver, Message $query);
 }

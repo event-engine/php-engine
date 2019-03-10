@@ -11,13 +11,6 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
-final class GenericQuery extends GenericSchemaMessage implements Query
+interface Event extends Message
 {
-    /**
-     * Should be one of Message::TYPE_COMMAND, Message::TYPE_EVENT or Message::TYPE_QUERY
-     */
-    public function messageType(): string
-    {
-        return self::TYPE_QUERY;
-    }
 }

@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
-final class GenericEvent extends GenericSchemaMessage
+final class GenericEvent extends GenericSchemaMessage implements Event
 {
     public const META_AGGREGATE_ID = '_aggregate_id';
     public const META_AGGREGATE_TYPE = '_aggregate_type';

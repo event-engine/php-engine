@@ -17,7 +17,10 @@ interface MessageDispatcher
      * @param string|Message $messageOrName
      * @param array $payload
      * @param array $metadata
-     * @return CommandDispatchResult|mixed|null Command -> CommandDispatchResult; Query -> mixed result; Event -> null
+     * @return CommandDispatchResult|mixed|CommandDispatchResultCollection
+     *        Command -> CommandDispatchResult
+     *        Query -> mixed result
+     *        Event -> CommandDispatchResultCollection (if PMs return commands that are automatically dispatched)
      */
     public function dispatch($messageOrName, array $payload = [], array $metadata = []);
 }

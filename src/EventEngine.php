@@ -29,6 +29,7 @@ use EventEngine\Exception\NoDocumentStore;
 use EventEngine\Exception\RuntimeException;
 use EventEngine\Logger\LogEngine;
 use EventEngine\Messaging\CommandDispatchResult;
+use EventEngine\Messaging\CommandDispatchResultCollection;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\GenericSchemaMessageFactory;
 use EventEngine\Messaging\Message;
@@ -758,22 +759,37 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $this->eventQueue ?? $this,
                     $this,
                     $this->documentStore,
-                    isset($processorDesc['contextProvider']) ? $container->get($processorDesc['contextProvider']) : null
+                    isset($processorDesc['contextProvider']) ? $this->container->get($processorDesc['contextProvider']) : null
                 );
                 break;
             case Message::TYPE_EVENT:
                 $listeners = $this->eventRouting[$messageOrName->messageName()] ?? [];
+
+                $dispatchResults = new CommandDispatchResultCollection();
 
                 foreach ($listeners as $listener) {
                     if(\is_string($listener)) {
                         $listener = $this->container->get($listener);
                     }
 
-                    $this->flavour->callEventListener($listener, $messageOrName);
+                    $result = $this->flavour->callEventListener($listener, $messageOrName);
                     $this->log->eventListenerCalled($listener, $messageOrName);
+
+                    if($result && is_object($result) && $result instanceof Message) {
+                        $dispatchResults->push($this->dispatch($result));
+                    }
+
+                    if($result && is_array($result) && count($result) > 1 && count($result) <= 3) {
+                        [$commandName, $payload] = $result;
+
+                        if(is_string($commandName) && is_array($payload) && $this->isKnownCommand($commandName)) {
+                            $metadata = $result[2] ?? [];
+                            $dispatchResults->push($this->dispatch($commandName, $payload, $metadata));
+                        }
+                    }
                 }
 
-                return null;
+                return $dispatchResults;
                 break;
             case Message::TYPE_QUERY:
                 $queryDesc = $this->compiledQueryDescriptions[$messageOrName->messageName()] ?? null;

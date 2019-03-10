@@ -233,9 +233,9 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
         return $this->stateConverter->convertArrayToData($aggregateType, $state);
     }
 
-    public function callEventListener(callable $listener, Message $event): void
+    public function callEventListener(callable $listener, Message $event)
     {
-        $listener($event);
+        return $listener($event);
     }
 
     public function callQueryResolver($resolver, Message $query)

@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
-final class GenericCommand extends GenericSchemaMessage
+final class GenericCommand extends GenericSchemaMessage implements Command
 {
     public const META_EXPECTED_AGGREGATE_VERSION = 'X-EventEngine-ARV';
 

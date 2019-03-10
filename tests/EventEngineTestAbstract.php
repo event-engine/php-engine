@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngineTest;
 
+use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\DocumentStore\Exception\UnknownCollection;
 use EventEngine\DocumentStore\InMemoryDocumentStore;
@@ -25,6 +26,7 @@ use EventEngine\JsonSchema\Type\UuidType;
 use EventEngine\Logger\DevNull;
 use EventEngine\Logger\LogEngine;
 use EventEngine\Logger\SimpleMessageEngine;
+use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageBag;
@@ -791,6 +793,66 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
         $this->assertEquals('SendWelcomeEmail', $newCmdName);
         $this->assertEquals(['email' => 'contact@prooph.de'], $newCmdPayload);
+    }
+
+    /**
+     * @test
+     */
+    public function it_dispatches_command_if_command_tuple_is_returned_by_process_manager()
+    {
+        $doNothingPreProcessor = new class() implements CommandPreProcessor {
+
+            public $newCommand;
+
+            public function preProcess(Message $command)
+            {
+                $this->newCommand = $command;
+                return CommandDispatchResult::forCommandHandledByPreProcessor($command);
+            }
+
+            public function __invoke($command)
+            {
+                $this->newCommand = $command;
+                return CommandDispatchResult::forCommandHandledByPreProcessor($command);
+            }
+        };
+
+        $userId = Uuid::uuid4()->toString();
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, 'Test.PM.DoNothing');
+
+        $this->appContainer->has('Test.PM.DoNothing')->willReturn(true);
+        $this->appContainer->get('Test.PM.DoNothing')->will(function ($args) use($userId) {
+            return function ($event) use ($userId) {
+                return [
+                    Command::DO_NOTHING,
+                    [
+                        UserDescription::IDENTIFIER => $userId
+                    ]
+                ];
+            };
+        });
+
+        $this->eventEngine->preProcess(Command::DO_NOTHING, 'Test.Processor.DoNothing');
+
+        $this->appContainer->has('Test.Processor.DoNothing')->willReturn(true);
+        $this->appContainer->get('Test.Processor.DoNothing')->willReturn($doNothingPreProcessor);
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $registerUser = $this->eventEngine->messageFactory()->createMessageFromArray(
+            Command::REGISTER_USER,
+            ['payload' => [
+                UserDescription::IDENTIFIER => $userId,
+                UserDescription::USERNAME => 'Alex',
+                UserDescription::EMAIL => 'contact@prooph.de',
+            ]]
+        );
+
+        $this->eventEngine->dispatch($registerUser);
+
+        $this->assertNotNull($doNothingPreProcessor->newCommand);
     }
 
     /**

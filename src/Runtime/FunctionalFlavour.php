@@ -310,7 +310,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
         return $this->dataConverter->convertArrayToData($aggregateType, $state);
     }
 
-    public function callEventListener(callable $listener, Message $event): void
+    public function callEventListener(callable $listener, Message $event)
     {
         if (! $event instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
@@ -322,7 +322,13 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
             $event = $this->port->decorateEvent($this->port->deserialize($event));
         }
 
-        $listener($event->get(MessageBag::MESSAGE));
+        $result = $listener($event->get(MessageBag::MESSAGE));
+
+        if($result && is_object($result)) {
+            return $this->port->decorateCommand($result);
+        }
+
+        return $result;
     }
 
     public function callQueryResolver($resolver, Message $query)

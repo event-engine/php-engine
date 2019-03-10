@@ -30,7 +30,7 @@ class SimpleMessageEngine implements LogEngine
     }
 
 
-    public function initializedFromCachedConfig(&$config): void
+    public function initializedFromCachedConfig(array &$config): void
     {
         $this->logger->info("Initialized from cached config");
     }
