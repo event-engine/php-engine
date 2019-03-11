@@ -60,7 +60,7 @@ interface Port
      *
      * @param mixed $customCommand
      * @param mixed $controller
-     * @return mixed[]|null Array of custom commands or null to indicate that no further action is required
+     * @return mixed[]|null|CommandDispatchResult Array of custom commands or null|CommandDispatchResult to indicate that no further action is required
      */
     public function callCommandController($customCommand, $controller);
 
