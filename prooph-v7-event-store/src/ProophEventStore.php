@@ -106,11 +106,11 @@ final class ProophEventStore implements EventStore
     {
         $matcher = new MetadataMatcher();
 
-        $matcher->withMetadataMatch(GenericEvent::META_AGGREGATE_TYPE, Operator::EQUALS(), $aggregateType)
+        $matcher = $matcher->withMetadataMatch(GenericEvent::META_AGGREGATE_TYPE, Operator::EQUALS(), $aggregateType)
             ->withMetadataMatch(GenericEvent::META_AGGREGATE_ID, Operator::EQUALS(), $aggregateId);
 
         if($minVersion > 1) {
-            $matcher->withMetadataMatch(GenericEvent::META_AGGREGATE_VERSION, Operator::GREATER_THAN_EQUALS(), $minVersion);
+            $matcher = $matcher->withMetadataMatch(GenericEvent::META_AGGREGATE_VERSION, Operator::GREATER_THAN_EQUALS(), $minVersion);
         }
 
         return $this->prepareEventMapping(
@@ -132,7 +132,7 @@ final class ProophEventStore implements EventStore
     {
         $matcher = new MetadataMatcher();
 
-        $matcher->withMetadataMatch(GenericEvent::META_CORRELATION_ID, Operator::EQUALS(), $correlationId);
+        $matcher = $matcher->withMetadataMatch(GenericEvent::META_CORRELATION_ID, Operator::EQUALS(), $correlationId);
 
         return $this->prepareEventMapping(
             $this->pes->load(
@@ -153,7 +153,7 @@ final class ProophEventStore implements EventStore
     {
         $matcher = new MetadataMatcher();
 
-        $matcher->withMetadataMatch(GenericEvent::META_CAUSATION_ID, Operator::EQUALS(), $causationId);
+        $matcher = $matcher->withMetadataMatch(GenericEvent::META_CAUSATION_ID, Operator::EQUALS(), $causationId);
 
         return $this->prepareEventMapping(
             $this->pes->load(
