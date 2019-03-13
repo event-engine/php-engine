@@ -793,7 +793,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     }
 
                     return ControllerDispatch::exec(
-                        $messageOrName,
+                        $command,
                         $this->flavour,
                         $this->log,
                         $this,
@@ -803,10 +803,10 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
                 $this->clearAggregateCache();
 
-                $processorDesc = $this->compiledCommandRouting[$messageOrName->messageName()] ?? [];
+                $processorDesc = $this->compiledCommandRouting[$command->messageName()] ?? [];
 
                 return CommandDispatch::exec(
-                    $messageOrName,
+                    $command,
                     $this->flavour,
                     $this->eventStore,
                     $this->log,
@@ -968,7 +968,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             $this->eventStore,
             $aggregateDesc['aggregateStream'],
             $this->documentStore,
-            $aggregateDesc['aggregateCollection'] ?? null
+            $aggregateDesc['aggregateCollection'] ?? null,
+            $aggregateDesc['multiStoreMode'] ?? null
         );
 
         /** @var FlavouredAggregateRoot $aggregate */
