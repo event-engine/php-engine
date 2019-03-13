@@ -146,6 +146,7 @@ final class GenericAggregateRepository
             $this->aggregateCollection
             && $this->flavour->canBuildAggregateState($aggregateType)
             && $documentStore = $this->getDocumentStore()
+            && $this->multiStoreMode !== MultiModelStore::STORAGE_MODE_EVENTS
         ) {
             $aggregateStateDoc = $documentStore->getDoc($this->aggregateCollection, $aggregateId);
 
@@ -161,7 +162,7 @@ final class GenericAggregateRepository
                     $aggregateState
                 );
 
-                if($expectedVersion && $expectedVersion > $aggregate->version()) {
+                if($expectedVersion && $expectedVersion > $aggregate->version() && $this->multiStoreMode !== MultiModelStore::STORAGE_MODE_STATE) {
                     $newerEvents = $this->eventStore->loadAggregateEvents(
                         $this->streamName,
                         $aggregateType,
