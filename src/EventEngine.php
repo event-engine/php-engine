@@ -793,7 +793,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     }
 
                     return ControllerDispatch::exec(
-                        $command,
+                        $messageOrName,
                         $this->flavour,
                         $this->log,
                         $this,
@@ -806,7 +806,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                 $processorDesc = $this->compiledCommandRouting[$command->messageName()] ?? [];
 
                 return CommandDispatch::exec(
-                    $command,
+                    $messageOrName,
                     $this->flavour,
                     $this->eventStore,
                     $this->log,
