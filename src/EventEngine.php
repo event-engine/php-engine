@@ -1215,6 +1215,20 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                             ));
                         }
                     }
+
+                    //Check that multi store mode is either the default, defined once or always the same.
+                    if($descArr['multiStoreMode'] && $aggregateDesc['multiStoreMode'] !== $descArr['multiStoreMode']) {
+                        if($aggregateDesc['multiStoreMode'] === MultiModelStore::STORAGE_MODE_EVENTS_AND_STATE) {
+                            $aggregateDescriptions[$descArr['aggregateType']]['multiStoreMode'] = $descArr['multiStoreMode'];
+                        } else {
+                            throw new RuntimeException(sprintf(
+                                "Two aggregate factory descriptions define different multi store modes %s and %s for %s",
+                                $aggregateDesc['multiStoreMode'],
+                                $descArr['multiStoreMode'],
+                                $descArr['aggregateType']
+                            ));
+                        }
+                    }
                 } else {
                     //Take aggregate description from first aggregate factory description
                     $aggregateDescriptions[$descArr['aggregateType']] = [
@@ -1225,7 +1239,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                         'aggregateCollection' => $descArr['aggregateCollection'] ?? AggregateProjector::aggregateCollectionName(
                                 '0.1.0',
                                 $descArr['aggregateType']
-                            )
+                            ),
+                        'multiStoreMode' => $descArr['multiStoreMode'] ?? MultiModelStore::STORAGE_MODE_EVENTS_AND_STATE,
                     ];
                 }
             }
@@ -1247,6 +1262,10 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
             if(null === $descArr['streamName']) {
                 $descArr['streamName'] = $aggregateDesc['aggregateStream'];
+            }
+
+            if(null === $descArr['multiStoreMode']) {
+                $descArr['multiStoreMode'] = $aggregateDesc['multiStoreMode'];
             }
 
             //Build complete event apply map. Duplicate apply descriptions are overridden due to event name being the array key in both lists.

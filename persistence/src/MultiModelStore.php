@@ -16,5 +16,9 @@ use EventEngine\EventStore\EventStore;
 
 interface MultiModelStore extends EventStore, DocumentStore
 {
+    public const STORAGE_MODE_EVENTS = 'mode_e';
+    public const STORAGE_MODE_STATE = 'mode_s';
+    public const STORAGE_MODE_EVENTS_AND_STATE = 'mode_e_s';
+
     public function connection(): TransactionalConnection;
 }

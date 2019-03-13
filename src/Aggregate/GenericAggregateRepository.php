@@ -41,6 +41,11 @@ final class GenericAggregateRepository
     private $aggregateCollection;
 
     /**
+     * @var string
+     */
+    private $multiStoreMode;
+
+    /**
      * @var Flavour
      */
     private $flavour;
@@ -50,13 +55,15 @@ final class GenericAggregateRepository
         EventStore $eventStore,
         string $streamName,
         DocumentStore $documentStore = null,
-        string $aggregateCollection = null
+        string $aggregateCollection = null,
+        string $multiStoreMode = null
     ) {
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
         $this->documentStore = $documentStore;
         $this->streamName = $streamName;
         $this->aggregateCollection = $aggregateCollection;
+        $this->multiStoreMode = $multiStoreMode ?: MultiModelStore::STORAGE_MODE_EVENTS_AND_STATE;
     }
 
     /**
@@ -76,33 +83,38 @@ final class GenericAggregateRepository
             $this->eventStore->connection()->beginTransaction();
 
             try {
-                $this->eventStore->appendTo($this->streamName, ...$domainEvents);
-
-                $aggregateState = $aggregateRoot->currentState();
-
-                if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
-                    $this->eventStore->deleteDoc(
-                        $this->aggregateCollection,
-                        (string) $aggregateRoot->aggregateId()
-                    );
-                } else {
-                    $currentState = $aggregateRoot->currentState();
-                    $doc = [
-                        'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $currentState),
-                        'version' => $aggregateRoot->version()
-                    ];
-
-                    if($this->flavour->canProvideAggregateMetadata($aggregateRoot->aggregateType())) {
-                        $doc['metadata'] = $this->flavour->provideAggregateMetadata($aggregateRoot->aggregateType(), $aggregateRoot->version(), $currentState);
-                    }
-
-                    $this->eventStore->upsertDoc(
-                        $this->aggregateCollection,
-                        $aggregateRoot->aggregateId(),
-                        $doc
-                    );
+                if($this->multiStoreMode !== MultiModelStore::STORAGE_MODE_STATE) {
+                    $this->eventStore->appendTo($this->streamName, ...$domainEvents);
                 }
 
+                if($this->multiStoreMode !== MultiModelStore::STORAGE_MODE_EVENTS) {
+
+                    $aggregateState = $aggregateRoot->currentState();
+
+                    if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
+                        $this->eventStore->deleteDoc(
+                            $this->aggregateCollection,
+                            (string) $aggregateRoot->aggregateId()
+                        );
+                    } else {
+                        $currentState = $aggregateRoot->currentState();
+                        $doc = [
+                            'state' => $this->flavour->convertAggregateStateToArray($aggregateRoot->aggregateType(), $currentState),
+                            'version' => $aggregateRoot->version()
+                        ];
+
+                        if($this->flavour->canProvideAggregateMetadata($aggregateRoot->aggregateType())) {
+                            $doc['metadata'] = $this->flavour->provideAggregateMetadata($aggregateRoot->aggregateType(), $aggregateRoot->version(), $currentState);
+                        }
+
+                        $this->eventStore->upsertDoc(
+                            $this->aggregateCollection,
+                            $aggregateRoot->aggregateId(),
+                            $doc
+                        );
+                    }
+
+                }
                 $this->eventStore->connection()->commit();
             } catch (\Throwable $error) {
                 $this->eventStore->connection()->rollBack();

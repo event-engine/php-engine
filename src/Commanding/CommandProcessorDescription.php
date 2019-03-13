@@ -14,6 +14,7 @@ namespace EventEngine\Commanding;
 use EventEngine\EventEngine;
 use EventEngine\Eventing\EventRecorderDescription;
 use EventEngine\Exception\BadMethodCallException;
+use EventEngine\Persistence\MultiModelStore;
 
 final class CommandProcessorDescription
 {
@@ -51,6 +52,11 @@ final class CommandProcessorDescription
      * @var string|null
      */
     private $aggregateStream;
+
+    /**
+     * @var string|null
+     */
+    private $multiStoreMode;
 
     /**
      * @var callable
@@ -116,6 +122,25 @@ final class CommandProcessorDescription
         return $this;
     }
 
+    public function disableEventStorage(): self
+    {
+        if (null === $this->aggregateType) {
+            throw new BadMethodCallException('You should not call '.__METHOD__.' before calling the withNew Aggregate method.');
+        }
+
+        if(!$this->createAggregate) {
+            throw new BadMethodCallException(__METHOD__ . ' should only be called when registering a new aggregate: withNew()');
+        }
+
+        if(null !== $this->multiStoreMode) {
+            throw new BadMethodCallException('You can not set multi store mode twice. Either '.__METHOD__.' was already called for the aggregate description or state storage is disabled.');
+        }
+
+        $this->multiStoreMode = MultiModelStore::STORAGE_MODE_STATE;
+
+        return $this;
+    }
+
     public function storeStateIn(string $aggregateCollection): self
     {
         if (null === $this->aggregateType) {
@@ -127,6 +152,25 @@ final class CommandProcessorDescription
         }
 
         $this->aggregateCollection = $aggregateCollection;
+
+        return $this;
+    }
+
+    public function disableStateStorage(): self
+    {
+        if (null === $this->aggregateType) {
+            throw new BadMethodCallException('You should not call '.__METHOD__.' before calling the withNew Aggregate method.');
+        }
+
+        if(!$this->createAggregate) {
+            throw new BadMethodCallException(__METHOD__ . ' should only be called when registering a new aggregate: withNew()');
+        }
+
+        if(null !== $this->multiStoreMode) {
+            throw new BadMethodCallException('You can not set multi store mode twice. Either '.__METHOD__.' was already called for the aggregate description or event storage is disabled.');
+        }
+
+        $this->multiStoreMode = MultiModelStore::STORAGE_MODE_EVENTS;
 
         return $this;
     }
@@ -195,6 +239,7 @@ final class CommandProcessorDescription
             'aggregateCollection' => $this->aggregateCollection,
             'eventRecorderMap' => $eventRecorderMap,
             'streamName' => $this->aggregateStream,
+            'multiStoreMode' => $this->multiStoreMode,
             'contextProvider' => $this->contextProvider,
         ];
     }

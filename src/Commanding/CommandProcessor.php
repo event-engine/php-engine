@@ -65,6 +65,11 @@ final class CommandProcessor
     private $streamName;
 
     /**
+     * @var string
+     */
+    private $multiStoreMode;
+
+    /**
      * @var callable
      */
     private $aggregateFunction;
@@ -139,6 +144,10 @@ final class CommandProcessor
             throw new InvalidArgumentException('Missing key streamName in commandProcessorDescription');
         }
 
+        if (! \array_key_exists('multiStoreMode', $processorDesc)) {
+            throw new InvalidArgumentException('Missing key storageMode in commandProcessorDescription');
+        }
+
         return new self(
             $processorDesc['commandName'],
             $processorDesc['aggregateType'],
@@ -147,6 +156,7 @@ final class CommandProcessor
             $processorDesc['aggregateFunction'],
             $aggregateDesc['eventApplyMap'],
             $processorDesc['streamName'],
+            $processorDesc['multiStoreMode'],
             $flavour,
             $eventStore,
             $logEngine,
@@ -165,6 +175,7 @@ final class CommandProcessor
         callable $aggregateFunction,
         array $eventApplyMap,
         string $streamName,
+        string $multiStoreMode,
         Flavour $flavour,
         EventStore $eventStore,
         LogEngine $log,
@@ -180,6 +191,7 @@ final class CommandProcessor
         $this->aggregateFunction = $aggregateFunction;
         $this->eventApplyMap = $eventApplyMap;
         $this->streamName = $streamName;
+        $this->multiStoreMode = $multiStoreMode;
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
         $this->log = $log;
@@ -263,7 +275,8 @@ final class CommandProcessor
             $this->eventStore,
             $this->streamName,
             $this->documentStore,
-            $this->aggregateCollection
+            $this->aggregateCollection,
+            $this->multiStoreMode
         );
     }
 }
