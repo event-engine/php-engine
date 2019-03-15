@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
+use EventEngine\Messaging\Exception\RuntimeException;
 use EventEngine\Schema\PayloadSchema;
 use EventEngine\Schema\Schema;
 use EventEngine\Schema\TypeSchema;
@@ -27,7 +28,7 @@ interface Message
      * Get $key from message payload
      *
      * @param string $key
-     * @throws \BadMethodCallException if key does not exist in payload
+     * @throws RuntimeException if key does not exist in payload
      * @return mixed
      */
     public function get(string $key);
@@ -40,6 +41,24 @@ interface Message
      * @return mixed
      */
     public function getOrDefault(string $key, $default);
+
+    /**
+     * Get $key from message metadata
+     *
+     * @param string $key
+     * @throws RuntimeException if key does not exist in metadata
+     * @return mixed
+     */
+    public function getMeta(string $key);
+
+    /**
+     * Get $key from message metadata or default in case key does not exist
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public function getMetaOrDefault(string $key, $default);
 
     public function withPayload(array $payload, Schema $assertion, PayloadSchema $payloadSchema, TypeSchemaMap $typeSchemaMap): self;
 

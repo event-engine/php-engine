@@ -85,6 +85,24 @@ abstract class GenericSchemaMessage implements Message
         return $this->payload[$key];
     }
 
+    public function getMeta(string $key)
+    {
+        if (! \array_key_exists($key, $this->metadata)) {
+            throw new RuntimeException("Message metadata of {$this->messageName()} does not contain a key $key.");
+        }
+
+        return $this->metadata[$key];
+    }
+
+    public function getMetaOrDefault(string $key, $default)
+    {
+        if (! \array_key_exists($key, $this->metadata)) {
+            return $default;
+        }
+
+        return $this->metadata[$key];
+    }
+
     public function payload(): array
     {
         return $this->payload;

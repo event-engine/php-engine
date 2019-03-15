@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Messaging;
 
+use EventEngine\Messaging\Exception\RuntimeException;
 use EventEngine\Schema\PayloadSchema;
 use EventEngine\Schema\Schema;
 use EventEngine\Schema\TypeSchema;
@@ -187,6 +188,24 @@ final class MessageBag implements Message
         }
 
         return $this->message;
+    }
+
+    public function getMeta(string $key)
+    {
+        if (! \array_key_exists($key, $this->metadata)) {
+            throw new RuntimeException("Message metadata of {$this->messageName()} does not contain a key $key.");
+        }
+
+        return $this->metadata[$key];
+    }
+
+    public function getMetaOrDefault(string $key, $default)
+    {
+        if (! \array_key_exists($key, $this->metadata)) {
+            return $default;
+        }
+
+        return $this->metadata[$key];
     }
 
     public function hasMessage(): bool
