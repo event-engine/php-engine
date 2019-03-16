@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine\DocumentStore\Filter;
 
-final class AnyOfIdFilter implements Filter
+final class AnyOfDocIdFilter implements Filter
 {
     /**
      * @var mixed[]
