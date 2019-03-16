@@ -35,7 +35,7 @@ final class ExistsFilter implements Filter
         return $this->prop;
     }
 
-    public function match(array $doc): bool
+    public function match(array $doc, string $docId): bool
     {
         $reader = new ArrayReader($doc);
 

@@ -28,8 +28,8 @@ final class NotFilter implements Filter
         return $this->innerFilter;
     }
 
-    public function match(array $doc): bool
+    public function match(array $doc, string $docId): bool
     {
-        return $this->innerFilter()->match($doc) !== true;
+        return $this->innerFilter()->match($doc, $docId) !== true;
     }
 }

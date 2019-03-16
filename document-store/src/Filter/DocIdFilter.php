@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of event-engine/php-document-sore.
+ * This file is part of event-engine/php-engine.
  * (c) 2018-2019 prooph software GmbH <contact@prooph.de>
  *
  * For the full copyright and license information, please view the LICENSE
@@ -11,10 +11,21 @@ declare(strict_types=1);
 
 namespace EventEngine\DocumentStore\Filter;
 
-final class AnyFilter implements Filter
+final class DocIdFilter implements Filter
 {
-    public function match(array $doc, string $docId): bool
+    private $val;
+
+    public function __construct(string $val)
     {
-        return true;
+        $this->val = $val;
+    }
+
+
+    /**
+     * @return string
+     */
+    public function val()
+    {
+        return $this->val;
     }
 }

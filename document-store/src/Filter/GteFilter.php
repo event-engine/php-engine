@@ -49,7 +49,7 @@ final class GteFilter implements Filter
         return $this->val;
     }
 
-    public function match(array $doc): bool
+    public function match(array $doc, string $docId): bool
     {
         $reader = new ArrayReader($doc);
 

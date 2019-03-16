@@ -39,8 +39,8 @@ final class AndFilter implements Filter
         return $this->bFilter;
     }
 
-    public function match(array $doc): bool
+    public function match(array $doc, string $docId): bool
     {
-        return $this->aFilter->match($doc) && $this->bFilter->match($doc);
+        return $this->aFilter->match($doc, $docId) && $this->bFilter->match($doc, $docId);
     }
 }
