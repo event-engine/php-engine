@@ -28,4 +28,9 @@ final class DocIdFilter implements Filter
     {
         return $this->val;
     }
+
+    public function match(array $doc, string $docId): bool
+    {
+        return $this->val === $docId;
+    }
 }
