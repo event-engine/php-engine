@@ -202,7 +202,7 @@ final class InMemoryDocumentStore implements DocumentStore
         $filteredDocs = [];
 
         foreach ($this->inMemoryConnection['documents'][$collectionName] as $docId => $doc) {
-            if ($filter->match($doc)) {
+            if ($filter->match($doc, $docId)) {
                 $filteredDocs[$docId] = $doc;
             }
         }
