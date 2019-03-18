@@ -12,12 +12,12 @@ declare(strict_types=1);
 namespace EventEngineTest\Stubs;
 
 
-use EventEngine\Data\ImmutableRecord;
-use EventEngine\JsonSchema\ImmutableRecordLogic;
+use EventEngine\JsonSchema\JsonSchemaAwareRecord;
+use EventEngine\JsonSchema\JsonSchemaAwareRecordLogic;
 
-final class TestIdentityVO implements ImmutableRecord
+final class TestIdentityVO implements JsonSchemaAwareRecord
 {
-    use ImmutableRecordLogic;
+    use JsonSchemaAwareRecordLogic;
 
     /**
      * @var string

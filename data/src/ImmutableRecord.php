@@ -22,18 +22,6 @@ interface ImmutableRecord
     const PHP_TYPE_ARRAY = 'array';
 
     /**
-     * Name of the immutable record type
-     *
-     * @return string
-     */
-    public static function __type(): string;
-
-    /**
-     * @return Type JSON Schema of the type
-     */
-    public static function __schema(): TypeSchema;
-
-    /**
      * @param array $recordData
      * @return static
      */
