@@ -1,0 +1,82 @@
+<templateSet group="PHP">
+  <template name="vo_string" value="private $$$PROP_NAME$;&#10;&#10;public static function fromString(string $$$PROP_NAME$): self&#10;{&#10;    return new self($$$PROP_NAME$);&#10;}&#10;&#10;private function __construct(string $$$PROP_NAME$)&#10;{&#10;    $this-&gt;$PROP_NAME$ = $$$PROP_NAME$;&#10;}&#10;&#10;public function toString(): string&#10;{&#10;    return $this-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function equals($other): bool&#10;{&#10;    if(!$other instanceof self) {&#10;        return false;&#10;    }&#10;    &#10;    return $this-&gt;$PROP_NAME$ === $other-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return $this-&gt;$PROP_NAME$;&#10;}&#10;" shortcut="SPACE" description="String value object" toReformat="false" toShortenFQNames="true">
+    <variable name="PROP_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+    </context>
+  </template>
+  <template name="vo_int" value="private $$$PROP_NAME$;&#10;&#10;public static function fromInt(int $$$PROP_NAME$): self&#10;{&#10;    return new self($$$PROP_NAME$);&#10;}&#10;&#10;private function __construct(int $$$PROP_NAME$)&#10;{&#10;    $this-&gt;$PROP_NAME$ = $$$PROP_NAME$;&#10;}&#10;&#10;public function toInt(): int&#10;{&#10;    return $this-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function equals($other): bool&#10;{&#10;    if(!$other instanceof self) {&#10;        return false;&#10;    }&#10;    &#10;    return $this-&gt;$PROP_NAME$ === $other-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return (string)$this-&gt;$PROP_NAME$;&#10;}&#10;" shortcut="SPACE" description="Int value object" toReformat="false" toShortenFQNames="true">
+    <variable name="PROP_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+    </context>
+  </template>
+  <template name="vo_float" value="private $$$PROP_NAME$;&#10;&#10;public static function fromFloat(float $$$PROP_NAME$): self&#10;{&#10;    return new self($$$PROP_NAME$);&#10;}&#10;&#10;private function __construct(float $$$PROP_NAME$)&#10;{&#10;    $this-&gt;$PROP_NAME$ = $$$PROP_NAME$;&#10;}&#10;&#10;public function toFloat(): float&#10;{&#10;    return $this-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function equals($other): bool&#10;{&#10;    if(!$other instanceof self) {&#10;        return false;&#10;    }&#10;    &#10;    return $this-&gt;$PROP_NAME$ === $other-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return (string)$this-&gt;$PROP_NAME$;&#10;}&#10;" shortcut="SPACE" description="Float value object" toReformat="false" toShortenFQNames="true">
+    <variable name="PROP_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+    </context>
+  </template>
+  <template name="vo_bool" value="private $$$PROP_NAME$;&#10;&#10;public static function fromBool(bool $$$PROP_NAME$): self&#10;{&#10;    return new self($$$PROP_NAME$);&#10;}&#10;&#10;private function __construct(bool $$$PROP_NAME$)&#10;{&#10;    $this-&gt;$PROP_NAME$ = $$$PROP_NAME$;&#10;}&#10;&#10;public function toBool(): bool&#10;{&#10;    return $this-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function equals($other): bool&#10;{&#10;    if(!$other instanceof self) {&#10;        return false;&#10;    }&#10;    &#10;    return $this-&gt;$PROP_NAME$ === $other-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return $this-&gt;$PROP_NAME$ ? 'TRUE' : 'FALSE';&#10;}&#10;" shortcut="SPACE" description="Bool value object" toReformat="false" toShortenFQNames="true">
+    <variable name="PROP_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+    </context>
+  </template>
+  <template name="vo_array" value="public static function fromArray(array $data): self&#10;{&#10;    $END$&#10;    return new self();&#10;}&#10;&#10;private function __construct()&#10;{&#10;    /* Map data to private props */&#10;}&#10;&#10;public function toArray(): array&#10;{&#10;    return [&#10;    &#10;    ];&#10;}&#10;&#10;public function equals($other): bool&#10;{&#10;    if(!$other instanceof self) {&#10;        return false;&#10;    }&#10;    &#10;    return $this-&gt;toArray() === $other-&gt;toArray();&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return json_encode($this-&gt;toArray());&#10;}&#10;" shortcut="SPACE" description="Array value object" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PHP" value="true" />
+    </context>
+  </template>  
+  <template name="vo_uuid" value="private $$$PROP_NAME$;&#10;&#10;public static function generate(): self&#10;{&#10;    return new self(Uuid::uuid4());&#10;}&#10;&#10;public static function fromString(string $$$PROP_NAME$): self&#10;{&#10;    return new self(Uuid::fromString($$$PROP_NAME$));&#10;}&#10;&#10;private function __construct(UuidInterface $$$PROP_NAME$)&#10;{&#10;    $this-&gt;$PROP_NAME$ = $$$PROP_NAME$;&#10;}&#10;&#10;public function toString(): string&#10;{&#10;    return $this-&gt;$PROP_NAME$-&gt;toString();&#10;}&#10;&#10;public function equals($other): bool&#10;{&#10;    if(!$other instanceof self) {&#10;        return false;&#10;    }&#10;    &#10;    return $this-&gt;$PROP_NAME$-&gt;equals($other-&gt;$PROP_NAME$);&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return $this-&gt;$PROP_NAME$-&gt;toString();&#10;}&#10;" shortcut="SPACE" description="UUID value object" toReformat="true" toShortenFQNames="true">
+    <variable name="PROP_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+    </context>
+  </template>
+  <template name="use_uuid" value="use Ramsey\Uuid\Uuid;&#10;use Ramsey\Uuid\UuidInterface;" shortcut="SPACE" description="use statments for UUID" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="PHP" value="true" />
+    </context>
+  </template>  
+  <template name="record_field" value="public const $CONSTANT$ = '$FIELD_NAME$';$END$&#10;&#10;/**&#10; * @var $TYPE$&#10; */&#10;private $$$FIELD_NAME$;" description="Add a constant + private field to an immutable record" toReformat="false" toShortenFQNames="true">
+    <variable name="FIELD_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <variable name="CONSTANT" expression="capitalizeAndUnderscore(FIELD_NAME)" defaultValue="" alwaysStopAt="false" />
+    <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+      <option name="PHP Comment" value="false" />
+      <option name="PHP String Literal" value="false" />
+    </context>
+  </template>  
+  <template name="vo_datetime" value="public const FORMAT = 'Y-m-d\TH:i:s.u';&#10;&#10;/**&#10; * @var \DateTimeImmutable&#10; */&#10;private $$$PROP_NAME$;&#10;&#10;public static function fromDateTime(\DateTimeImmutable $$$PROP_NAME$): self&#10;{&#10;    $$$PROP_NAME$ = self::ensureUTC($$$PROP_NAME$);&#10;&#10;    return new self($$$PROP_NAME$);&#10;}&#10;&#10;public static function fromString(string $$$PROP_NAME$): self&#10;{&#10;    if (\strlen($$$PROP_NAME$) === 19) {&#10;        $$$PROP_NAME$ = $$$PROP_NAME$ . '.000';&#10;    }&#10;&#10;    $$$PROP_NAME$ = \DateTimeImmutable::createFromFormat(&#10;        self::FORMAT,&#10;        $$$PROP_NAME$,&#10;        new \DateTimeZone('UTC')&#10;    );&#10;    &#10;    $$$PROP_NAME$ = self::ensureUTC($$$PROP_NAME$);&#10;&#10;    return new self($$$PROP_NAME$);&#10;}&#10;&#10;private function __construct(\DateTimeImmutable $$$PROP_NAME$)&#10;{&#10;    $this-&gt;$PROP_NAME$ = $$$PROP_NAME$;&#10;}&#10;&#10;public function toString(): string&#10;{&#10;    return $this-&gt;$PROP_NAME$-&gt;format(self::FORMAT);&#10;}&#10;&#10;public function dateTime(): \DateTimeImmutable&#10;{&#10;    return $this-&gt;$PROP_NAME$;&#10;}&#10;&#10;public function add(\DateInterval $interval): self&#10;{&#10;    return new self($this-&gt;$PROP_NAME$-&gt;add($interval));&#10;}&#10;&#10;public function sub(\DateInterval $interval): self&#10;{&#10;    return new self($this-&gt;$PROP_NAME$-&gt;sub($interval));&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return $this-&gt;toString();&#10;}&#10;&#10;private static function ensureUTC(\DateTimeImmutable $$$PROP_NAME$): \DateTimeImmutable&#10;{&#10;    if ($$$PROP_NAME$-&gt;getTimezone()-&gt;getName() !== 'UTC') {&#10;        $$$PROP_NAME$ = $$$PROP_NAME$-&gt;setTimezone(new \DateTimeZone('UTC'));&#10;    }&#10;&#10;    return $$$PROP_NAME$;&#10;}" description="DateTimeImmutable value object" toReformat="true" toShortenFQNames="true">
+    <variable name="PROP_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+      <option name="PHP Comment" value="false" />
+      <option name="PHP String Literal" value="false" />
+    </context>
+  </template>
+  <template name="fl_hint" value="[FlavourHint$END$::class, $CLASS_NAME$]" description="EE Flavour Hint" toReformat="false" toShortenFQNames="true">
+    <variable name="CLASS_NAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="PHP" value="true" />
+      <option name="PHP Class Member" value="false" />
+      <option name="PHP Comment" value="false" />
+      <option name="PHP Statement" value="false" />
+      <option name="PHP String Literal" value="false" />
+    </context>
+  </template>
+  <template name="vo_collection" value="/**&#10; * @var $ITEM_CLASS$[]&#10; */&#10;private $items;&#10;&#10;/**&#10; * @var $TYPE$[]&#10; */&#10;private $rawValues;&#10;&#10;public static function emptyList(): self&#10;{&#10;    return new self([]);&#10;}&#10;&#10;public static function fromItems($ITEM_CLASS$ ...$items): self&#10;{&#10;    $rawValues = \array_map(function ($ITEM_CLASS$ $item) {&#10;        return $item-&gt;to$TYPE_METHOD$();&#10;    }, $items);&#10;&#10;    return new self($rawValues, ...$items);&#10;}&#10;&#10;public static function fromArray(array $items): self&#10;{&#10;    return new self($items, ...array_map(function ($TYPE$ $item) {&#10;        return $ITEM_CLASS$::from$TYPE_METHOD$($item);&#10;    }, $items));&#10;}&#10;&#10;private function __construct(array $rawValues, $ITEM_CLASS$ ...$items)&#10;{&#10;    $this-&gt;items = $items;&#10;    $this-&gt;rawValues = \array_values($rawValues);&#10;}&#10;&#10;public function push($ITEM_CLASS$ $item): self&#10;{&#10;    $copy = clone $this;&#10;    $copy-&gt;items[] = $item;&#10;    $copy-&gt;rawValues[] = $item-&gt;to$TYPE_METHOD$();&#10;    return $copy;&#10;}&#10;&#10;public function pop(): self&#10;{&#10;    $copy = clone $this;&#10;    \array_pop($copy-&gt;items);&#10;    \array_pop($copy-&gt;rawValues);&#10;    return $copy;&#10;}&#10;&#10;public function first(): ?$ITEM_CLASS$&#10;{&#10;    return $this-&gt;items[0] ?? null;&#10;}&#10;&#10;public function last(): ?$ITEM_CLASS$&#10;{&#10;    if(count($this-&gt;items) === 0) {&#10;        return null;&#10;    }&#10;&#10;    return $this-&gt;items[count($this-&gt;items) - 1];&#10;}&#10;&#10;public function contains($ITEM_CLASS$ $item): bool&#10;{&#10;    return \in_array($item-&gt;to$TYPE_METHOD$(), $this-&gt;rawValues);&#10;}&#10;&#10;&#10;/**&#10; * @return $ITEM_CLASS$[]&#10; */&#10;public function items(): array&#10;{&#10;    return $this-&gt;items;&#10;}&#10;&#10;public function toArray(): array&#10;{&#10;    return $this-&gt;rawValues;&#10;}&#10;&#10;public function equals($other): bool&#10;{&#10;    if(!$other instanceof self) {&#10;        return false;&#10;    }&#10;&#10;    return $this-&gt;toArray() === $other-&gt;toArray();&#10;}&#10;&#10;public function __toString(): string&#10;{&#10;    return \json_encode($this-&gt;toArray());&#10;}" description="Collection value object" toReformat="true" toShortenFQNames="true">
+    <variable name="ITEM_CLASS" expression="classNameComplete()" defaultValue="" alwaysStopAt="true" />
+    <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true" />
+    <variable name="TYPE_METHOD" expression="capitalize(TYPE)" defaultValue="" alwaysStopAt="false" />
+    <context>
+      <option name="PHP" value="true" />
+      <option name="PHP Comment" value="false" />
+      <option name="PHP Expression" value="false" />
+      <option name="PHP Statement" value="false" />
+      <option name="PHP String Literal" value="false" />
+    </context>
+  </template>
+</templateSet>
