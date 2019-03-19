@@ -96,12 +96,12 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
     }
 
     /**
-     * @param string $appVersion
+     * @param string $projectionVersion
      * @param string $projectionName
      * @param Message $event
      * @throws \Throwable
      */
-    public function handle(string $appVersion, string $projectionName, Message $event): void
+    public function handle(string $projectionVersion, string $projectionName, Message $event): void
     {
         if (! $event instanceof Message) {
             throw new RuntimeException(__METHOD__ . ' can only handle events of type: ' . Message::class);
@@ -121,8 +121,6 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
 
         $aggregateVersion = $event->metadata()[GenericEvent::META_AGGREGATE_VERSION] ?? 0;
 
-        $this->assertProjectionNameMatchesWithAggregateType($projectionName, (string) $aggregateType);
-
         try {
             $aggregateState = $this->stateStore->loadAggregateState((string) $aggregateType, (string) $aggregateId);
         } catch (AggregateNotFound $e) {
@@ -131,7 +129,7 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
 
         if (is_object($aggregateState) && $aggregateState instanceof DeletableState && $aggregateState->deleted()) {
             $this->documentStore->deleteDoc(
-                self::generateCollectionName($appVersion, $projectionName),
+                self::generateCollectionName($projectionVersion, $projectionName),
                 (string) $aggregateId
             );
 
@@ -152,7 +150,7 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
         }
 
         $this->documentStore->upsertDoc(
-            self::generateCollectionName($appVersion, $projectionName),
+            self::generateCollectionName($projectionVersion, $projectionName),
             (string) $aggregateId,
             $document
         );
@@ -169,18 +167,6 @@ final class AggregateProjector implements Projector, FlavourAware, DocumentStore
     {
         if ($this->documentStore->hasCollection(self::generateCollectionName($appVersion, $projectionName))) {
             $this->documentStore->dropCollection(self::generateCollectionName($appVersion, $projectionName));
-        }
-    }
-
-    private function assertProjectionNameMatchesWithAggregateType(string $projectionName, string $aggregateType): void
-    {
-        if ($projectionName !== self::generateProjectionName($aggregateType)) {
-            throw new \RuntimeException(\sprintf(
-                'Wrong projection name configured for %s. Should be %s but got %s',
-                __CLASS__,
-                self::generateProjectionName($aggregateType),
-                $projectionName
-            ));
         }
     }
 }

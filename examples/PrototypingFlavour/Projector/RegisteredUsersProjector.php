@@ -29,11 +29,11 @@ final class RegisteredUsersProjector implements Projector
         $this->documentStore = $documentStore;
     }
 
-    public function handle(string $appVersion, string $projectionName, Message $event): void
+    public function handle(string $projectionVersion, string $projectionName, Message $event): void
     {
         switch ($event->messageName()) {
             case Event::USER_WAS_REGISTERED:
-                $this->documentStore->addDoc($projectionName . '_' . $appVersion, $event->get('userId'), [
+                $this->documentStore->addDoc($projectionName . '_' . $projectionVersion, $event->get('userId'), [
                     'userId' => $event->get('userId'),
                     'username' => $event->get('username'),
                     'email' => $event->get('email'),
