@@ -604,13 +604,16 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $this;
     }
 
-    public function watch(Stream $stream): ProjectionDescription
+    public function watch(Stream ...$streams): ProjectionDescription
     {
-        if ($stream->streamName() === Stream::WRITE_MODEL_STREAM) {
-            $stream = $stream->withStreamName($this->writeModelStreamName);
+        foreach ($streams as $i => $stream) {
+            if ($stream->streamName() === Stream::WRITE_MODEL_STREAM) {
+                $streams[$i] = $stream->withStreamName($this->writeModelStreamName);
+            }
         }
+
         //ProjectionDescriptions register itself using EventMachine::registerProjection within ProjectionDescription::with call
-        return new ProjectionDescription($stream, $this);
+        return new ProjectionDescription($this, ...$streams);
     }
 
     public function isKnownCommand(string $commandName): bool

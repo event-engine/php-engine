@@ -13,6 +13,7 @@ namespace EventEngine\Projecting;
 
 use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Persistence\Stream;
+use EventEngine\Persistence\StreamCollection;
 
 final class ProjectionInfo
 {
@@ -27,9 +28,9 @@ final class ProjectionInfo
     private $version;
 
     /**
-     * @var Stream
+     * @var StreamCollection
      */
-    private $sourceStream;
+    private $sourceStreams;
 
     /**
      * @var string|null
@@ -57,27 +58,27 @@ final class ProjectionInfo
             ));
         }
 
-        if(! array_key_exists(ProjectionDescription::SOURCE_STREAM, $desc)) {
+        if(! array_key_exists(ProjectionDescription::SOURCE_STREAMS, $desc)) {
             throw new InvalidArgumentException(sprintf(
                 "Missing key %s in projection description",
-                ProjectionDescription::SOURCE_STREAM
+                ProjectionDescription::SOURCE_STREAMS
             ));
         }
 
         return new self(
             $desc[ProjectionDescription::PROJECTION_NAME],
             $desc[ProjectionDescription::PROJECTION_VERSION],
-            Stream::fromArray($desc[ProjectionDescription::SOURCE_STREAM]),
+            StreamCollection::fromArray($desc[ProjectionDescription::SOURCE_STREAMS]),
             $desc[ProjectionDescription::AGGREGATE_TYPE_FILTER] ?? null,
-            $desc[ProjectionDescription::EVENTS_FILTER] ?? null
+            $desc[ProjectionDescription::EVENTS_FILTER] ?? null,
         );
     }
 
-    private function __construct(string $name, string $version, Stream $sourceStream, string $aggregateTypeFilter = null, array $eventsFilter = null)
+    private function __construct(string $name, string $version, StreamCollection $sourceStreams, string $aggregateTypeFilter = null, array $eventsFilter = null)
     {
         $this->name = $name;
         $this->version = $version;
-        $this->sourceStream = $sourceStream;
+        $this->sourceStreams = $sourceStreams;
         $this->aggregateTypeFilter = $aggregateTypeFilter;
         $this->eventsFilter = $eventsFilter;
     }
@@ -99,11 +100,11 @@ final class ProjectionInfo
     }
 
     /**
-     * @return Stream
+     * @return StreamCollection
      */
-    public function sourceStream(): Stream
+    public function sourceStreams(): StreamCollection
     {
-        return $this->sourceStream;
+        return $this->sourceStreams;
     }
 
     /**

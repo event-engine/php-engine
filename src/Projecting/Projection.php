@@ -14,6 +14,7 @@ namespace EventEngine\Projecting;
 use EventEngine\EventEngine;
 use EventEngine\Messaging\Message;
 use EventEngine\Persistence\Stream;
+use EventEngine\Persistence\StreamCollection;
 use EventEngine\Runtime\Flavour;
 
 final class Projection
@@ -24,9 +25,9 @@ final class Projection
     private $desc;
 
     /**
-     * @var Stream
+     * @var StreamCollection
      */
-    private $sourceStream;
+    private $sourceStreams;
 
     /**
      * @var Projector|CustomEventProjector
@@ -50,18 +51,18 @@ final class Projection
         return new self($desc, $projector, $flavour, $desc[ProjectionDescription::PROJECTION_VERSION]);
     }
 
-    private function __construct(array $desc, $projector, Flavour $flavour, string $projecionVersion)
+    private function __construct(array $desc, $projector, Flavour $flavour, string $projectionVersion)
     {
         $this->desc = $desc;
-        $this->sourceStream = Stream::fromArray($this->desc[ProjectionDescription::SOURCE_STREAM]);
+        $this->sourceStreams = StreamCollection::fromArray($this->desc[ProjectionDescription::SOURCE_STREAMS]);
         $this->flavour = $flavour;
         $this->projector = $projector;
-        $this->projectionVersion = $projecionVersion;
+        $this->projectionVersion = $projectionVersion;
     }
 
     public function isInterestedIn(string $sourceStreamName, Message $event): bool
     {
-        if ($this->sourceStream->streamName() !== $sourceStreamName) {
+        if (!$this->sourceStreams->containsSourceStreamName($sourceStreamName)) {
             return false;
         }
 

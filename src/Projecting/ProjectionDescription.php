@@ -17,13 +17,14 @@ use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Messaging\Exception\RuntimeException;
 use EventEngine\Messaging\GenericSchemaMessage;
 use EventEngine\Persistence\Stream;
+use EventEngine\Persistence\StreamCollection;
 use EventEngine\Util\VariableType;
 
 final class ProjectionDescription
 {
     public const PROJECTION_NAME = 'projection_name';
     public const PROJECTION_VERSION = 'projection_version';
-    public const SOURCE_STREAM = 'source_stream';
+    public const SOURCE_STREAMS = 'source_streams';
     public const PROJECTOR_SERVICE_ID = 'projector_service_id';
     public const AGGREGATE_TYPE_FILTER = 'aggregate_type_filter';
     public const EVENTS_FILTER = 'events_filter';
@@ -31,9 +32,9 @@ final class ProjectionDescription
     public const PROJECTOR_OPTIONS = 'projector_options';
 
     /**
-     * @var Stream
+     * @var StreamCollection
      */
-    private $sourceStream;
+    private $sourceStreams;
 
     /**
      * @var string
@@ -75,9 +76,9 @@ final class ProjectionDescription
      */
     private $eventEngine;
 
-    public function __construct(Stream $stream, EventEngine $eventEngine)
+    public function __construct(EventEngine $eventEngine, Stream ...$streams)
     {
-        $this->sourceStream = $stream;
+        $this->sourceStreams = StreamCollection::fromItems(...$streams);
         $this->eventEngine = $eventEngine;
     }
 
@@ -168,7 +169,7 @@ final class ProjectionDescription
             self::PROJECTION_NAME => $this->projectionName,
             self::PROJECTION_VERSION => $this->projectionVersion,
             self::PROJECTOR_SERVICE_ID => $this->projectorServiceId,
-            self::SOURCE_STREAM => $this->sourceStream->toArray(),
+            self::SOURCE_STREAMS => $this->sourceStreams->toArray(),
             self::AGGREGATE_TYPE_FILTER => $this->aggregateTypeFilter,
             self::EVENTS_FILTER => $this->eventsFilter,
             self::DOCUMENT_STORE_INDICES => $this->documentStoreIndices,
