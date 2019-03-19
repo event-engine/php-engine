@@ -14,6 +14,7 @@ namespace EventEngine\Data;
 use EventEngine\Data\ImmutableRecord;
 use EventEngine\JsonSchema\Exception\InvalidArgumentException;
 use EventEngine\Schema\TypeSchema;
+use phpDocumentor\Reflection\Types\Self_;
 
 trait ImmutableRecordLogic
 {
@@ -120,6 +121,15 @@ trait ImmutableRecordLogic
         }
 
         return $nativeData;
+    }
+
+    public function equals(ImmutableRecord $other): bool
+    {
+        if(get_class($this) !== get_class($other)) {
+            return false;
+        }
+
+        return $this->toArray() === $other->toArray();
     }
 
     private function setRecordData(array $recordData)

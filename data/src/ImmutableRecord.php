@@ -40,4 +40,6 @@ interface ImmutableRecord
     public function with(array $recordData);
 
     public function toArray(): array;
+
+    public function equals(ImmutableRecord $other): bool;
 }
