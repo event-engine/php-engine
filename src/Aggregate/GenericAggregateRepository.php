@@ -142,10 +142,12 @@ final class GenericAggregateRepository
         array $eventApplyMap,
         int $expectedVersion = null
     ): ?FlavouredAggregateRoot {
+        $documentStore = $this->getDocumentStore();
+
         if (
             $this->aggregateCollection
+            && $documentStore
             && $this->flavour->canBuildAggregateState($aggregateType)
-            && $documentStore = $this->getDocumentStore()
             && $this->multiStoreMode !== MultiModelStore::STORAGE_MODE_EVENTS
         ) {
             $aggregateStateDoc = $documentStore->getDoc($this->aggregateCollection, $aggregateId);
