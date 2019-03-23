@@ -70,7 +70,7 @@ final class ProjectionInfo
             $desc[ProjectionDescription::PROJECTION_VERSION],
             StreamCollection::fromArray($desc[ProjectionDescription::SOURCE_STREAMS]),
             $desc[ProjectionDescription::AGGREGATE_TYPE_FILTER] ?? null,
-            $desc[ProjectionDescription::EVENTS_FILTER] ?? null,
+            $desc[ProjectionDescription::EVENTS_FILTER] ?? null
         );
     }
 
