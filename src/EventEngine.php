@@ -1151,6 +1151,16 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         ];
     }
 
+    public function env(): string
+    {
+        return $this->env;
+    }
+
+    public function debugMode(): bool
+    {
+        return $this->debugMode;
+    }
+
     /**
      * @param string $aggregateType
      * @param string $aggregateId
