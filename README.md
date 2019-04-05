@@ -13,7 +13,7 @@ Event Engine is a CQRS / EventSourcing framework for PHP to help you rapidly dev
 
 ## Choose Your Flavour
 
-![Choose Your Flavour](https://event-engine.io/img/Choose_Flavour.png)
+![Choose Your Flavour](https://event-engine.io/img/Choose_Flavour_no_h.png)
 
 ## Event Sourcing Engine
 
