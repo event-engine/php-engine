@@ -44,13 +44,12 @@ $ rm -rf vendor/prooph/event-store
 $ docker run --rm -it -v $(pwd):/app --user="$(id -u):$(id -g)" prooph/composer:7.2 install --prefer-source
 ```
 
-
 ## Powered by prooph software
 
 [![prooph software](https://github.com/codeliner/php-ddd-cargo-sample/blob/master/docs/assets/prooph-software-logo.png)](http://prooph.de)
 
-Event Engine is maintained by the [prooph software team](http://prooph-software.de/). The source code of Event Machine 
+Event Engine is maintained by the [prooph software team](http://prooph-software.de/). The source code of Event Engine 
 is open sourced along with an API documentation and a [Getting Started Tutorial](https://event-engine.io/tutorial/). Prooph software offers commercial support and workshops
-for Event Engine as well as for the [prooph components](http://getprooph.org/).
+for Event Engine and the [prooph components](http://getprooph.org/).
 
-If you are interested in this offer or need project support please [get in touch](http://getprooph.org/#get-in-touch)
+If you are interested please [get in touch](http://getprooph.org/#get-in-touch)
