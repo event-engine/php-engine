@@ -962,6 +962,21 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $aggregate->currentState();
     }
 
+    public function loadAggregateStateUntil(string $aggregateType, string $aggregateId, int $maxVersion = null)
+    {
+        $this->assertBootstrapped(__METHOD__);
+
+        if (! \array_key_exists($aggregateType, $this->aggregateDescriptions)) {
+            throw new InvalidArgumentException('Unknown aggregate type: ' . $aggregateType);
+        }
+
+        $aggregate = $this->loadAggregateRootUntil($aggregateType, $aggregateId, $maxVersion);
+
+        $this->cacheAggregateState($aggregateType, $aggregateId, $aggregate->version(), $aggregate->currentState());
+
+        return $aggregate->currentState();
+    }
+
     private function loadAggregateRoot(string $aggregateType, string $aggregateId, int $expectedVersion = null)
     {
         $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
@@ -977,6 +992,36 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         /** @var FlavouredAggregateRoot $aggregate */
         $aggregate = $arRepository->getAggregateRoot($aggregateType, $aggregateId, $aggregateDesc['eventApplyMap'], $expectedVersion);
+
+        if (! $aggregate) {
+            throw AggregateNotFound::with($aggregateType, $aggregateId);
+        }
+        $this->log->aggregateStateLoaded($aggregate->aggregateType(), $aggregate->aggregateId(), $aggregate->version());
+
+        return $aggregate;
+    }
+
+    /**
+     * @param string $aggregateType
+     * @param string $aggregateId
+     * @param int $maxVersion
+     * @return FlavouredAggregateRoot
+     */
+    private function loadAggregateRootUntil(string $aggregateType, string $aggregateId, int $maxVersion): FlavouredAggregateRoot
+    {
+        $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
+
+        $arRepository = new GenericAggregateRepository(
+            $this->flavour,
+            $this->eventStore,
+            $aggregateDesc['aggregateStream'],
+            $this->documentStore,
+            $aggregateDesc['aggregateCollection'] ?? null,
+            $aggregateDesc['multiStoreMode'] ?? null
+        );
+
+        /** @var FlavouredAggregateRoot $aggregate */
+        $aggregate = $arRepository->getAggregateRootUntil($aggregateType, $aggregateId, $aggregateDesc['eventApplyMap'], $maxVersion);
 
         if (! $aggregate) {
             throw AggregateNotFound::with($aggregateType, $aggregateId);
@@ -1149,16 +1194,6 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             'version' => $version,
             'state' => $aggregateState
         ];
-    }
-
-    public function env(): string
-    {
-        return $this->env;
-    }
-
-    public function debugMode(): bool
-    {
-        return $this->debugMode;
     }
 
     /**

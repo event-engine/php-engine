@@ -194,6 +194,36 @@ final class GenericAggregateRepository
         );
     }
 
+    /**
+     * Returns null if no stream events can be found for aggregate root otherwise the reconstituted aggregate root
+     *
+     * @param string $aggregateType
+     * @param string $aggregateId
+     * @param array $eventApplyMap
+     * @param int $maxVersion
+     * @return null|FlavouredAggregateRoot
+     */
+    public function getAggregateRootUntil(
+        string $aggregateType,
+        string $aggregateId,
+        array $eventApplyMap,
+        int $maxVersion
+    ): ?FlavouredAggregateRoot {
+        $streamEvents = $this->eventStore->loadAggregateEvents($this->streamName, $aggregateType, $aggregateId, 1, $maxVersion);
+
+        if (! $streamEvents->valid()) {
+            return null;
+        }
+
+        return FlavouredAggregateRoot::reconstituteFromHistory(
+            $aggregateId,
+            $aggregateType,
+            $eventApplyMap,
+            $this->flavour,
+            $streamEvents
+        );
+    }
+
     private function getDocumentStore(): ?DocumentStore
     {
         if($this->eventStore instanceof MultiModelStore) {
