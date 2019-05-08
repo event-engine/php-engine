@@ -62,6 +62,10 @@ final class MessageDescription implements EventEngineDescription
             UserDescription::IDENTIFIER_ALIAS => $userId,
             UserDescription::EMAIL => JsonSchema::email(),
         ]));
+        $eventEngine->registerCommand(Command::CONNECT_WITH_FRIEND, JsonSchema::object([
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::FRIEND => $userId,
+        ]));
         $eventEngine->registerCommand(Command::DO_NOTHING, JsonSchema::object([
             UserDescription::IDENTIFIER => $userId,
         ]));
@@ -76,6 +80,11 @@ final class MessageDescription implements EventEngineDescription
             UserDescription::IDENTIFIER_ALIAS => $userId,
             'oldMail' => JsonSchema::email(),
             'newMail' => JsonSchema::email(),
+        ]));
+
+        $eventEngine->registerEvent(Event::FRIEND_CONNECTED, JsonSchema::object([
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::FRIEND => $userId,
         ]));
 
         $eventEngine->registerEvent(Event::USER_REGISTRATION_FAILED, JsonSchema::object([

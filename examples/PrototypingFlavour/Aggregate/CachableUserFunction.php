@@ -12,7 +12,10 @@ declare(strict_types=1);
 namespace EventEngineExample\PrototypingFlavour\Aggregate;
 
 use EventEngine\Messaging\Message;
+use EventEngine\Messaging\MessageFactory;
 use EventEngineExample\PrototypingFlavour\Messaging\Event;
+use EventEngineExample\PrototypingFlavour\Messaging\Query;
+use EventEngineExample\PrototypingFlavour\Resolver\GetUserResolver;
 
 final class CachableUserFunction
 {
@@ -28,7 +31,7 @@ final class CachableUserFunction
         }
     }
 
-    public static function whenUserWasRegistered(Message $userWasRegistered)
+    public static function whenUserWasRegistered(Message $userWasRegistered): UserState
     {
         $user = new UserState();
         $user->userId = $userWasRegistered->payload()[CacheableUserDescription::IDENTIFIER];
@@ -38,7 +41,7 @@ final class CachableUserFunction
         return $user;
     }
 
-    public static function whenUserRegistrationFailed(Message $userRegistrationFailed)
+    public static function whenUserRegistrationFailed(Message $userRegistrationFailed): UserState
     {
         $user = new UserState();
         $user->failed = true;
@@ -55,7 +58,7 @@ final class CachableUserFunction
         ]];
     }
 
-    public static function whenUsernameWasChanged(UserState $user, Message $usernameWasChanged)
+    public static function whenUsernameWasChanged(UserState $user, Message $usernameWasChanged): UserState
     {
         $user->username = $usernameWasChanged->payload()['newName'];
 
@@ -71,10 +74,31 @@ final class CachableUserFunction
         ]];
     }
 
-    public static function whenEmailWasChanged(UserState $user, Message $emailWasChanged)
+    public static function whenEmailWasChanged(UserState $user, Message $emailWasChanged): UserState
     {
         $user->email = $emailWasChanged->get('newMail');
 
+        return $user;
+    }
+
+    public static function connectWithFriend(UserState $user, Message $connectWithFriend, GetUserResolver $resolver, MessageFactory $messageFactory): \Generator
+    {
+        $friendId = $connectWithFriend->get(CacheableUserDescription::FRIEND);
+
+        //Check that friend exists using a resolver dependency
+        $friend = $resolver->resolve($messageFactory->createMessageFromArray(Query::GET_USER, [
+            CacheableUserDescription::IDENTIFIER => $friendId
+        ]));
+
+        yield [Event::FRIEND_CONNECTED, [
+            CacheableUserDescription::IDENTIFIER => $user->userId,
+            CacheableUserDescription::FRIEND => $friend[CacheableUserDescription::IDENTIFIER],
+        ]];
+    }
+
+    public static function whenFriendConnected(UserState $user, Message $friendConnected): UserState
+    {
+        $user->friends[] = $friendConnected->get(CacheableUserDescription::FRIEND);
         return $user;
     }
 

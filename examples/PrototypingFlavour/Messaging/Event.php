@@ -17,6 +17,7 @@ final class Event
     const USER_REGISTRATION_FAILED = 'UserRegistrationFailed';
     const USERNAME_WAS_CHANGED = 'UsernameWasChanged';
     const EMAIL_WAS_CHANGED = 'EmailWasChanged';
+    const FRIEND_CONNECTED = 'FriendConnected';
 
     private function __construct()
     {

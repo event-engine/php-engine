@@ -13,8 +13,10 @@ namespace EventEngineExample\PrototypingFlavour\Aggregate;
 
 use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
+use EventEngine\Messaging\MessageFactory;
 use EventEngineExample\PrototypingFlavour\Messaging\Command;
 use EventEngineExample\PrototypingFlavour\Messaging\Event;
+use EventEngineExample\PrototypingFlavour\Resolver\GetUserResolver;
 
 /**
  * Class CacheableUserDescription
@@ -30,6 +32,7 @@ final class CacheableUserDescription implements EventEngineDescription
     const IDENTIFIER_ALIAS = 'user_id';
     const USERNAME = 'username';
     const EMAIL = 'email';
+    const FRIEND = 'friend';
 
     const STATE_CLASS = UserState::class;
 
@@ -39,6 +42,7 @@ final class CacheableUserDescription implements EventEngineDescription
         self::describeChangeUsername($eventEngine);
         self::describeDoNothing($eventEngine);
         self::describeChangeEmail($eventEngine);
+        self::describeConnectWithFriend($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -72,6 +76,17 @@ final class CacheableUserDescription implements EventEngineDescription
             ->handle([CachableUserFunction::class, 'changeEmail'])
             ->recordThat(Event::EMAIL_WAS_CHANGED)
             ->apply([CachableUserFunction::class, 'whenEmailWasChanged']);
+    }
+
+    private static function describeConnectWithFriend(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CONNECT_WITH_FRIEND)
+            ->withExisting(Aggregate::USER)
+            ->provideService(GetUserResolver::class)
+            ->provideService(MessageFactory::class)
+            ->handle([CachableUserFunction::class, 'connectWithFriend'])
+            ->recordThat(Event::FRIEND_CONNECTED)
+            ->apply([CachableUserFunction::class, 'whenFriendConnected']);
     }
 
     private static function describeDoNothing(EventEngine $eventEngine): void

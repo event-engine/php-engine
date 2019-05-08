@@ -59,13 +59,13 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, ...$contextServices): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $aggregate = $this->port->callAggregateFactory($aggregateType, $aggregateFunction, $command->get(MessageBag::MESSAGE), $context);
+        $aggregate = $this->port->callAggregateFactory($aggregateType, $aggregateFunction, $command->get(MessageBag::MESSAGE), ...$contextServices);
 
         $events = $this->port->popRecordedEvents($aggregate);
 
@@ -91,13 +91,13 @@ final class OopFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator
+    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, ...$contextServices): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $this->port->callAggregateWithCommand($aggregateState, $command->get(MessageBag::MESSAGE), $context);
+        $this->port->callAggregateWithCommand($aggregateState, $command->get(MessageBag::MESSAGE), ...$contextServices);
 
         $events = $this->port->popRecordedEvents($aggregateState);
 

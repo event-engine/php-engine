@@ -17,17 +17,17 @@ interface Port
      * @param string $aggregateType
      * @param callable $aggregateFactory
      * @param $customCommand
-     * @param null|mixed $context
+     * @param array $contextServices
      * @return mixed Created aggregate
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, $context = null);
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, ...$contextServices);
 
     /**
      * @param mixed $aggregate
      * @param mixed $customCommand
-     * @param null|mixed $context
+     * @param array $contextServices
      */
-    public function callAggregateWithCommand($aggregate, $customCommand, $context = null): void;
+    public function callAggregateWithCommand($aggregate, $customCommand, ...$contextServices): void;
 
     /**
      * @param mixed $aggregate

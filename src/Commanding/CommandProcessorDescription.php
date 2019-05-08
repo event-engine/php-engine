@@ -70,6 +70,11 @@ final class CommandProcessorDescription
      */
     private $contextProvider;
 
+    /**
+     * @var array
+     */
+    private $services = [];
+
     public function __construct(string $commandName, EventEngine $eventEngine)
     {
         $this->commandName = $commandName;
@@ -182,6 +187,13 @@ final class CommandProcessorDescription
         return $this;
     }
 
+    public function provideService(string $serviceId): self
+    {
+        $this->services[] = $serviceId;
+
+        return $this;
+    }
+
     public function handle(callable $aggregateFunction): self
     {
         $this->assertWithAggregateWasCalled(__METHOD__);
@@ -241,6 +253,7 @@ final class CommandProcessorDescription
             'streamName' => $this->aggregateStream,
             'multiStoreMode' => $this->multiStoreMode,
             'contextProvider' => $this->contextProvider,
+            'services' => $this->services,
         ];
     }
 

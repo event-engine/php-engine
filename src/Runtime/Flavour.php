@@ -64,10 +64,10 @@ interface Flavour
      * @param string $aggregateType
      * @param callable $aggregateFunction
      * @param Message $command
-     * @param null|mixed $context
+     * @param array $contextServices
      * @return \Generator Message[] yield events
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator;
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, ...$contextServices): \Generator;
 
     /**
      * Subsequent aggregate functions receive current state of the aggregate as an argument.
@@ -78,10 +78,10 @@ interface Flavour
      * @param callable $aggregateFunction
      * @param mixed $aggregateState
      * @param Message $command
-     * @param null|mixed $context
+     * @param array $contextServices
      * @return \Generator Message[] yield events
      */
-    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator;
+    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, ...$contextServices): \Generator;
 
     /**
      * First event apply function does not receive aggregate state as an argument but should return the first version

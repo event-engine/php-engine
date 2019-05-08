@@ -16,6 +16,7 @@ use EventEngine\EventEngineDescription;
 use EventEngine\Runtime\Oop\FlavourHint;
 use EventEngineExample\FunctionalFlavour\Api\Command;
 use EventEngineExample\FunctionalFlavour\Api\Event;
+use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 
 /**
  * Class UserDescription
@@ -34,6 +35,7 @@ final class UserDescription implements EventEngineDescription
         self::describeRegisterUser($eventEngine);
         self::describeChangeUsername($eventEngine);
         self::describeChangeEmail($eventEngine);
+        self::describeConnectWithFriend($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -48,16 +50,16 @@ final class UserDescription implements EventEngineDescription
             // because OOPAggregateCallInterceptor does not use this callable
             // see OOPAggregateCallInterceptor::callApplyFirstEvent()
             // and OOPAggregateCallInterceptor::callApplySubsequentEvent()
-            ->apply([FlavourHint::class, 'useAggregate']);
+            ->apply([FlavourHint::class, User::class]);
     }
 
     private static function describeChangeUsername(EventEngine $eventEngine): void
     {
         $eventEngine->process(Command::CHANGE_USERNAME)
             ->withExisting(User::TYPE)
-            ->handle([FlavourHint::class, 'useAggregate'])
+            ->handle([FlavourHint::class, User::class])
             ->recordThat(Event::USERNAME_WAS_CHANGED)
-            ->apply([FlavourHint::class, 'useAggregate']);
+            ->apply([FlavourHint::class, User::class]);
     }
 
     private static function describeChangeEmail(EventEngine $eventEngine): void
@@ -65,9 +67,19 @@ final class UserDescription implements EventEngineDescription
         $eventEngine->process(Command::CHANGE_EMAIL)
             ->withExisting(User::TYPE)
             ->identifiedBy(self::IDENTIFIER_ALIAS)
-            ->handle([FlavourHint::class, 'useAggregate'])
+            ->handle([FlavourHint::class, User::class])
             ->recordThat(Event::EMAIL_WAS_CHANGED)
-            ->apply([FlavourHint::class, 'useAggregate']);
+            ->apply([FlavourHint::class, User::class]);
+    }
+
+    private static function describeConnectWithFriend(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CONNECT_WITH_FRIEND)
+            ->withExisting(User::TYPE)
+            ->provideService(GetUserResolver::class)
+            ->handle([FlavourHint::class, User::class])
+            ->recordThat(Event::FRIEND_CONNECTED)
+            ->apply([FlavourHint::class, User::class]);
     }
 
     private function __construct()

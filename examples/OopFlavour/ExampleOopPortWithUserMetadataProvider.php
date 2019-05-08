@@ -24,15 +24,15 @@ final class ExampleOopPortWithUserMetadataProvider implements Port, MetadataProv
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, $context = null)
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, ...$contextServices)
     {
-        return $aggregateFactory($customCommand, $context);
+        return $aggregateFactory($customCommand, ...$contextServices);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function callAggregateWithCommand($aggregate, $customCommand, $context = null): void
+    public function callAggregateWithCommand($aggregate, $customCommand, ...$contextServices): void
     {
         switch (\get_class($customCommand)) {
             case ChangeUsername::class:

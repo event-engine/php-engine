@@ -29,12 +29,16 @@ final class CommandDispatch
      * @param Message $command
      * @param Flavour $flavour
      * @param EventStore $eventStore
-     * @param LoggerInterface $log
+     * @param LogEngine $log
      * @param array $processorDescription
      * @param array $aggregateDescriptions
+     * @param bool $autoPublish
+     * @param bool $autoProject
      * @param MessageProducer $eventQueue
+     * @param EventEngine $eventEngine
      * @param DocumentStore|null $documentStore
      * @param ContextProvider|null $contextProvider
+     * @param array $services
      * @return CommandDispatchResult
      * @throws \Throwable
      */
@@ -50,7 +54,8 @@ final class CommandDispatch
         MessageProducer $eventQueue,
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
-        ContextProvider $contextProvider = null): CommandDispatchResult
+        ContextProvider $contextProvider = null,
+        array $services = []): CommandDispatchResult
     {
         if(empty($processorDescription)) {
             throw new RuntimeException("No routing information found for command {$command->messageName()}");
@@ -64,7 +69,8 @@ final class CommandDispatch
             $log,
             $eventEngine,
             $documentStore,
-            $contextProvider
+            $contextProvider,
+            $services
         );
 
         $recordedEvents = $commandProcessor($command);

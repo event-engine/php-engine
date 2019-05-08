@@ -17,11 +17,15 @@ use EventEngineExample\FunctionalFlavour\Api\Command;
 use EventEngineExample\FunctionalFlavour\Api\Event;
 use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
+use EventEngineExample\FunctionalFlavour\Command\ConnectWithFriend;
 use EventEngineExample\FunctionalFlavour\Command\RegisterUser;
 use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
+use EventEngineExample\FunctionalFlavour\Event\FriendConnected;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
+use EventEngineExample\FunctionalFlavour\Query\GetUser;
+use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 
 /**
  * Class UserDescription
@@ -46,6 +50,7 @@ final class UserDescription implements EventEngineDescription
     public const IDENTIFIER_ALIAS = 'user_id';
     public const USERNAME = 'username';
     public const EMAIL = 'email';
+    public const FRIEND = 'friend';
 
     const STATE_CLASS = UserState::class;
 
@@ -54,6 +59,7 @@ final class UserDescription implements EventEngineDescription
         self::describeRegisterUser($eventEngine);
         self::describeChangeUsername($eventEngine);
         self::describeChangeEmail($eventEngine);
+        self::describeConnectWithFriend($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -124,6 +130,29 @@ final class UserDescription implements EventEngineDescription
             ->apply(function (UserState $user, EmailChanged $emailWasChanged) {
                 $user->email = $emailWasChanged->newMail;
 
+                return $user;
+            });
+    }
+
+    private static function describeConnectWithFriend(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CONNECT_WITH_FRIEND)
+            ->withExisting(Aggregate::USER)
+            ->provideService(GetUserResolver::class)
+            ->handle(function (UserState $user, ConnectWithFriend $command, GetUserResolver $resolver): \Generator
+            {
+                //Check that friend exists using a resolver dependency
+                $friend = $resolver->resolve(new GetUser([UserDescription::IDENTIFIER => $command->friend]));
+
+                yield new FriendConnected([
+                    UserDescription::IDENTIFIER => $user->userId,
+                    UserDescription::FRIEND => $friend[UserDescription::IDENTIFIER],
+                ]);
+            })
+            ->recordThat(Event::FRIEND_CONNECTED)
+            ->apply(function (UserState $user, FriendConnected $event): UserState
+            {
+                $user->friends[] = $event->friend;
                 return $user;
             });
     }

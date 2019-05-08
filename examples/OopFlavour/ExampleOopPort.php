@@ -16,6 +16,7 @@ use EventEngine\Runtime\Oop\Port;
 use EventEngine\Util\VariableType;
 use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
+use EventEngineExample\FunctionalFlavour\Command\ConnectWithFriend;
 use EventEngineExample\OopFlavour\Aggregate\User;
 
 final class ExampleOopPort implements Port
@@ -23,15 +24,15 @@ final class ExampleOopPort implements Port
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, $context = null)
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFactory, $customCommand, ...$contextServices)
     {
-        return $aggregateFactory($customCommand, $context);
+        return $aggregateFactory($customCommand, ...$contextServices);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function callAggregateWithCommand($aggregate, $customCommand, $context = null): void
+    public function callAggregateWithCommand($aggregate, $customCommand, ...$contextServices): void
     {
         switch (\get_class($customCommand)) {
             case ChangeUsername::class:
@@ -41,6 +42,10 @@ final class ExampleOopPort implements Port
             case ChangeEmail::class:
                 /** @var User $aggregate */
                 $aggregate->changeEmail($customCommand);
+                break;
+            case ConnectWithFriend::class:
+                /** @var User $aggregate */
+                $aggregate->connectWithFriend($customCommand, ...$contextServices);
                 break;
             default:
                 throw new InvalidArgumentException('Unknown command: ' . VariableType::determine($customCommand));

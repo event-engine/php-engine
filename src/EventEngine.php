@@ -808,6 +808,12 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
                 $processorDesc = $this->compiledCommandRouting[$command->messageName()] ?? [];
 
+                $services = $processorDesc['services'] ?? [];
+
+                foreach ($services as $sIndex => $serviceId) {
+                    $services[$sIndex] = $this->container->get($serviceId);
+                }
+
                 return CommandDispatch::exec(
                     $command,
                     $this->flavour,
@@ -820,7 +826,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $this->eventQueue ?? $this,
                     $this,
                     $this->documentStore,
-                    isset($processorDesc['contextProvider']) ? $this->container->get($processorDesc['contextProvider']) : null
+                    isset($processorDesc['contextProvider']) ? $this->container->get($processorDesc['contextProvider']) : null,
+                    $services
                 );
                 break;
             case Message::TYPE_EVENT:

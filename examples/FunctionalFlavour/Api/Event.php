@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace EventEngineExample\FunctionalFlavour\Api;
 
 use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
+use EventEngineExample\FunctionalFlavour\Event\FriendConnected;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
@@ -22,12 +23,14 @@ final class Event
     const USER_REGISTRATION_FAILED = 'UserRegistrationFailed';
     const USERNAME_WAS_CHANGED = 'UsernameWasChanged';
     const EMAIL_WAS_CHANGED = 'EmailWasChanged';
+    const FRIEND_CONNECTED = 'FriendConnected';
 
     const CLASS_MAP = [
         self::USER_WAS_REGISTERED => UserRegistered::class,
         self::USER_REGISTRATION_FAILED => UserRegistrationFailed::class,
         self::USERNAME_WAS_CHANGED => UsernameChanged::class,
         self::EMAIL_WAS_CHANGED => EmailChanged::class,
+        self::FRIEND_CONNECTED => FriendConnected::class,
     ];
 
     public static function createFromNameAndPayload(string $commandName, array $payload)

@@ -14,8 +14,11 @@ namespace EventEngineExample\PrototypingFlavour\Aggregate;
 use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
 use EventEngine\Messaging\Message;
+use EventEngine\Messaging\MessageFactory;
 use EventEngineExample\PrototypingFlavour\Messaging\Command;
 use EventEngineExample\PrototypingFlavour\Messaging\Event;
+use EventEngineExample\PrototypingFlavour\Messaging\Query;
+use EventEngineExample\PrototypingFlavour\Resolver\GetUserResolver;
 
 /**
  * Class UserDescription
@@ -40,6 +43,7 @@ final class UserDescription implements EventEngineDescription
     const IDENTIFIER_ALIAS = 'user_id';
     const USERNAME = 'username';
     const EMAIL = 'email';
+    const FRIEND = 'friend';
 
     const STATE_CLASS = UserState::class;
 
@@ -48,6 +52,7 @@ final class UserDescription implements EventEngineDescription
         self::describeRegisterUser($eventEngine);
         self::describeChangeUsername($eventEngine);
         self::describeChangeEmail($eventEngine);
+        self::describeConnectWithFriend($eventEngine);
     }
 
     private static function describeRegisterUser(EventEngine $eventEngine): void
@@ -113,6 +118,34 @@ final class UserDescription implements EventEngineDescription
             ->apply(function (UserState $user, Message $emailWasChanged) {
                 $user->email = $emailWasChanged->get('newMail');
 
+                return $user;
+            });
+    }
+
+    private static function describeConnectWithFriend(EventEngine $eventEngine): void
+    {
+        $eventEngine->process(Command::CONNECT_WITH_FRIEND)
+            ->withExisting(Aggregate::USER)
+            ->provideService(GetUserResolver::class)
+            ->provideService(MessageFactory::class)
+            ->handle(function (UserState $user, Message $connectWithFriend, GetUserResolver $resolver, MessageFactory $messageFactory): \Generator
+            {
+                $friendId = $connectWithFriend->get(CacheableUserDescription::FRIEND);
+
+                //Check that friend exists using a resolver dependency
+                $friend = $resolver->resolve($messageFactory->createMessageFromArray(Query::GET_USER, [
+                    'payload' => [CacheableUserDescription::IDENTIFIER => $friendId]
+                ]));
+
+                yield [Event::FRIEND_CONNECTED, [
+                    CacheableUserDescription::IDENTIFIER => $user->userId,
+                    CacheableUserDescription::FRIEND => $friend[CacheableUserDescription::IDENTIFIER],
+                ]];
+            })
+            ->recordThat(Event::FRIEND_CONNECTED)
+            ->apply(function (UserState $user, Message $friendConnected): UserState
+            {
+                $user->friends[] = $friendConnected->get(CacheableUserDescription::FRIEND);
                 return $user;
             });
     }

@@ -16,5 +16,6 @@ class UserState
     public $userId;
     public $username;
     public $email;
+    public $friends = [];
     public $failed;
 }

@@ -99,6 +99,8 @@ final class CommandProcessor
      */
     private $contextProvider;
 
+    private $services = [];
+
     /**
      * @var LoggerInterface
      */
@@ -112,7 +114,8 @@ final class CommandProcessor
         LogEngine $logEngine,
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
-        ContextProvider $contextProvider = null
+        ContextProvider $contextProvider = null,
+        array $services = []
     ): self {
         $aggregateDesc = $aggregateDescriptions[$processorDesc['aggregateType'] ?? ''] ?? [];
 
@@ -161,6 +164,7 @@ final class CommandProcessor
             $eventStore,
             $logEngine,
             $eventEngine,
+            $services,
             $contextProvider,
             $documentStore,
             $aggregateDesc['aggregateCollection'] ?? null
@@ -180,6 +184,7 @@ final class CommandProcessor
         EventStore $eventStore,
         LogEngine $log,
         EventEngine $eventEngine,
+        array $services,
         ContextProvider $contextProvider = null,
         DocumentStore $documentStore = null,
         string $aggregateCollection = null
@@ -198,6 +203,7 @@ final class CommandProcessor
         $this->eventEngine = $eventEngine;
         $this->documentStore = $documentStore;
         $this->contextProvider = $contextProvider;
+        $this->services = $services;
         $this->aggregateCollection = $aggregateCollection;
     }
 
@@ -241,11 +247,16 @@ final class CommandProcessor
         }
 
         $arFunc = $this->aggregateFunction;
+        $services = $this->services;
+
+        if($context !== null) {
+            \array_unshift($services, $context);
+        }
 
         if ($this->createAggregate) {
-            $events = $this->flavour->callAggregateFactory($this->aggregateType, $arFunc, $command, $context);
+            $events = $this->flavour->callAggregateFactory($this->aggregateType, $arFunc, $command, ...$services);
         } else {
-            $events = $this->flavour->callSubsequentAggregateFunction($this->aggregateType, $arFunc, $aggregateState, $command, $context);
+            $events = $this->flavour->callSubsequentAggregateFunction($this->aggregateType, $arFunc, $aggregateState, $command, ...$services);
         }
 
         foreach ($events as $event) {

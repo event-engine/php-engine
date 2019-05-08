@@ -159,13 +159,13 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, ...$contextServices): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $events = $aggregateFunction($command->get(MessageBag::MESSAGE), $context);
+        $events = $aggregateFunction($command->get(MessageBag::MESSAGE), ...$contextServices);
 
         if (! $events instanceof \Generator) {
             throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);
@@ -185,13 +185,13 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator
+    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, ...$contextServices): \Generator
     {
         if (! $command instanceof MessageBag) {
             throw new RuntimeException('Message passed to ' . __METHOD__ . ' should be of type ' . MessageBag::class);
         }
 
-        $events = $aggregateFunction($aggregateState, $command->get(MessageBag::MESSAGE), $context);
+        $events = $aggregateFunction($aggregateState, $command->get(MessageBag::MESSAGE), ...$contextServices);
 
         if (! $events instanceof \Generator) {
             throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);

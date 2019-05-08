@@ -136,9 +136,9 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, $context = null): \Generator
+    public function callAggregateFactory(string $aggregateType, callable $aggregateFunction, Message $command, ...$contextServices): \Generator
     {
-        $events = $aggregateFunction($command, $context);
+        $events = $aggregateFunction($command, ...$contextServices);
 
         if (! $events instanceof \Generator) {
             throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);
@@ -156,9 +156,9 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
     /**
      * {@inheritdoc}
      */
-    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, $context = null): \Generator
+    public function callSubsequentAggregateFunction(string $aggregateType, callable $aggregateFunction, $aggregateState, Message $command, ...$contextServices): \Generator
     {
-        $events = $aggregateFunction($aggregateState, $command, $context);
+        $events = $aggregateFunction($aggregateState, $command, ...$contextServices);
 
         if (! $events instanceof \Generator) {
             throw NoGenerator::forAggregateTypeAndCommand($aggregateType, $command);

@@ -47,6 +47,7 @@ use EventEngine\Schema\Schema;
 use EventEngineExample\FunctionalFlavour\Api\MessageDescription;
 use EventEngineExample\FunctionalFlavour\Api\Query;
 use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
+use EventEngineExample\FunctionalFlavour\Event\FriendConnected;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 use EventEngineExample\PrototypingFlavour\Aggregate\Aggregate;
@@ -241,6 +242,57 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $event = $recordedEvents[0];
 
         $this->assertUserWasRegistered($event, $registerUser, $userId);
+    }
+
+    /**
+     * @test
+     */
+    public function it_provides_services_if_specified_in_aggregate_description()
+    {
+        $friendId = Uuid::uuid4()->toString();
+
+        $getUserResolver = $this->getUserResolver([
+            UserDescription::IDENTIFIER => $friendId,
+            UserDescription::USERNAME => 'Jane',
+        ]);
+
+        $this->appContainer->get(\get_class($getUserResolver))->willReturn($getUserResolver);
+
+        $publishedEvents = [];
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+        });
+
+        $this->eventEngine->on(Event::FRIEND_CONNECTED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+        });
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $this->appContainer->get(MessageFactory::class)->willReturn($this->eventEngine->messageFactory());
+
+        $userId = Uuid::uuid4()->toString();
+
+        $firstResult = $this->eventEngine->dispatch(Command::REGISTER_USER, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::USERNAME => 'John',
+            UserDescription::EMAIL => 'contact@prooph.de',
+        ]);
+
+        $secondResult = $this->eventEngine->dispatch(Command::CONNECT_WITH_FRIEND, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::FRIEND => $friendId,
+        ]);
+
+        $recordedEvents = array_merge($firstResult->recordedEvents(), $secondResult->recordedEvents());
+
+        self::assertCount(2, $recordedEvents);
+        self::assertCount(2, $publishedEvents);
+        /** @var GenericEvent $event */
+        $event = $recordedEvents[1];
+        self::assertEquals(Event::FRIEND_CONNECTED, $event->messageName());
     }
 
     /**
@@ -633,6 +685,10 @@ abstract class EventEngineTestAbstract extends BasicTestCase
                         UserDescription::IDENTIFIER_ALIAS => $userId,
                         UserDescription::EMAIL => JsonSchema::email(),
                     ])->toArray(),
+                    Command::CONNECT_WITH_FRIEND => JsonSchema::object([
+                        UserDescription::IDENTIFIER => $userId,
+                        UserDescription::FRIEND => $userId,
+                    ])->toArray(),
                     Command::DO_NOTHING => JsonSchema::object([
                         UserDescription::IDENTIFIER => $userId,
                     ])->toArray(),
@@ -648,6 +704,10 @@ abstract class EventEngineTestAbstract extends BasicTestCase
                         UserDescription::IDENTIFIER_ALIAS => $userId,
                         'oldMail' => JsonSchema::email(),
                         'newMail' => JsonSchema::email(),
+                    ])->toArray(),
+                    Event::FRIEND_CONNECTED => JsonSchema::object([
+                        UserDescription::IDENTIFIER => $userId,
+                        UserDescription::FRIEND => $userId,
                     ])->toArray(),
                     Event::USER_REGISTRATION_FAILED => JsonSchema::object([
                         UserDescription::IDENTIFIER => $userId,
@@ -701,6 +761,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             'userId' => $userId,
             'username' => 'Alex',
             'email' => 'contact@prooph.de',
+            'friends' => [],
             'failed' => null,
         ], $userState);
     }
@@ -1075,6 +1136,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             'userId' => $userId,
             'username' => 'Alex',
             'email' => 'contact@prooph.de',
+            'friends' => [],
             'failed' => null,
         ], $userState['state']);
     }
@@ -1242,6 +1304,12 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             case EmailChanged::class:
                 return $flavour->prepareNetworkTransmission(new MessageBag(
                     Event::EMAIL_WAS_CHANGED,
+                    Message::TYPE_EVENT,
+                    $event
+                ));
+            case FriendConnected::class:
+                return $flavour->prepareNetworkTransmission(new MessageBag(
+                    Event::FRIEND_CONNECTED,
                     Message::TYPE_EVENT,
                     $event
                 ));

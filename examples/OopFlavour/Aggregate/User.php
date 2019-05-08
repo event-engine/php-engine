@@ -14,11 +14,15 @@ namespace EventEngineExample\OopFlavour\Aggregate;
 use EventEngine\Exception\RuntimeException;
 use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
+use EventEngineExample\FunctionalFlavour\Command\ConnectWithFriend;
 use EventEngineExample\FunctionalFlavour\Command\RegisterUser;
 use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
+use EventEngineExample\FunctionalFlavour\Event\FriendConnected;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistered;
 use EventEngineExample\FunctionalFlavour\Event\UserRegistrationFailed;
+use EventEngineExample\FunctionalFlavour\Query\GetUser;
+use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 
 final class User
 {
@@ -29,6 +33,8 @@ final class User
     private $username;
 
     private $email;
+
+    private $friends = [];
 
     private $failed;
 
@@ -95,6 +101,16 @@ final class User
         ]));
     }
 
+    public function connectWithFriend(ConnectWithFriend $command, GetUserResolver $userResolver): void
+    {
+        $friend = $userResolver->resolve(new GetUser(['userId' => $command->friend]));
+
+        $this->recordThat(new FriendConnected([
+            'userId' => $this->userId,
+            'friend' => $friend['userId']
+        ]));
+    }
+
     public function popRecordedEvents(): array
     {
         $events = $this->recordedEvents;
@@ -105,25 +121,24 @@ final class User
 
     public function apply($event): void
     {
-        switch (\get_class($event)) {
-            case UserRegistered::class:
-                /** @var UserRegistered $event */
+        switch (true) {
+            case $event instanceof UserRegistered:
                 $this->userId = $event->userId;
                 $this->username = $event->username;
                 $this->email = $event->email;
                 break;
-            case UserRegistrationFailed::class:
-                /** @var UserRegistrationFailed $event */
+            case $event instanceof UserRegistrationFailed:
                 $this->userId = $event->userId;
                 $this->failed = true;
                 break;
-            case UsernameChanged::class:
-                /** @var UsernameChanged $event */
+            case $event instanceof UsernameChanged:
                 $this->username = $event->newName;
                 break;
-            case EmailChanged::class:
-                /** @var EmailChanged $event */
+            case $event instanceof EmailChanged:
                 $this->email = $event->newMail;
+                break;
+            case $event instanceof FriendConnected:
+                $this->friends[] = $event->friend;
                 break;
             default:
                 throw new RuntimeException('Unknown event: ' . \get_class($event));
@@ -136,6 +151,7 @@ final class User
             'userId' => $this->userId,
             'username' => $this->username,
             'email' => $this->email,
+            'friends' => $this->friends,
             'failed' => $this->failed,
         ];
     }
