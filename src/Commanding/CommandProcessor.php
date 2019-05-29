@@ -114,7 +114,7 @@ final class CommandProcessor
         LogEngine $logEngine,
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
-        ContextProvider $contextProvider = null,
+        $contextProvider = null,
         array $services = []
     ): self {
         $aggregateDesc = $aggregateDescriptions[$processorDesc['aggregateType'] ?? ''] ?? [];
@@ -185,7 +185,7 @@ final class CommandProcessor
         LogEngine $log,
         EventEngine $eventEngine,
         array $services,
-        ContextProvider $contextProvider = null,
+        $contextProvider = null,
         DocumentStore $documentStore = null,
         string $aggregateCollection = null
     ) {

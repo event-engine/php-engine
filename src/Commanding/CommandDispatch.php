@@ -37,7 +37,7 @@ final class CommandDispatch
      * @param MessageProducer $eventQueue
      * @param EventEngine $eventEngine
      * @param DocumentStore|null $documentStore
-     * @param ContextProvider|null $contextProvider
+     * @param ContextProvider|mixed|null $contextProvider
      * @param array $services
      * @return CommandDispatchResult
      * @throws \Throwable
@@ -54,7 +54,7 @@ final class CommandDispatch
         MessageProducer $eventQueue,
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
-        ContextProvider $contextProvider = null,
+        $contextProvider = null,
         array $services = []): CommandDispatchResult
     {
         if(empty($processorDescription)) {
