@@ -1014,7 +1014,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      * @param int $maxVersion
      * @return FlavouredAggregateRoot
      */
-    private function loadAggregateRootUntil(string $aggregateType, string $aggregateId, int $maxVersion): FlavouredAggregateRoot
+    private function loadAggregateRootUntil(string $aggregateType, string $aggregateId, int $maxVersion = null): FlavouredAggregateRoot
     {
         $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
 

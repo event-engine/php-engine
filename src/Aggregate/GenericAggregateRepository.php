@@ -200,14 +200,14 @@ final class GenericAggregateRepository
      * @param string $aggregateType
      * @param string $aggregateId
      * @param array $eventApplyMap
-     * @param int $maxVersion
+     * @param int|null $maxVersion
      * @return null|FlavouredAggregateRoot
      */
     public function getAggregateRootUntil(
         string $aggregateType,
         string $aggregateId,
         array $eventApplyMap,
-        int $maxVersion
+        int $maxVersion = null
     ): ?FlavouredAggregateRoot {
         $streamEvents = $this->eventStore->loadAggregateEvents($this->streamName, $aggregateType, $aggregateId, 1, $maxVersion);
 
