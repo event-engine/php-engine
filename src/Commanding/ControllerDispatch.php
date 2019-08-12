@@ -28,7 +28,8 @@ final class ControllerDispatch
         Flavour $flavour,
         LogEngine $logEngine,
         MessageDispatcher $dispatcher,
-        $controller
+        $controller,
+        bool $forwardMetadata
     ): CommandDispatchResultCollection {
         $result = $flavour->callCommandController($controller, $command);
 
@@ -46,9 +47,18 @@ final class ControllerDispatch
         $resultCollection = new CommandDispatchResultCollection();
         foreach ($result as $index => $followUpCommand) {
             if($followUpCommand instanceof Message) {
+                if($forwardMetadata) {
+                    $followUpCommand = $followUpCommand->withMetadata(array_merge($followUpCommand->metadata(), $command->metadata()));
+                }
+
                 $resultCollection = $resultCollection->push($dispatcher->dispatch($followUpCommand));
             } elseif (\is_array($followUpCommand)) {
                 [$messageName, $payload, $metadata] = MessageTuple::normalize($followUpCommand);
+
+                if($forwardMetadata) {
+                    $metadata = array_merge($metadata, $command->metadata());
+                }
+
                 $resultCollection = $resultCollection->push($dispatcher->dispatch($messageName, $payload, $metadata));
             } else {
                 throw new RuntimeException("Command controller " . VariableType::determine($controller) . " returned invalid result for command {$command->messageName()}."

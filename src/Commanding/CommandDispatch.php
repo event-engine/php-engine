@@ -39,6 +39,7 @@ final class CommandDispatch
      * @param DocumentStore|null $documentStore
      * @param ContextProvider|mixed|null $contextProvider
      * @param array $services
+     * @param bool $forwardMetadata
      * @return CommandDispatchResult
      * @throws \Throwable
      */
@@ -55,7 +56,9 @@ final class CommandDispatch
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
         $contextProvider = null,
-        array $services = []): CommandDispatchResult
+        array $services = [],
+        bool $forwardMetadata = false
+    ): CommandDispatchResult
     {
         if(empty($processorDescription)) {
             throw new RuntimeException("No routing information found for command {$command->messageName()}");
@@ -70,7 +73,8 @@ final class CommandDispatch
             $eventEngine,
             $documentStore,
             $contextProvider,
-            $services
+            $services,
+            $forwardMetadata
         );
 
         $recordedEvents = $commandProcessor($command);

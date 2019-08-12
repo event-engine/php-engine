@@ -240,6 +240,17 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      */
     private $autoProjectingEnabled = true;
 
+    /**
+     * Use EventEngine::enableMetadataForwarding() to pass on metadata from message to message
+     *
+     * If enabled:
+     * Command metadata is merged into each event metadata that gets recorded
+     * Event metadata is merged into each command returned from a process manager/event listener
+     *
+     * @var bool
+     */
+    private $forwardMetadata = false;
+
     public function __construct(Schema $schema)
     {
         $this->schema = $schema;
@@ -319,6 +330,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $self->eventQueue = $eventQueue;
         $self->autoPublishEnabled = $config['autoPublish'];
         $self->autoProjectingEnabled = $config['autoProjecting'];
+        $self->forwardMetadata = $config['forwardMetadata'] ?? false;
 
         foreach ($self->responseTypes as $typeName => $responseType) {
             $self->typeSchemaMap->add($typeName, $responseType);
@@ -374,6 +386,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             'writeModelStreamName' => $this->writeModelStreamName,
             'autoPublish' => $this->autoPublishEnabled,
             'autoProjecting' => $this->autoProjectingEnabled,
+            'forwardMetadata' => $this->forwardMetadata,
         ];
     }
 
@@ -402,6 +415,19 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     {
         $this->assertNotInitialized(__METHOD__);
         $this->autoProjectingEnabled = false;
+        return $this;
+    }
+
+    public function enableMetadataForwarding(): self
+    {
+        $this->assertNotInitialized(__METHOD__);
+        $this->forwardMetadata = true;
+        return $this;
+    }
+
+    public function excludeMetadataKeyFromForwarding(string $key): self
+    {
+        $this->metadataForwardingBlacklist[] = $key;
         return $this;
     }
 
@@ -755,6 +781,12 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             $messageOrName = $this->messageFactory()->createMessageFromArray($messageOrName, ['payload' => $payload, 'metadata' => $metadata]);
         } else {
             $messageOrName = $this->flavour->convertMessageReceivedFromNetwork($messageOrName);
+
+            if(!empty($metadata)) {
+                $msgMetadata = $messageOrName->metadata();
+
+                $messageOrName = $messageOrName->withMetadata(array_merge($msgMetadata, $metadata));
+            }
         }
 
         if (! $messageOrName instanceof Message) {
@@ -787,7 +819,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
                 //Preprocessor has rerouted command
                 if($command->messageName() !== $messageOrName->messageName()) {
-                    return $this->dispatch($command);
+                    $forwardedMetadata = $this->forwardMetadata ? $messageOrName->metadata() : [];
+                    return $this->dispatch($command, [], $forwardedMetadata);
                 }
 
                 if($controller = $this->commandControllers[$command->messageName()] ?? null) {
@@ -800,7 +833,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                         $this->flavour,
                         $this->log,
                         $this,
-                        $controller
+                        $controller,
+                        $this->forwardMetadata
                     );
                 }
 
@@ -827,7 +861,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $this,
                     $this->documentStore,
                     isset($processorDesc['contextProvider']) ? $this->container->get($processorDesc['contextProvider']) : null,
-                    $services
+                    $services,
+                    $this->forwardMetadata
                 );
                 break;
             case Message::TYPE_EVENT:
@@ -848,12 +883,18 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     }
 
                     if(\is_object($result) && $result instanceof Message) {
-                        $dispatchResults = $dispatchResults->push($this->dispatch($result));
+                        $forwardedMetadata = $this->forwardMetadata ? array_merge($messageOrName->metadata(), $result->metadata()) : [];
+
+                        $dispatchResults = $dispatchResults->push($this->dispatch($result, [], $forwardedMetadata));
                         continue;
                     }
 
                     if (\is_array($result)) {
                         [$commandName, $payload, $metadata] = MessageTuple::normalize($result);
+
+                        if($this->forwardMetadata) {
+                            $metadata = array_merge($messageOrName->metadata(), $metadata);
+                        }
 
                         $dispatchResults = $dispatchResults->push($this->dispatch($commandName, $payload, $metadata));
                         continue;

@@ -106,6 +106,11 @@ final class CommandProcessor
      */
     private $log;
 
+    /**
+     * @var bool
+     */
+    private $forwardMetadata;
+
     public static function fromDescriptionArraysAndDependencies(
         array &$processorDesc,
         array &$aggregateDescriptions,
@@ -115,7 +120,8 @@ final class CommandProcessor
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
         $contextProvider = null,
-        array $services = []
+        array $services = [],
+        $forwardMetadata = false
     ): self {
         $aggregateDesc = $aggregateDescriptions[$processorDesc['aggregateType'] ?? ''] ?? [];
 
@@ -165,6 +171,7 @@ final class CommandProcessor
             $logEngine,
             $eventEngine,
             $services,
+            $forwardMetadata,
             $contextProvider,
             $documentStore,
             $aggregateDesc['aggregateCollection'] ?? null
@@ -185,6 +192,7 @@ final class CommandProcessor
         LogEngine $log,
         EventEngine $eventEngine,
         array $services,
+        bool $forwardMetadata,
         $contextProvider = null,
         DocumentStore $documentStore = null,
         string $aggregateCollection = null
@@ -204,6 +212,7 @@ final class CommandProcessor
         $this->documentStore = $documentStore;
         $this->contextProvider = $contextProvider;
         $this->services = $services;
+        $this->forwardMetadata = $forwardMetadata;
         $this->aggregateCollection = $aggregateCollection;
     }
 
@@ -259,10 +268,16 @@ final class CommandProcessor
             $events = $this->flavour->callSubsequentAggregateFunction($this->aggregateType, $arFunc, $aggregateState, $command, ...$services);
         }
 
+        /** @var Message $event */
         foreach ($events as $event) {
             if (! $event) {
                 continue;
             }
+
+            if($this->forwardMetadata) {
+                $event = $event->withMetadata(array_merge($command->metadata(), $event->metadata()));
+            }
+
             $aggregate->recordThat($event);
         }
 
