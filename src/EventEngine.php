@@ -425,12 +425,6 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $this;
     }
 
-    public function excludeMetadataKeyFromForwarding(string $key): self
-    {
-        $this->metadataForwardingBlacklist[] = $key;
-        return $this;
-    }
-
     public function registerCommand(string $commandName, PayloadSchema $schema): self
     {
         $this->assertNotInitialized(__METHOD__);

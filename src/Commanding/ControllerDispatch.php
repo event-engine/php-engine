@@ -48,7 +48,7 @@ final class ControllerDispatch
         foreach ($result as $index => $followUpCommand) {
             if($followUpCommand instanceof Message) {
                 if($forwardMetadata) {
-                    $followUpCommand = $followUpCommand->withMetadata(array_merge($followUpCommand->metadata(), $command->metadata()));
+                    $followUpCommand = $followUpCommand->withMetadata(array_merge($command->metadata(), $followUpCommand->metadata()));
                 }
 
                 $resultCollection = $resultCollection->push($dispatcher->dispatch($followUpCommand));
@@ -56,7 +56,7 @@ final class ControllerDispatch
                 [$messageName, $payload, $metadata] = MessageTuple::normalize($followUpCommand);
 
                 if($forwardMetadata) {
-                    $metadata = array_merge($metadata, $command->metadata());
+                    $metadata = array_merge($command->metadata(), $metadata);
                 }
 
                 $resultCollection = $resultCollection->push($dispatcher->dispatch($messageName, $payload, $metadata));
