@@ -183,13 +183,19 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         LogEngine $logEngine = null,
         DocumentStore $documentStore = null,
         MessageProducer $eventQueue = null,
-        bool $autoProjecting = false): void {
+        bool $autoProjecting = false,
+        bool $forwardMetadata = false
+    ): void {
         if(!$logEngine) {
             $logEngine = new SimpleMessageEngine(new DevNull());
         }
 
         if(!$autoProjecting) {
             $this->eventEngine->disableAutoProjecting();
+        }
+
+        if($forwardMetadata) {
+            $this->eventEngine->enableMetadataForwarding();
         }
 
         $this->eventEngine->initialize(
@@ -242,6 +248,43 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $event = $recordedEvents[0];
 
         $this->assertUserWasRegistered($event, $registerUser, $userId);
+    }
+
+    /**
+     * @test
+     */
+    public function it_forwards_metadta_to_recorded_events()
+    {
+        $publishedEvents = [];
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+        });
+
+        $this->initializeEventEngine(null, null, null, false, true);
+        $this->bootstrapEventEngine();
+
+        $userId = Uuid::uuid4()->toString();
+
+        $registerUser = $this->eventEngine->messageFactory()->createMessageFromArray(
+            Command::REGISTER_USER,
+            ['payload' => [
+                UserDescription::IDENTIFIER => $userId,
+                UserDescription::USERNAME => 'Alex',
+                UserDescription::EMAIL => 'contact@prooph.de',
+            ]]
+        );
+
+        $result = $this->eventEngine->dispatch($registerUser, [], ['requestId' => '123']);
+
+        $recordedEvents = $result->recordedEvents();
+
+        self::assertCount(1, $recordedEvents);
+        self::assertCount(1, $publishedEvents);
+        /** @var GenericEvent $event */
+        $event = $recordedEvents[0];
+        $this->assertArrayHasKey('requestId', $event->metadata());
+        $this->assertEquals('123', $event->metadata()['requestId']);
     }
 
     /**
@@ -920,6 +963,68 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
+    public function it_forwards_metadata_to_command_returned_by_process_manager()
+    {
+        $doNothingPreProcessor = new class() implements CommandPreProcessor {
+
+            public $newCommand;
+
+            public function preProcess(Message $command)
+            {
+                $this->newCommand = $command;
+                return CommandDispatchResult::forCommandHandledByPreProcessor($command);
+            }
+
+            public function __invoke($command)
+            {
+                $this->newCommand = $command;
+                return CommandDispatchResult::forCommandHandledByPreProcessor($command);
+            }
+        };
+
+        $userId = Uuid::uuid4()->toString();
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, 'Test.PM.DoNothing');
+
+        $this->appContainer->has('Test.PM.DoNothing')->willReturn(true);
+        $this->appContainer->get('Test.PM.DoNothing')->will(function ($args) use($userId) {
+            return function ($event) use ($userId) {
+                return [
+                    Command::DO_NOTHING,
+                    [
+                        UserDescription::IDENTIFIER => $userId
+                    ]
+                ];
+            };
+        });
+
+        $this->eventEngine->preProcess(Command::DO_NOTHING, 'Test.Processor.DoNothing');
+
+        $this->appContainer->has('Test.Processor.DoNothing')->willReturn(true);
+        $this->appContainer->get('Test.Processor.DoNothing')->willReturn($doNothingPreProcessor);
+
+        $this->initializeEventEngine(null, null, null, false, true);
+        $this->bootstrapEventEngine();
+
+        $registerUser = $this->eventEngine->messageFactory()->createMessageFromArray(
+            Command::REGISTER_USER,
+            ['payload' => [
+                UserDescription::IDENTIFIER => $userId,
+                UserDescription::USERNAME => 'Alex',
+                UserDescription::EMAIL => 'contact@prooph.de',
+            ], 'metadata' => ['requestId' => '123']]
+        );
+
+        $this->eventEngine->dispatch($registerUser);
+
+        $this->assertNotNull($doNothingPreProcessor->newCommand);
+        $this->assertArrayHasKey('requestId', $doNothingPreProcessor->newCommand->metadata());
+        $this->assertEquals('123', $doNothingPreProcessor->newCommand->metadata()['requestId']);
+    }
+
+    /**
+     * @test
+     */
     public function it_dispatches_command_to_controller_and_passes_result_collection_back()
     {
         $doNothingController = function ($doNothingCmd) {
@@ -1234,7 +1339,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
 
         $cacheableConfig = $eventEngine->compileCacheableConfig();
 
-        $this->assertCount(15, $cacheableConfig, 'Cache config contains other keys');
+        $this->assertCount(16, $cacheableConfig, 'Cache config contains other keys');
 
         $this->assertArrayHasKey('aggregateDescriptions', $cacheableConfig);
         $this->assertArrayHasKey('autoProjecting', $cacheableConfig);
@@ -1251,6 +1356,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->assertArrayHasKey('queryMap', $cacheableConfig);
         $this->assertArrayHasKey('responseTypes', $cacheableConfig);
         $this->assertArrayHasKey('writeModelStreamName', $cacheableConfig);
+        $this->assertArrayHasKey('forwardMetadata', $cacheableConfig);
     }
 
     private function assertUserWasRegistered(
