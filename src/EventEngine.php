@@ -942,7 +942,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         if (null === $aggregateCollection) {
             throw MissingAggregateCollection::forAggregate($aggregateType);
         }
-        $aggregateRoot = $this->loadAggregateRoot($aggregateType, $aggregateId);
+        $aggregateRoot = $this->loadAggregateRoot($aggregateType, $aggregateId, null, true);
 
         $aggregateState = $aggregateRoot->currentState();
 
@@ -1019,9 +1019,24 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $aggregate->currentState();
     }
 
-    private function loadAggregateRoot(string $aggregateType, string $aggregateId, int $expectedVersion = null)
+    private function loadAggregateRoot(string $aggregateType, string $aggregateId, int $expectedVersion = null, bool $forceReplay = false)
     {
         $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
+
+        $multiStoreMode = $aggregateDesc['multiStoreMode'] ?? null;
+
+        if($forceReplay) {
+            if($multiStoreMode === MultiModelStore::STORAGE_MODE_STATE) {
+                throw new RuntimeException(
+                    "Cannot force replay of aggregate state. Multi store mode for aggregate type $aggregateType is set to "
+                    . MultiModelStore::STORAGE_MODE_STATE
+                    . ". This means that event history is not stored for aggregates of this type!"
+                );
+            }
+
+            // Override store mode to force replay
+            $multiStoreMode = MultiModelStore::STORAGE_MODE_EVENTS;
+        }
 
         $arRepository = new GenericAggregateRepository(
             $this->flavour,
@@ -1029,7 +1044,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             $aggregateDesc['aggregateStream'],
             $this->documentStore,
             $aggregateDesc['aggregateCollection'] ?? null,
-            $aggregateDesc['multiStoreMode'] ?? null
+            $multiStoreMode
         );
 
         /** @var FlavouredAggregateRoot $aggregate */
