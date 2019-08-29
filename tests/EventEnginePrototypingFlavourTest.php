@@ -25,6 +25,8 @@ use EventEngine\Runtime\PrototypingFlavour;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserDescription;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserMetadataProvider;
 use EventEngineExample\PrototypingFlavour\Aggregate\UserState;
+use EventEngineExample\PrototypingFlavour\ContextProvider\MatchingHobbiesProvider;
+use EventEngineExample\PrototypingFlavour\ContextProvider\SocialPlatformProvider;
 use EventEngineExample\PrototypingFlavour\Messaging\CommandWithCustomHandler;
 use EventEngineExample\PrototypingFlavour\Messaging\MessageDescription;
 use EventEngineExample\PrototypingFlavour\PreProcessor\RegisterUserIfNotExists;
@@ -36,7 +38,7 @@ use Prophecy\Argument;
 
 abstract class EventEnginePrototypingFlavourTest extends EventEngineTestAbstract
 {
-    protected function loadEventMachineDescriptions(EventEngine $eventEngine)
+    protected function loadEventEngineDescriptions(EventEngine $eventEngine)
     {
         $eventEngine->load(MessageDescription::class);
         $eventEngine->load(UserDescription::class);
@@ -70,6 +72,16 @@ abstract class EventEnginePrototypingFlavourTest extends EventEngineTestAbstract
     protected function getUserResolver(array $cachedUserState): Resolver
     {
         return new GetUserResolver($cachedUserState);
+    }
+
+    protected function getSocialPlatformProvider()
+    {
+        return new SocialPlatformProvider();
+    }
+
+    protected function getMatchingHobbiesProvider()
+    {
+        return new MatchingHobbiesProvider();
     }
 
     protected function getUsersResolver(array $cachedUsers): Resolver

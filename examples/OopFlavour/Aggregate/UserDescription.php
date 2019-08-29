@@ -16,6 +16,8 @@ use EventEngine\EventEngineDescription;
 use EventEngine\Runtime\Oop\FlavourHint;
 use EventEngineExample\FunctionalFlavour\Api\Command;
 use EventEngineExample\FunctionalFlavour\Api\Event;
+use EventEngineExample\FunctionalFlavour\ContextProvider\MatchingHobbiesProvider;
+use EventEngineExample\FunctionalFlavour\ContextProvider\SocialPlatformProvider;
 use EventEngineExample\FunctionalFlavour\Resolver\GetUserResolver;
 
 /**
@@ -76,6 +78,8 @@ final class UserDescription implements EventEngineDescription
     {
         $eventEngine->process(Command::CONNECT_WITH_FRIEND)
             ->withExisting(User::TYPE)
+            ->provideContext(SocialPlatformProvider::class)
+            ->provideContext(MatchingHobbiesProvider::class)
             ->provideService(GetUserResolver::class)
             ->handle([FlavourHint::class, User::class])
             ->recordThat(Event::FRIEND_CONNECTED)

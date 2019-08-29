@@ -62,7 +62,7 @@ use Ramsey\Uuid\Uuid;
 
 abstract class EventEngineTestAbstract extends BasicTestCase
 {
-    abstract protected function loadEventMachineDescriptions(EventEngine $eventEngine);
+    abstract protected function loadEventEngineDescriptions(EventEngine $eventEngine);
 
     abstract protected function getFlavour(): Flavour;
 
@@ -75,6 +75,10 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     abstract protected function getChangeUsernamePreProcessor(MessageFactory $messageFactory, AggregateStateStore $stateStore);
 
     abstract protected function getUserResolver(array $cachedUserState);
+
+    abstract protected function getSocialPlatformProvider();
+
+    abstract protected function getMatchingHobbiesProvider();
 
     abstract protected function getUsersResolver(array $cachedUsers);
 
@@ -113,7 +117,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     {
         $this->eventEngine = new EventEngine($this->getSchemaInstance());
 
-        $this->loadEventMachineDescriptions($this->eventEngine);
+        $this->loadEventEngineDescriptions($this->eventEngine);
 
         $this->inMemoryConnection = new InMemoryConnection();
 
@@ -221,7 +225,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine();
@@ -253,12 +257,12 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_forwards_metadta_to_recorded_events()
+    public function it_forwards_metadata_to_recorded_events()
     {
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine(null, null, null, false, true);
@@ -290,9 +294,17 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     /**
      * @test
      */
-    public function it_provides_services_if_specified_in_aggregate_description()
+    public function it_provides_context_and_services_if_specified_in_aggregate_description()
     {
         $friendId = Uuid::uuid4()->toString();
+
+        $socialPlatformProvider = $this->getSocialPlatformProvider();
+
+        $this->appContainer->get(\get_class($socialPlatformProvider))->willReturn($socialPlatformProvider);
+
+        $matchingHobbiesProvider = $this->getMatchingHobbiesProvider();
+
+        $this->appContainer->get(\get_class($matchingHobbiesProvider))->willReturn($matchingHobbiesProvider);
 
         $getUserResolver = $this->getUserResolver([
             UserDescription::IDENTIFIER => $friendId,
@@ -304,11 +316,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->eventEngine->on(Event::FRIEND_CONNECTED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine();
@@ -336,6 +348,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         /** @var GenericEvent $event */
         $event = $recordedEvents[1];
         self::assertEquals(Event::FRIEND_CONNECTED, $event->messageName());
+        self::assertEquals('Github', $event->get('socialPlatform'));
+        self::assertEquals(['coding', 'EventStorming', 'EventModeling'], $event->get('matchingHobbies'));
     }
 
     /**
@@ -413,7 +427,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine();
@@ -443,7 +457,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine();
@@ -473,11 +487,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->eventEngine->on(Event::USERNAME_WAS_CHANGED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine();
@@ -513,11 +527,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->eventEngine->on(Event::EMAIL_WAS_CHANGED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine();
@@ -565,7 +579,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->initializeEventEngine(null, null, $messageProducer->reveal());
@@ -638,7 +652,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $publishedEvents = [];
 
         $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
-            $publishedEvents[] = $this->convertToEventMachineMessage($event);
+            $publishedEvents[] = $this->convertToEventEngineMessage($event);
         });
 
         $this->setUpChangeUsernamePreProcessor();
@@ -751,6 +765,8 @@ abstract class EventEngineTestAbstract extends BasicTestCase
                     Event::FRIEND_CONNECTED => JsonSchema::object([
                         UserDescription::IDENTIFIER => $userId,
                         UserDescription::FRIEND => $userId,
+                        'socialPlatform' => JsonSchema::string(),
+                        'matchingHobbies' => JsonSchema::array(JsonSchema::string()),
                     ])->toArray(),
                     Event::USER_REGISTRATION_FAILED => JsonSchema::object([
                         UserDescription::IDENTIFIER => $userId,
@@ -1387,7 +1403,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      * @return Message
      * @throws \Exception
      */
-    private function convertToEventMachineMessage($event): Message
+    private function convertToEventEngineMessage($event): Message
     {
         $flavour = $this->getFlavour();
         if ($flavour instanceof MessageFactoryAware) {

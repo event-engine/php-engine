@@ -83,6 +83,8 @@ final class MessageDescription implements EventEngineDescription
         $eventEngine->registerEvent(Event::FRIEND_CONNECTED, JsonSchema::object([
             UserDescription::IDENTIFIER => $userId,
             UserDescription::FRIEND => $userId,
+            'socialPlatform' => JsonSchema::string(),
+            'matchingHobbies' => JsonSchema::array(JsonSchema::string()),
         ]));
 
         $eventEngine->registerEvent(Event::USER_REGISTRATION_FAILED, JsonSchema::object([

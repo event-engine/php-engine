@@ -836,6 +836,12 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
                 $processorDesc = $this->compiledCommandRouting[$command->messageName()] ?? [];
 
+                $contextProviders = $processorDesc['contextProviders'] ?? [];
+
+                foreach ($contextProviders as $cIndex => $cServiceId) {
+                    $contextProviders[$cIndex] = $this->container->get($cServiceId);
+                }
+
                 $services = $processorDesc['services'] ?? [];
 
                 foreach ($services as $sIndex => $serviceId) {
@@ -854,7 +860,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
                     $this->eventQueue ?? $this,
                     $this,
                     $this->documentStore,
-                    isset($processorDesc['contextProvider']) ? $this->container->get($processorDesc['contextProvider']) : null,
+                    $contextProviders,
                     $services,
                     $this->forwardMetadata
                 );

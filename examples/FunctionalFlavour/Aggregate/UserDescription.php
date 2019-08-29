@@ -19,6 +19,8 @@ use EventEngineExample\FunctionalFlavour\Command\ChangeEmail;
 use EventEngineExample\FunctionalFlavour\Command\ChangeUsername;
 use EventEngineExample\FunctionalFlavour\Command\ConnectWithFriend;
 use EventEngineExample\FunctionalFlavour\Command\RegisterUser;
+use EventEngineExample\FunctionalFlavour\ContextProvider\MatchingHobbiesProvider;
+use EventEngineExample\FunctionalFlavour\ContextProvider\SocialPlatformProvider;
 use EventEngineExample\FunctionalFlavour\Event\EmailChanged;
 use EventEngineExample\FunctionalFlavour\Event\FriendConnected;
 use EventEngineExample\FunctionalFlavour\Event\UsernameChanged;
@@ -138,8 +140,10 @@ final class UserDescription implements EventEngineDescription
     {
         $eventEngine->process(Command::CONNECT_WITH_FRIEND)
             ->withExisting(Aggregate::USER)
+            ->provideContext(SocialPlatformProvider::class)
+            ->provideContext(MatchingHobbiesProvider::class)
             ->provideService(GetUserResolver::class)
-            ->handle(function (UserState $user, ConnectWithFriend $command, GetUserResolver $resolver): \Generator
+            ->handle(function (UserState $user, ConnectWithFriend $command, string $socialPlatform, array $matchingHobbies, GetUserResolver $resolver): \Generator
             {
                 //Check that friend exists using a resolver dependency
                 $friend = $resolver->resolve(new GetUser([UserDescription::IDENTIFIER => $command->friend]));
@@ -147,6 +151,9 @@ final class UserDescription implements EventEngineDescription
                 yield new FriendConnected([
                     UserDescription::IDENTIFIER => $user->userId,
                     UserDescription::FRIEND => $friend[UserDescription::IDENTIFIER],
+                    //Context providers can provide additional data that is not part of current aggregate state or command
+                    'socialPlatform' => $socialPlatform,
+                    'matchingHobbies' => $matchingHobbies,
                 ]);
             })
             ->recordThat(Event::FRIEND_CONNECTED)

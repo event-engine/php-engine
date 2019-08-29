@@ -37,7 +37,7 @@ final class CommandDispatch
      * @param MessageProducer $eventQueue
      * @param EventEngine $eventEngine
      * @param DocumentStore|null $documentStore
-     * @param ContextProvider|mixed|null $contextProvider
+     * @param ContextProvider[]|mixed[] $contextProviders
      * @param array $services
      * @param bool $forwardMetadata
      * @return CommandDispatchResult
@@ -55,7 +55,7 @@ final class CommandDispatch
         MessageProducer $eventQueue,
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
-        $contextProvider = null,
+        array $contextProviders = [],
         array $services = [],
         bool $forwardMetadata = false
     ): CommandDispatchResult
@@ -72,7 +72,7 @@ final class CommandDispatch
             $log,
             $eventEngine,
             $documentStore,
-            $contextProvider,
+            $contextProviders,
             $services,
             $forwardMetadata
         );

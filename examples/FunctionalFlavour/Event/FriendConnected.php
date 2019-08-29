@@ -18,4 +18,14 @@ final class FriendConnected
      * @var string
      */
     public $friend;
+
+    /**
+     * @var string
+     */
+    public $socialPlatform;
+
+    /**
+     * @var string[]
+     */
+    public $matchingHobbies;
 }

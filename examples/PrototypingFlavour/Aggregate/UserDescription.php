@@ -15,6 +15,8 @@ use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageFactory;
+use EventEngineExample\PrototypingFlavour\ContextProvider\MatchingHobbiesProvider;
+use EventEngineExample\PrototypingFlavour\ContextProvider\SocialPlatformProvider;
 use EventEngineExample\PrototypingFlavour\Messaging\Command;
 use EventEngineExample\PrototypingFlavour\Messaging\Event;
 use EventEngineExample\PrototypingFlavour\Messaging\Query;
@@ -126,9 +128,11 @@ final class UserDescription implements EventEngineDescription
     {
         $eventEngine->process(Command::CONNECT_WITH_FRIEND)
             ->withExisting(Aggregate::USER)
+            ->provideContext(SocialPlatformProvider::class)
+            ->provideContext(MatchingHobbiesProvider::class)
             ->provideService(GetUserResolver::class)
             ->provideService(MessageFactory::class)
-            ->handle(function (UserState $user, Message $connectWithFriend, GetUserResolver $resolver, MessageFactory $messageFactory): \Generator
+            ->handle(function (UserState $user, Message $connectWithFriend, string $socialPlatform, array $matchingHobbies, GetUserResolver $resolver, MessageFactory $messageFactory): \Generator
             {
                 $friendId = $connectWithFriend->get(CacheableUserDescription::FRIEND);
 
@@ -140,6 +144,9 @@ final class UserDescription implements EventEngineDescription
                 yield [Event::FRIEND_CONNECTED, [
                     CacheableUserDescription::IDENTIFIER => $user->userId,
                     CacheableUserDescription::FRIEND => $friend[CacheableUserDescription::IDENTIFIER],
+                    //Context providers can provide additional data that is not part of current aggregate state or command
+                    'socialPlatform' => $socialPlatform,
+                    'matchingHobbies' => $matchingHobbies,
                 ]];
             })
             ->recordThat(Event::FRIEND_CONNECTED)
