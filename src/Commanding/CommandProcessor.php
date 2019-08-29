@@ -234,7 +234,6 @@ final class CommandProcessor
 
         $aggregate = null;
         $aggregateState = null;
-        $context = null;
         $expectedVersion = $command->metadata()[GenericCommand::META_EXPECTED_AGGREGATE_VERSION] ?? null;
 
         if ($this->createAggregate) {
@@ -250,17 +249,16 @@ final class CommandProcessor
             $aggregateState = $aggregate->currentState();
         }
 
+        $services = $this->services;
+
         if ($this->contextProvider) {
             $context = $this->flavour->callContextProvider($this->contextProvider, $command);
             $this->log->contextProviderCalled($this->contextProvider, $command, $context);
+
+            \array_unshift($services, $context);
         }
 
         $arFunc = $this->aggregateFunction;
-        $services = $this->services;
-
-        if($context !== null) {
-            \array_unshift($services, $context);
-        }
 
         if ($this->createAggregate) {
             $events = $this->flavour->callAggregateFactory($this->aggregateType, $arFunc, $command, ...$services);
