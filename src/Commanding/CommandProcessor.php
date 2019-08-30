@@ -95,9 +95,9 @@ final class CommandProcessor
     private $documentStore;
 
     /**
-     * @var ContextProvider|null
+     * @var ContextProvider[]|mixed[]
      */
-    private $contextProvider;
+    private $contextProviders;
 
     private $services = [];
 
@@ -119,7 +119,7 @@ final class CommandProcessor
         LogEngine $logEngine,
         EventEngine $eventEngine,
         DocumentStore $documentStore = null,
-        $contextProvider = null,
+        $contextProviders = [],
         array $services = [],
         $forwardMetadata = false
     ): self {
@@ -172,7 +172,7 @@ final class CommandProcessor
             $eventEngine,
             $services,
             $forwardMetadata,
-            $contextProvider,
+            $contextProviders,
             $documentStore,
             $aggregateDesc['aggregateCollection'] ?? null
         );
@@ -193,7 +193,7 @@ final class CommandProcessor
         EventEngine $eventEngine,
         array $services,
         bool $forwardMetadata,
-        $contextProvider = null,
+        array $contextProviders,
         DocumentStore $documentStore = null,
         string $aggregateCollection = null
     ) {
@@ -210,7 +210,7 @@ final class CommandProcessor
         $this->log = $log;
         $this->eventEngine = $eventEngine;
         $this->documentStore = $documentStore;
-        $this->contextProvider = $contextProvider;
+        $this->contextProviders = $contextProviders;
         $this->services = $services;
         $this->forwardMetadata = $forwardMetadata;
         $this->aggregateCollection = $aggregateCollection;
@@ -249,21 +249,24 @@ final class CommandProcessor
             $aggregateState = $aggregate->currentState();
         }
 
-        $services = $this->services;
+        $injections = [];
 
-        if ($this->contextProvider) {
-            $context = $this->flavour->callContextProvider($this->contextProvider, $command);
-            $this->log->contextProviderCalled($this->contextProvider, $command, $context);
+        foreach ($this->contextProviders as $contextProvider) {
+            $context = $this->flavour->callContextProvider($contextProvider, $command);
+            $injections[] = $context;
+            $this->log->contextProviderCalled($contextProvider, $command, $context);
+        }
 
-            \array_unshift($services, $context);
+        foreach ($this->services as $service) {
+            $injections[] = $service;
         }
 
         $arFunc = $this->aggregateFunction;
 
         if ($this->createAggregate) {
-            $events = $this->flavour->callAggregateFactory($this->aggregateType, $arFunc, $command, ...$services);
+            $events = $this->flavour->callAggregateFactory($this->aggregateType, $arFunc, $command, ...$injections);
         } else {
-            $events = $this->flavour->callSubsequentAggregateFunction($this->aggregateType, $arFunc, $aggregateState, $command, ...$services);
+            $events = $this->flavour->callSubsequentAggregateFunction($this->aggregateType, $arFunc, $aggregateState, $command, ...$injections);
         }
 
         /** @var Message $event */

@@ -66,9 +66,9 @@ final class CommandProcessorDescription
     private $eventRecorderMap = [];
 
     /**
-     * @var string|null
+     * @var string[]|null
      */
-    private $contextProvider;
+    private $contextProviders;
 
     /**
      * @var array
@@ -182,7 +182,11 @@ final class CommandProcessorDescription
 
     public function provideContext(string $contextProvider): self
     {
-        $this->contextProvider = $contextProvider;
+        if(null === $this->contextProviders) {
+            $this->contextProviders = [];
+        }
+
+        $this->contextProviders[] = $contextProvider;
 
         return $this;
     }
@@ -252,7 +256,7 @@ final class CommandProcessorDescription
             'eventRecorderMap' => $eventRecorderMap,
             'streamName' => $this->aggregateStream,
             'multiStoreMode' => $this->multiStoreMode,
-            'contextProvider' => $this->contextProvider,
+            'contextProviders' => $this->contextProviders,
             'services' => $this->services,
         ];
     }

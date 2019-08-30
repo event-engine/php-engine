@@ -19,6 +19,8 @@ use EventEngine\Runtime\Flavour;
 use EventEngine\Runtime\FunctionalFlavour;
 use EventEngine\Runtime\OopFlavour;
 use EventEngineExample\FunctionalFlavour\Api\MessageDescription;
+use EventEngineExample\FunctionalFlavour\ContextProvider\MatchingHobbiesProvider;
+use EventEngineExample\FunctionalFlavour\ContextProvider\SocialPlatformProvider;
 use EventEngineExample\FunctionalFlavour\ExampleFunctionalPort;
 use EventEngineExample\FunctionalFlavour\PreProcessor\RegisterUserIfNotExists;
 use EventEngineExample\FunctionalFlavour\ProcessManager\SendWelcomeEmail;
@@ -32,7 +34,7 @@ use EventEngineExample\OopFlavour\ExampleOopPortWithUserMetadataProvider;
 
 abstract class EventEngineOopFlavourTest extends EventEngineTestAbstract
 {
-    protected function loadEventMachineDescriptions(EventEngine $eventMachine)
+    protected function loadEventEngineDescriptions(EventEngine $eventMachine)
     {
         $eventMachine->load(MessageDescription::class);
         $eventMachine->load(UserDescription::class);
@@ -72,6 +74,16 @@ abstract class EventEngineOopFlavourTest extends EventEngineTestAbstract
     protected function getUserResolver(array $cachedUserState)
     {
         return new GetUserResolver($cachedUserState);
+    }
+
+    protected function getSocialPlatformProvider()
+    {
+        return new SocialPlatformProvider();
+    }
+
+    protected function getMatchingHobbiesProvider()
+    {
+        return new MatchingHobbiesProvider();
     }
 
     protected function getUsersResolver(array $cachedUsers)

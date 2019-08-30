@@ -101,13 +101,16 @@ final class User
         ]));
     }
 
-    public function connectWithFriend(ConnectWithFriend $command, GetUserResolver $userResolver): void
+    public function connectWithFriend(ConnectWithFriend $command, string $socialPlatform, array $matchingHobbies, GetUserResolver $userResolver): void
     {
         $friend = $userResolver->resolve(new GetUser(['userId' => $command->friend]));
 
         $this->recordThat(new FriendConnected([
             'userId' => $this->userId,
-            'friend' => $friend['userId']
+            'friend' => $friend['userId'],
+            //Context providers can provide additional data that is not part of current aggregate state or command
+            'socialPlatform' => $socialPlatform,
+            'matchingHobbies' => $matchingHobbies,
         ]));
     }
 
