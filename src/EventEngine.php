@@ -428,7 +428,16 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     public function registerCommand(string $commandName, PayloadSchema $schema): self
     {
         $this->assertNotInitialized(__METHOD__);
-        if (\array_key_exists($commandName, $this->commandMap)) {
+
+        if ($this->isKnownQuery($commandName)) {
+            throw new RuntimeException("Query with name $commandName was already registered.");
+        }
+
+        if ($this->isKnownEvent($commandName)) {
+            throw new RuntimeException("Event with name $commandName was already registered.");
+        }
+
+        if ($this->isKnownCommand($commandName)) {
             throw new RuntimeException("Command $commandName was already registered.");
         }
 
@@ -441,7 +450,15 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     {
         $this->assertNotInitialized(__METHOD__);
 
-        if (\array_key_exists($eventName, $this->eventMap)) {
+        if ($this->isKnownCommand($eventName)) {
+            throw new RuntimeException("Command with name $eventName was already registered.");
+        }
+
+        if ($this->isKnownQuery($eventName)) {
+            throw new RuntimeException("Query with name $eventName was already registered.");
+        }
+
+        if ($this->isKnownEvent($eventName)) {
             throw new RuntimeException("Event $eventName was already registered.");
         }
 
@@ -459,6 +476,14 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
             $this->schema()->assertPayloadSchema($queryName, $payloadSchema);
         } else {
             $payloadSchema = $this->schema()->emptyPayloadSchema();
+        }
+
+        if ($this->isKnownCommand($queryName)) {
+            throw new RuntimeException("Command with name $queryName was already registered.");
+        }
+
+        if ($this->isKnownEvent($queryName)) {
+            throw new RuntimeException("Event with name $queryName was already registered.");
         }
 
         if ($this->isKnownQuery($queryName)) {
