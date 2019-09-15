@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngine;
 
+use EventEngine\Aggregate\AggregateEventEnvelope;
 use EventEngine\Aggregate\Exception\AggregateNotFound;
 use EventEngine\Aggregate\FlavouredAggregateRoot;
 use EventEngine\Aggregate\GenericAggregateRepository;
@@ -34,6 +35,7 @@ use EventEngine\Messaging\CommandDispatchResultCollection;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\GenericSchemaMessageFactory;
 use EventEngine\Messaging\Message;
+use EventEngine\Messaging\MessageBag;
 use EventEngine\Messaging\MessageDispatcher;
 use EventEngine\Messaging\MessageFactory;
 use EventEngine\Messaging\MessageFactoryAware;
@@ -64,6 +66,7 @@ use EventEngine\Schema\ResponseTypeSchema;
 use EventEngine\Schema\Schema;
 use EventEngine\Schema\TypeSchema;
 use EventEngine\Schema\TypeSchemaMap;
+use EventEngine\Util\MapIterator;
 use EventEngine\Util\MessageTuple;
 use EventEngine\Util\VariableType;
 use Psr\Container\ContainerInterface;
@@ -1034,6 +1037,42 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
 
         return $aggregate->currentState();
     }
+
+    /**
+     * @param string $aggregateType
+     * @param string $aggregateId
+     * @param int $minVersion
+     * @param int|null $maxVersion
+     * @return \Iterator<AggregateEventEnvelope>
+     */
+    public function loadAggregateEvents(
+        string $aggregateType,
+        string $aggregateId,
+        int $minVersion = 1,
+        int $maxVersion = null
+    ): \Iterator
+    {
+        $this->assertBootstrapped(__METHOD__);
+
+        if (! \array_key_exists($aggregateType, $this->aggregateDescriptions)) {
+            throw new InvalidArgumentException('Unknown aggregate type: ' . $aggregateType);
+        }
+
+        $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
+
+        $stream = $this->eventStore->loadAggregateEvents(
+            $aggregateDesc['aggregateStream'],
+            $aggregateType,
+            $aggregateId,
+            $minVersion,
+            $maxVersion
+        );
+
+        return new MapIterator($stream, function (GenericEvent $arEvent) {
+            return AggregateEventEnvelope::fromGenericEvent($arEvent, $this->flavour);
+        });
+    }
+
 
     public function loadAggregateStateUntil(string $aggregateType, string $aggregateId, int $maxVersion = null)
     {

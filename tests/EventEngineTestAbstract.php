@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace EventEngineTest;
 
+use EventEngine\Aggregate\AggregateEventEnvelope;
 use EventEngine\Commanding\CommandPreProcessor;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\DocumentStore\Exception\UnknownCollection;
@@ -642,6 +643,108 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $userState = $this->eventEngine->loadAggregateState(Aggregate::USER, $userId);
 
         $this->assertLoadedUserState($userState);
+    }
+
+    /**
+     * @test
+     */
+    public function it_can_load_aggregate_events()
+    {
+        $publishedEvents = [];
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $event;
+        });
+
+        $this->eventEngine->on(Event::USERNAME_WAS_CHANGED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $event;
+        });
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $userId = Uuid::uuid4()->toString();
+
+        $firstResult = $this->eventEngine->dispatch(Command::REGISTER_USER, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::USERNAME => 'Alex',
+            UserDescription::EMAIL => 'contact@prooph.de',
+        ]);
+
+        $secondResult = $this->eventEngine->dispatch(Command::CHANGE_USERNAME, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::USERNAME => 'John',
+        ]);
+
+        $userEvents = iterator_to_array($this->eventEngine->loadAggregateEvents('User', $userId));
+
+        self::assertCount(2, $userEvents);
+        self::assertCount(2, $publishedEvents);
+
+        /** @var AggregateEventEnvelope $event */
+        $event = $userEvents[1];
+        self::assertEquals(Event::USERNAME_WAS_CHANGED, $event->eventName());
+        self::assertEquals('User', $event->aggregateType());
+        self::assertEquals($userId, $event->aggregateId());
+        self::assertEquals(2, $event->aggregateVersion());
+        self::assertEquals(get_class($publishedEvents[1]), get_class($event->event()));
+        self::assertEquals([
+            UserDescription::IDENTIFIER => $userId,
+            'oldName' => 'Alex',
+            'newName' => 'John',
+        ], $event->rawPayload());
+        self::assertArrayHasKey(GenericEvent::META_CAUSATION_ID, $event->metadata());
+    }
+
+    /**
+     * @test
+     */
+    public function it_can_load_a_range_of_aggregate_events()
+    {
+        $publishedEvents = [];
+
+        $this->eventEngine->on(Event::USER_WAS_REGISTERED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $event;
+        });
+
+        $this->eventEngine->on(Event::USERNAME_WAS_CHANGED, function ($event) use (&$publishedEvents) {
+            $publishedEvents[] = $event;
+        });
+
+        $this->initializeEventEngine();
+        $this->bootstrapEventEngine();
+
+        $userId = Uuid::uuid4()->toString();
+
+        $firstResult = $this->eventEngine->dispatch(Command::REGISTER_USER, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::USERNAME => 'Alex',
+            UserDescription::EMAIL => 'contact@prooph.de',
+        ]);
+
+        $secondResult = $this->eventEngine->dispatch(Command::CHANGE_USERNAME, [
+            UserDescription::IDENTIFIER => $userId,
+            UserDescription::USERNAME => 'John',
+        ]);
+
+        $userEvents = iterator_to_array($this->eventEngine->loadAggregateEvents('User', $userId, 2, 3));
+
+        self::assertCount(1, $userEvents);
+        self::assertCount(2, $publishedEvents);
+
+        /** @var AggregateEventEnvelope $event */
+        $event = $userEvents[0];
+        self::assertEquals(Event::USERNAME_WAS_CHANGED, $event->eventName());
+        self::assertEquals('User', $event->aggregateType());
+        self::assertEquals($userId, $event->aggregateId());
+        self::assertEquals(2, $event->aggregateVersion());
+        self::assertEquals(get_class($publishedEvents[1]), get_class($event->event()));
+        self::assertEquals([
+            UserDescription::IDENTIFIER => $userId,
+            'oldName' => 'Alex',
+            'newName' => 'John',
+        ], $event->rawPayload());
+        self::assertArrayHasKey(GenericEvent::META_CAUSATION_ID, $event->metadata());
     }
 
     /**
