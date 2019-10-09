@@ -198,6 +198,20 @@ final class CommandProcessorDescription
         return $this;
     }
 
+    /**
+     * Registers given pre processor for this command.
+     *
+     * @see \EventEngine\EventEngine::preProcess
+     * @param $preProcessor
+     * @return $this
+     */
+    public function preProcess($preProcessor): self
+    {
+        $this->eventEngine->preProcess($this->commandName, $preProcessor);
+
+        return $this;
+    }
+
     public function handle(callable $aggregateFunction): self
     {
         $this->assertWithAggregateWasCalled(__METHOD__);
