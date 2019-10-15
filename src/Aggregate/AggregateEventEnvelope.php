@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace EventEngine\Aggregate;
 
+use DateTimeImmutable;
 use EventEngine\Messaging\GenericEvent;
 use EventEngine\Messaging\MessageBag;
 use EventEngine\Runtime\Flavour;
@@ -44,6 +45,11 @@ final class AggregateEventEnvelope
      */
     private $metadata;
 
+    /**
+     * @var DateTimeImmutable
+     */
+    private $createdAt;
+
     public static function fromGenericEvent(GenericEvent $event, Flavour $flavour): self
     {
         $aggregateType = $event->getMeta(GenericEvent::META_AGGREGATE_TYPE);
@@ -52,6 +58,7 @@ final class AggregateEventEnvelope
         $metadata = $event->metadata();
         $rawPayload = $event->payload();
         $eventName = $event->messageName();
+        $createdAt = $event->createdAt();
 
         $event = $flavour->convertMessageReceivedFromNetwork($event, true);
 
@@ -66,7 +73,8 @@ final class AggregateEventEnvelope
             $aggregateVersion,
             $event,
             $rawPayload,
-            $metadata
+            $metadata,
+            $createdAt
         );
     }
 
@@ -77,7 +85,8 @@ final class AggregateEventEnvelope
         int $aggregateVersion,
         object $event,
         array $rawPayload,
-        array $metadata
+        array $metadata,
+        DateTimeImmutable $createdAt
     ) {
         $this->eventName = $eventName;
         $this->aggregateType = $aggregateType;
@@ -86,6 +95,7 @@ final class AggregateEventEnvelope
         $this->event = $event;
         $this->rawPayload = $rawPayload;
         $this->metadata = $metadata;
+        $this->createdAt = $createdAt;
     }
 
     /**
@@ -143,4 +153,13 @@ final class AggregateEventEnvelope
     {
         return $this->metadata;
     }
+
+    /**
+     * @return DateTimeImmutable
+     */
+    public function createdAt(): DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
 }
