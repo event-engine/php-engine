@@ -694,6 +694,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             'newName' => 'John',
         ], $event->rawPayload());
         self::assertArrayHasKey(GenericEvent::META_CAUSATION_ID, $event->metadata());
+        self::assertNotNull($event->createdAt());
     }
 
     /**
@@ -745,6 +746,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
             'newName' => 'John',
         ], $event->rawPayload());
         self::assertArrayHasKey(GenericEvent::META_CAUSATION_ID, $event->metadata());
+        self::assertNotNull($event->createdAt());
     }
 
     /**
