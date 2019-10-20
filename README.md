@@ -44,6 +44,12 @@ $ rm -rf vendor/prooph/event-store
 $ docker run --rm -it -v $(pwd):/app --user="$(id -u):$(id -g)" prooph/composer:7.2 install --prefer-source
 ```
 
+## Supersedes Event Machine 
+
+The first version of this project is called Event Machine and can be found in another repo: [https://github.com/proophsoftware/event-machine](https://github.com/proophsoftware/event-machine).
+
+We had to change the name due to naming conflicts with other projects. In fact, Event Engine is a newer version of Event Machine using the same concepts.
+
 ## Powered by prooph software
 
 [![prooph software](https://github.com/codeliner/php-ddd-cargo-sample/blob/master/docs/assets/prooph-software-logo.png)](http://prooph.de)
