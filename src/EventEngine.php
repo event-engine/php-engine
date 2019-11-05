@@ -29,6 +29,7 @@ use EventEngine\Exception\InvalidArgumentException;
 use EventEngine\Exception\MissingAggregateCollection;
 use EventEngine\Exception\NoDocumentStore;
 use EventEngine\Exception\RuntimeException;
+use EventEngine\JsonSchema\JsonSchemaAwareRecord;
 use EventEngine\Logger\LogEngine;
 use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\CommandDispatchResultCollection;
@@ -522,8 +523,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         if (null === $schema) {
             $refObj = new \ReflectionClass($nameOrImmutableRecordClass);
 
-            if (! $refObj->implementsInterface(ImmutableRecord::class)) {
-                throw new InvalidArgumentException("Invalid type given. $nameOrImmutableRecordClass does not implement " . ImmutableRecord::class);
+            if (! $refObj->implementsInterface(JsonSchemaAwareRecord::class)) {
+                throw new InvalidArgumentException("Invalid type given. $nameOrImmutableRecordClass does not implement " . JsonSchemaAwareRecord::class);
             }
 
             $name = \call_user_func([$nameOrImmutableRecordClass, '__type']);
@@ -549,8 +550,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         if (null === $schema) {
             $refObj = new \ReflectionClass($nameOrImmutableRecordClass);
 
-            if (! $refObj->implementsInterface(ImmutableRecord::class)) {
-                throw new InvalidArgumentException("Invalid type given. $nameOrImmutableRecordClass does not implement " . ImmutableRecord::class);
+            if (! $refObj->implementsInterface(JsonSchemaAwareRecord::class)) {
+                throw new InvalidArgumentException("Invalid type given. $nameOrImmutableRecordClass does not implement " . JsonSchemaAwareRecord::class);
             }
 
             $name = \call_user_func([$nameOrImmutableRecordClass, '__type']);
