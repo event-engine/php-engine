@@ -23,7 +23,7 @@
     "event-engine/php-messaging": "^0.1",
     "event-engine/php-engine-utils": "^0.1",
     "event-engine/php-logger": "^0.1",
-    "event-engine/php-persistence": "^0.4",
+    "event-engine/php-persistence": "^0.5",
     "ramsey/uuid" : "^3.6",
     "psr/container": "^1.0",
     "psr/http-message": "^1.0",
