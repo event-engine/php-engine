@@ -18,7 +18,7 @@
   "require": {
     "php": "^7.2",
     "roave/security-advisories": "dev-master",
-    "event-engine/php-data": "^0.1",
+    "event-engine/php-data": "^1.0 || ^2.0-dev",
     "event-engine/php-schema": "^0.1",
     "event-engine/php-messaging": "^0.1",
     "event-engine/php-engine-utils": "^0.1",
@@ -33,7 +33,7 @@
   },
   "require-dev": {
     "phpunit/phpunit": "^7.0",
-    "event-engine/php-json-schema": "^0.1",
+    "event-engine/php-json-schema": "^1.0",
     "event-engine/prooph-v7-event-store": "^0.6",
     "bookdown/bookdown": "1.x-dev",
     "prooph/php-cs-fixer-config": "^0.3",
