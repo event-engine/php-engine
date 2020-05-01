@@ -58,4 +58,4 @@ Event Engine is maintained by the [prooph software team](http://prooph-software.
 is open sourced along with an API documentation and a [Getting Started Tutorial](https://event-engine.io/tutorial/). Prooph software offers commercial support and workshops
 for Event Engine and the [prooph components](http://getprooph.org/).
 
-If you are interested please [get in touch](http://getprooph.org/#get-in-touch)
+If you are interested please [get in touch](http://prooph.de)
