@@ -22,7 +22,7 @@
     "event-engine/php-engine-utils": "^0.1",
     "event-engine/php-logger": "^0.1",
     "event-engine/php-messaging": "^0.1",
-    "event-engine/php-persistence": "^0.7",
+    "event-engine/php-persistence": "^0.8",
     "event-engine/php-schema": "^0.1",
     "fig/http-message-util": "^1.1",
     "psr/container": "^1.0",
@@ -33,7 +33,7 @@
   "require-dev": {
     "bookdown/bookdown": "1.x-dev",
     "event-engine/php-json-schema": "^1.0",
-    "event-engine/prooph-v7-event-store": "^0.8",
+    "event-engine/prooph-v7-event-store": "^0.9",
     "justinrainbow/json-schema": "^5.2",
     "malukenho/docheader": "^0.1.4",
     "opis/json-schema": "^1.0",
