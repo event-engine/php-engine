@@ -17,30 +17,30 @@
   ],
   "require": {
     "php": "^7.2",
-    "roave/security-advisories": "dev-master",
+    "codeliner/array-reader": "^2.0",
     "event-engine/php-data": "^1.0 || ^2.0-dev",
-    "event-engine/php-schema": "^0.1",
-    "event-engine/php-messaging": "^0.1",
     "event-engine/php-engine-utils": "^0.1",
     "event-engine/php-logger": "^0.1",
+    "event-engine/php-messaging": "^0.1",
     "event-engine/php-persistence": "^0.8",
-    "ramsey/uuid" : "^3.6",
+    "event-engine/php-schema": "^0.1",
+    "fig/http-message-util": "^1.1",
     "psr/container": "^1.0",
     "psr/http-message": "^1.0",
-    "fig/http-message-util": "^1.1",
-    "codeliner/array-reader": "^2.0",
-    "psr/http-server-middleware": "^1.0"
+    "psr/http-server-middleware": "^1.0",
+    "roave/security-advisories": "dev-master"
   },
   "require-dev": {
-    "phpunit/phpunit": "^7.0",
+    "bookdown/bookdown": "1.x-dev",
     "event-engine/php-json-schema": "^1.0",
     "event-engine/prooph-v7-event-store": "^0.9",
-    "bookdown/bookdown": "1.x-dev",
-    "prooph/php-cs-fixer-config": "^0.3",
-    "satooshi/php-coveralls": "^1.0",
-    "malukenho/docheader": "^0.1.4",
     "justinrainbow/json-schema": "^5.2",
-    "opis/json-schema": "^1.0"
+    "malukenho/docheader": "^0.1.4",
+    "opis/json-schema": "^1.0",
+    "phpunit/phpunit": "^7.0",
+    "prooph/php-cs-fixer-config": "^0.3",
+    "ramsey/uuid" : "^3.6 || ^4.0",
+    "satooshi/php-coveralls": "^1.0"
   },
   "autoload": {
     "psr-4": {
