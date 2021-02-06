@@ -3,13 +3,18 @@ language: php
 matrix:
   fast_finish: true
   include:
-    - php: 7.2
+    - php: 7.3
+      env:
+        - DEPENDENCIES=""
+        - EXECUTE_CS_CHECK=false
+        - TEST_COVERAGE=false
+
+    - php: 7.4
       env:
         - DEPENDENCIES=""
         - EXECUTE_CS_CHECK=true
         - TEST_COVERAGE=true
-
-    - php: 7.3
+    - php: 8.0
       env:
         - DEPENDENCIES=""
         - EXECUTE_CS_CHECK=false
