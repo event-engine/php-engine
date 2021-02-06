@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of event-engine/php-engine.
- * (c) 2018-2019 prooph software GmbH <contact@prooph.de>
+ * (c) 2018-2021 prooph software GmbH <contact@prooph.de>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -38,7 +38,7 @@ class EventEngineUniqueNameTest extends BasicTestCase
      */
     private $eventEngine;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -54,7 +54,7 @@ class EventEngineUniqueNameTest extends BasicTestCase
     public function it_does_not_allow_to_register_command_as_event()
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageRegExp('/Command with name/');
+        $this->expectExceptionMessageMatches('/Command with name/');
 
         $this->eventEngine->registerEvent(self::CMD_REGISTER_USER, JsonSchema::object([]));
     }
@@ -65,7 +65,7 @@ class EventEngineUniqueNameTest extends BasicTestCase
     public function it_does_not_allow_to_register_command_as_query()
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageRegExp('/Command with name/');
+        $this->expectExceptionMessageMatches('/Command with name/');
 
         $this->eventEngine->registerQuery(self::CMD_REGISTER_USER, JsonSchema::object([]));
     }
@@ -76,7 +76,7 @@ class EventEngineUniqueNameTest extends BasicTestCase
     public function it_does_not_allow_to_register_event_as_command()
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageRegExp('/Event with name/');
+        $this->expectExceptionMessageMatches('/Event with name/');
 
         $this->eventEngine->registerCommand(self::EV_USER_REGISTERED, JsonSchema::object([]));
     }
@@ -87,7 +87,7 @@ class EventEngineUniqueNameTest extends BasicTestCase
     public function it_does_not_allow_to_register_event_as_query()
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageRegExp('/Event with name/');
+        $this->expectExceptionMessageMatches('/Event with name/');
 
         $this->eventEngine->registerQuery(self::EV_USER_REGISTERED, JsonSchema::object([]));
     }
@@ -98,7 +98,7 @@ class EventEngineUniqueNameTest extends BasicTestCase
     public function it_does_not_allow_to_register_query_as_command()
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageRegExp('/Query with name/');
+        $this->expectExceptionMessageMatches('/Query with name/');
 
         $this->eventEngine->registerCommand(self::QY_LIST_USERS, JsonSchema::object([]));
     }
@@ -109,7 +109,7 @@ class EventEngineUniqueNameTest extends BasicTestCase
     public function it_does_not_allow_to_register_query_as_event()
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageRegExp('/Query with name/');
+        $this->expectExceptionMessageMatches('/Query with name/');
 
         $this->eventEngine->registerEvent(self::QY_LIST_USERS, JsonSchema::object([]));
     }

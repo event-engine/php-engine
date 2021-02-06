@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of event-engine/php-engine.
- * (c) 2018-2019 prooph software GmbH <contact@prooph.de>
+ * (c) 2018-2021 prooph software GmbH <contact@prooph.de>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -114,7 +114,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
      */
     private $flavour;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->eventEngine = new EventEngine($this->getSchemaInstance());
 
@@ -131,7 +131,7 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->appContainer = $this->prophesize(ContainerInterface::class);
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         $this->eventEngine = null;
         $this->eventStore = null;
@@ -1247,9 +1247,9 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->eventEngine->messageFactory()->createMessageFromArray('Guest', ['payload' => $guest]);
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of IdentifiedVisitor payload failed:');
-        $this->expectExceptionMessageRegExp('/\[email\]/');
-        $this->expectExceptionMessageRegExp('/required/');
+        $this->expectExceptionMessageMatches('/Validation of IdentifiedVisitor payload failed:');
+        $this->expectExceptionMessageMatches('/\[email\]/');
+        $this->expectExceptionMessageMatches('/required/');
 
         $this->eventEngine->messageFactory()->createMessageFromArray('IdentifiedVisitor', ['payload' => $guest]);
     }
@@ -1273,11 +1273,11 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         $this->bootstrapEventEngine();
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of ball payload failed:/');
-        $this->expectExceptionMessageRegExp('/\[color\]/');
-        $this->expectExceptionMessageRegExp('/"red"/');
-        $this->expectExceptionMessageRegExp('/"blue"/');
-        $this->expectExceptionMessageRegExp('/"yellow"/');
+        $this->expectExceptionMessageMatches('/Validation of ball payload failed:/');
+        $this->expectExceptionMessageMatches('/\[color\]/');
+        $this->expectExceptionMessageMatches('/"red"/');
+        $this->expectExceptionMessageMatches('/"blue"/');
+        $this->expectExceptionMessageMatches('/"yellow"/');
 
         $this->eventEngine->messageFactory()->createMessageFromArray('ball', ['payload' => ['color' => 'green']]);
     }
@@ -1304,10 +1304,10 @@ abstract class EventEngineTestAbstract extends BasicTestCase
         ];
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageRegExp('/Validation of AddIdentity payload failed:/');
-        $this->expectExceptionMessageRegExp('/\[identity.password\] Integer value found, but a string is required/');
-        $this->expectExceptionMessageRegExp('/integer/');
-        $this->expectExceptionMessageRegExp('/string/');
+        $this->expectExceptionMessageMatches('/Validation of AddIdentity payload failed:/');
+        $this->expectExceptionMessageMatches('/\[identity.password\] Integer value found, but a string is required/');
+        $this->expectExceptionMessageMatches('/integer/');
+        $this->expectExceptionMessageMatches('/string/');
 
         $this->eventEngine->messageFactory()->createMessageFromArray('AddIdentity', ['payload' => $userIdentityData]);
     }
