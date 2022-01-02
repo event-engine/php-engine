@@ -13,11 +13,11 @@ Event Engine is a CQRS / EventSourcing framework for PHP to help you rapidly dev
 
 ## Choose Your Flavour
 
-![Choose Your Flavour](https://event-engine.io/img/Choose_Flavour_no_h.png)
+![Choose Your Flavour](https://event-engine.github.io/img/Choose_Flavour_no_h.png)
 
 ## Event Sourcing Engine
 
-![Event Sourcing Engine](https://event-engine.io/api/img/Aggregate_Lifecycle.png)
+![Event Sourcing Engine](https://event-engine.github.io/api/img/Aggregate_Lifecycle.png)
 
 ## Installation
 
@@ -25,9 +25,9 @@ Head over to the [skeleton](https://github.com/event-engine/php-engine-skeleton)
 
 ## Tutorial
 
-[![Tutorial](https://event-engine.io/img/tutorial_screen.png)](https://event-engine.io/tutorial/)
+[![Tutorial](https://event-engine.github.io/img/tutorial_screen.png)](https://event-engine.io/tutorial/)
 
-**[GET STARTED](https://event-engine.io/tutorial/)**
+**[GET STARTED](https://event-engine.github.io/tutorial/)**
 
 ## Documentation
 
@@ -55,7 +55,7 @@ We had to change the name due to naming conflicts with other projects. In fact, 
 [![prooph software](https://github.com/codeliner/php-ddd-cargo-sample/blob/master/docs/assets/prooph-software-logo.png)](http://prooph.de)
 
 Event Engine is maintained by the [prooph software team](http://prooph-software.de/). The source code of Event Engine 
-is open sourced along with an API documentation and a [Getting Started Tutorial](https://event-engine.io/tutorial/). Prooph software offers commercial support and workshops
+is open sourced along with an API documentation and a [Getting Started Tutorial](https://event-engine.github.io/tutorial/). Prooph software offers commercial support and workshops
 for Event Engine and the [prooph components](http://getprooph.org/).
 
 If you are interested please [get in touch](http://prooph.de)
