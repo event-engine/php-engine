@@ -1,5 +1,5 @@
 {
-  "name": "event-engine/php-engine",
+  "name": "arnedesmedt/php-engine",
   "description": "CQRS / ES PHP SDK for event-engine.io",
   "homepage": "https://event-engine.io/",
   "license": "MIT",
