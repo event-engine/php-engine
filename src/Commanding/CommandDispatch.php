@@ -21,7 +21,6 @@ use EventEngine\Messaging\CommandDispatchResult;
 use EventEngine\Messaging\Message;
 use EventEngine\Messaging\MessageProducer;
 use EventEngine\Runtime\Flavour;
-use Psr\Log\LoggerInterface;
 
 final class CommandDispatch
 {

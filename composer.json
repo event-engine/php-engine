@@ -17,17 +17,13 @@
   ],
   "require": {
     "php": "^7.3 || ^8.0",
-    "codeliner/array-reader": "^2.0",
     "event-engine/php-data": "^1.0 || ^2.0.1",
     "event-engine/php-engine-utils": "^0.1 || ^0.2.1 || ^1.0",
     "event-engine/php-logger": "^0.1 || ^0.2.2",
     "event-engine/php-messaging": "^0.1 || ^0.2.1",
     "event-engine/php-persistence": "^0.8 || ^0.9.1",
     "event-engine/php-schema": "^0.1 || ^0.2 || ^0.3",
-    "fig/http-message-util": "^1.1",
-    "psr/container": "^1.0 || ^2.0",
-    "psr/http-message": "^1.0",
-    "psr/http-server-middleware": "^1.0"
+    "psr/container": "^1.0 || ^2.0"
   },
   "require-dev": {
     "bookdown/bookdown": "1.x-dev",
