@@ -118,7 +118,7 @@ final class CommandProcessor
         EventStore $eventStore,
         LogEngine $logEngine,
         EventEngine $eventEngine,
-        DocumentStore $documentStore = null,
+        ?DocumentStore $documentStore = null,
         $contextProviders = [],
         array $services = [],
         $forwardMetadata = false
@@ -194,8 +194,8 @@ final class CommandProcessor
         array $services,
         bool $forwardMetadata,
         array $contextProviders,
-        DocumentStore $documentStore = null,
-        string $aggregateCollection = null
+        ?DocumentStore $documentStore = null,
+        ?string $aggregateCollection = null
     ) {
         $this->commandName = $commandName;
         $this->aggregateType = $aggregateType;

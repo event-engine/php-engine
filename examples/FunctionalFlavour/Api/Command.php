@@ -36,7 +36,7 @@ final class Command
         return array_key_exists($commandName, self::CLASS_MAP);
     }
 
-    public static function createFromNameAndPayload(string $commandName, array $payload, array $metadata = null)
+    public static function createFromNameAndPayload(string $commandName, array $payload, ?array $metadata = null)
     {
         $class = self::CLASS_MAP[$commandName];
 

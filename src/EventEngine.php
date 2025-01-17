@@ -268,8 +268,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         EventStore $eventStore,
         LogEngine $logEngine,
         ContainerInterface $container,
-        DocumentStore $documentStore = null,
-        MessageProducer $eventQueue = null
+        ?DocumentStore $documentStore = null,
+        ?MessageProducer $eventQueue = null
     ): self {
         $self = new self($schema);
 
@@ -472,7 +472,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $this;
     }
 
-    public function registerQuery(string $queryName, PayloadSchema $payloadSchema = null): QueryDescription
+    public function registerQuery(string $queryName, ?PayloadSchema $payloadSchema = null): QueryDescription
     {
         $this->assertNotInitialized(__METHOD__);
 
@@ -511,12 +511,12 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $this->projectionMap[$projectionName] = $projectionDescription;
     }
 
-    public function registerType(string $nameOrImmutableRecordClass, ResponseTypeSchema $schema = null): void
+    public function registerType(string $nameOrImmutableRecordClass, ?ResponseTypeSchema $schema = null): void
     {
         $this->registerResponseType($nameOrImmutableRecordClass, $schema);
     }
 
-    public function registerResponseType(string $nameOrImmutableRecordClass, ResponseTypeSchema $schema = null): void
+    public function registerResponseType(string $nameOrImmutableRecordClass, ?ResponseTypeSchema $schema = null): void
     {
         $this->assertNotInitialized(__METHOD__);
 
@@ -543,7 +543,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         $this->typeSchemaMap->add($name, $schema);
     }
 
-    public function registerInputType(string $nameOrImmutableRecordClass, InputTypeSchema $schema = null): void
+    public function registerInputType(string $nameOrImmutableRecordClass, ?InputTypeSchema $schema = null): void
     {
         $this->assertNotInitialized(__METHOD__);
 
@@ -740,8 +740,8 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         EventStore $eventStore,
         LogEngine $logEngine,
         ContainerInterface $container,
-        DocumentStore $documentStore = null,
-        MessageProducer $eventQueue = null
+        ?DocumentStore $documentStore = null,
+        ?MessageProducer $eventQueue = null
     ): self {
         $this->assertNotInitialized(__METHOD__);
 
@@ -1020,7 +1020,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         }
     }
 
-    public function loadAggregateState(string $aggregateType, string $aggregateId, int $expectedVersion = null)
+    public function loadAggregateState(string $aggregateType, string $aggregateId, ?int $expectedVersion = null)
     {
         $this->assertBootstrapped(__METHOD__);
 
@@ -1050,7 +1050,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         string $aggregateType,
         string $aggregateId,
         int $minVersion = 1,
-        int $maxVersion = null
+        ?int $maxVersion = null
     ): \Iterator
     {
         $this->assertBootstrapped(__METHOD__);
@@ -1075,7 +1075,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
     }
 
 
-    public function loadAggregateStateUntil(string $aggregateType, string $aggregateId, int $maxVersion = null)
+    public function loadAggregateStateUntil(string $aggregateType, string $aggregateId, ?int $maxVersion = null)
     {
         $this->assertBootstrapped(__METHOD__);
 
@@ -1090,7 +1090,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
         return $aggregate->currentState();
     }
 
-    private function loadAggregateRoot(string $aggregateType, string $aggregateId, int $expectedVersion = null, bool $forceReplay = false)
+    private function loadAggregateRoot(string $aggregateType, string $aggregateId, ?int $expectedVersion = null, bool $forceReplay = false)
     {
         $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
 
@@ -1135,7 +1135,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      * @param int $maxVersion
      * @return FlavouredAggregateRoot
      */
-    private function loadAggregateRootUntil(string $aggregateType, string $aggregateId, int $maxVersion = null): FlavouredAggregateRoot
+    private function loadAggregateRootUntil(string $aggregateType, string $aggregateId, ?int $maxVersion = null): FlavouredAggregateRoot
     {
         $aggregateDesc = $this->aggregateDescriptions[$aggregateType];
 
@@ -1330,7 +1330,7 @@ final class EventEngine implements MessageDispatcher, MessageProducer, Aggregate
      * @param int|null $expectedVersion
      * @return null|mixed Null is returned if no state is cached, otherwise the cached process state
      */
-    public function loadAggregateStateFromCache(string $aggregateType, string $aggregateId, int $expectedVersion = null)
+    public function loadAggregateStateFromCache(string $aggregateType, string $aggregateId, ?int $expectedVersion = null)
     {
         $cache = $this->aggregateCache[$aggregateType][$aggregateId] ?? null;
         if (!$cache) {
