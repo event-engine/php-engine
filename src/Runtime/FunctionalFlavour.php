@@ -63,7 +63,7 @@ final class FunctionalFlavour implements Flavour, MessageFactoryAware
      */
     private $aggregateMetadataProvider;
 
-    public function __construct(Port $port, DataConverter $dataConverter = null, MetadataProvider $metadataProvider = null)
+    public function __construct(Port $port, ?DataConverter $dataConverter = null, ?MetadataProvider $metadataProvider = null)
     {
         $this->port = $port;
 

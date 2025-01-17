@@ -74,7 +74,7 @@ final class ProjectionInfo
         );
     }
 
-    private function __construct(string $name, string $version, StreamCollection $sourceStreams, string $aggregateTypeFilter = null, array $eventsFilter = null)
+    private function __construct(string $name, string $version, StreamCollection $sourceStreams, ?string $aggregateTypeFilter = null, ?array $eventsFilter = null)
     {
         $this->name = $name;
         $this->version = $version;

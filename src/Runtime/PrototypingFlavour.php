@@ -62,7 +62,7 @@ final class PrototypingFlavour implements Flavour, MessageFactoryAware
      */
     private $aggregateMetadataProvider;
 
-    public function __construct(DataConverter $dataConverter = null, MetadataProvider $metadataProvider = null)
+    public function __construct(?DataConverter $dataConverter = null, ?MetadataProvider $metadataProvider = null)
     {
         if (null === $dataConverter) {
             $dataConverter = new ImmutableRecordDataConverter();

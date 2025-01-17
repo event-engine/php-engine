@@ -185,9 +185,9 @@ abstract class EventEngineTestAbstract extends BasicTestCase
     }
 
     protected function initializeEventEngine(
-        LogEngine $logEngine = null,
-        DocumentStore $documentStore = null,
-        MessageProducer $eventQueue = null,
+        ?LogEngine $logEngine = null,
+        ?DocumentStore $documentStore = null,
+        ?MessageProducer $eventQueue = null,
         bool $autoProjecting = false,
         bool $forwardMetadata = false
     ): void {

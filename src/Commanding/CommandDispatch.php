@@ -53,7 +53,7 @@ final class CommandDispatch
         bool $autoProject,
         MessageProducer $eventQueue,
         EventEngine $eventEngine,
-        DocumentStore $documentStore = null,
+        ?DocumentStore $documentStore = null,
         array $contextProviders = [],
         array $services = [],
         bool $forwardMetadata = false

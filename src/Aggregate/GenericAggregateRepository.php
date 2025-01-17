@@ -54,9 +54,9 @@ final class GenericAggregateRepository
         Flavour $flavour,
         EventStore $eventStore,
         string $streamName,
-        DocumentStore $documentStore = null,
-        string $aggregateCollection = null,
-        string $multiStoreMode = null
+        ?DocumentStore $documentStore = null,
+        ?string $aggregateCollection = null,
+        ?string $multiStoreMode = null
     ) {
         $this->flavour = $flavour;
         $this->eventStore = $eventStore;
@@ -140,7 +140,7 @@ final class GenericAggregateRepository
         string $aggregateType,
         string $aggregateId,
         array $eventApplyMap,
-        int $expectedVersion = null
+        ?int $expectedVersion = null
     ): ?FlavouredAggregateRoot {
         $documentStore = $this->getDocumentStore();
 
@@ -207,7 +207,7 @@ final class GenericAggregateRepository
         string $aggregateType,
         string $aggregateId,
         array $eventApplyMap,
-        int $maxVersion = null
+        ?int $maxVersion = null
     ): ?FlavouredAggregateRoot {
         $streamEvents = $this->eventStore->loadAggregateEvents($this->streamName, $aggregateType, $aggregateId, 1, $maxVersion);
 
